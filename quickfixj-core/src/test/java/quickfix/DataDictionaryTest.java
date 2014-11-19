@@ -172,7 +172,7 @@ public class DataDictionaryTest extends TestCase {
 
     public void testHeaderTrailerRequired() throws Exception {
         String data = "";
-        data += "<fix major=\"4\" minor=\"0\">";
+        data += "<fix major=\"4\" minor=\"0\" xmlns=\"http://quickfixj.org/xml/dictionary\">";
         data += "  <header>";
         data += "    <field name=\"BeginString\" required=\"Y\"/>";
         data += "    <field name=\"OnBehalfOfCompID\" required=\"N\"/>";
@@ -181,18 +181,21 @@ public class DataDictionaryTest extends TestCase {
         data += "    <field name=\"CheckSum\" required=\"Y\"/>";
         data += "    <field name=\"Signature\" required=\"N\"/>";
         data += "  </trailer>";
+        data += "  <messages>";
+        data += "    <message name=\"Heartbeat\" msgtype=\"0\" msgcat=\"admin\">";
+        data += "      <group name=\"TestReqID\" required=\"N\">";
+        data += "           <field name=\"MyField\" required=\"Y\"/>";
+        data += "      </group>";
+        data += "    </message>";
+        data += "  </messages>";
         data += "  <fields>";
         data += "    <field number=\"8\" name=\"BeginString\" type=\"STRING\"/>";
         data += "    <field number=\"115\" name=\"OnBehalfOfCompID\" type=\"STRING\"/>";
         data += "    <field number=\"10\" name=\"CheckSum\" type=\"STRING\"/>";
         data += "    <field number=\"89\" name=\"Signature\" type=\"STRING\"/>";
         data += "    <field number=\"37\" name=\"TestReqID\" type=\"STRING\"/>";
+        data += "    <field number=\"4000\" name=\"MyField\" type=\"STRING\"/>";
         data += "  </fields>";
-        data += "  <messages>";
-        data += "    <message name=\"Heartbeat\" msgtype=\"0\" msgcat=\"admin\">";
-        data += "      <group name=\"TestReqID\" required=\"N\"/>";
-        data += "    </message>";
-        data += "  </messages>";
         data += "</fix>";
 
         DataDictionary dd = new DataDictionary(new ByteArrayInputStream(data.getBytes()));

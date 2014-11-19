@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema xmlns="http://www.w3.org/2001/XMLSchema" targetNamespace="http://quickfixj.org/xml/dictionary"
+	xmlns:tns="http://quickfixj.org/xml/dictionary" elementFormDefault="qualified"
+>
+
+	<element name="fix" type="tns:data.dictionary.config">
+		<key name="ComponentNameKey">
+			<selector xpath="tns:components/tns:component" />
+			<field xpath="@name" />
+		</key>
+		<key name="FieldNameKey">
+			<selector xpath="tns:fields/tns:field" />
+			<field xpath="@name" />
+		</key>
+		<keyref name="FieldNameKeyRef" refer="tns:FieldNameKey">
+			<selector
+				xpath="
+                    tns:header/tns:field |
+                    tns:header/tns:group |
+                    tns:trailer/tns:field |
+                    tns:trailer/tns:group |
+                    tns:messages/tns:message/tns:field |
+                    tns:messages/tns:message/tns:group |
+                    tns:components/tns:component/tns:field |
+                    tns:components/tns:component/tns:group
+				    " />
+			<field xpath="@name" />
+		</keyref>
+	</element>
+
+	<element name="header" type="tns:data.dictionary.subsection">
+		<unique name="HeaderParticleName">
+			<selector xpath="tns:field | tns:group" />
+			<field xpath="@name" />
+		</unique>
+		<unique name="HeaderComponentName">
+			<selector xpath="tns:component" />
+			<field xpath="@name" />
+		</unique>
+	</element>
+
+	<element name="trailer" type="tns:data.dictionary.subsection">
+		<unique name="TrailerParticleName">
+			<selector xpath="tns:field | tns:group" />
+			<field xpath="@name" />
+		</unique>
+		<unique name="TrailerComponentName">
+			<selector xpath="tns:component" />
+			<field xpath="@name" />
+		</unique>
+	</element>
+
+	<group name="particles">
+		<choice>
+			<element name="field" type="tns:field.reference" />
+			<element name="component" type="tns:component.reference" />
+			<element name="group" type="tns:group.definition">
+				<unique name="GroupParticleName">
+					<selector xpath="tns:field | tns:group" />
+					<field xpath="@name" />
+				</unique>
+				<unique name="GroupComponentName">
+					<selector xpath="tns:component" />
+					<field xpath="@name" />
+				</unique>
+			</element>
+		</choice>
+	</group>
+
+	<complexType name="data.dictionary.config">
+		<sequence>
+			<element ref="tns:header" />
+			<element ref="tns:trailer" />
+			<element name="messages">
+				<complexType>
+					<sequence minOccurs="1" maxOccurs="unbounded">
+						<element name="message" type="tns:message.definition">
+							<unique name="MessageParticleName">
+								<selector xpath="tns:field | tns:group" />
+								<field xpath="@name" />
+							</unique>
+							<unique name="MessageComponentName">
+								<selector xpath="tns:component" />
+								<field xpath="@name" />
+							</unique>
+						</element>
+					</sequence>
+				</complexType>
+			</element>
+			<element name="components" minOccurs="0">
+				<complexType>
+					<sequence>
+						<element name="component" type="tns:component.definition" minOccurs="0"
+							maxOccurs="unbounded"
+						>
+							<unique name="ComponentParticleName">
+								<selector xpath="tns:field | tns:group" />
+								<field xpath="@name" />
+							</unique>
+							<unique name="ComponentComponentName">
+								<selector xpath="tns:component" />
+								<field xpath="@name" />
+							</unique>
+						</element>
+					</sequence>
+				</complexType>
+			</element>
+			<element name="fields">
+				<complexType>
+					<sequence>
+						<element name="field" type="tns:field.definition" minOccurs="0"
+							maxOccurs="unbounded" />
+					</sequence>
+				</complexType>
+			</element>
+		</sequence>
+		<attribute name="type" default="FIX" type="string" />
+		<attribute name="major" use="required" type="string" />
+		<attribute name="minor" use="required" type="string" />
+	</complexType>
+
+	<complexType name="data.dictionary.subsection">
+		<group ref="tns:particles" minOccurs="0" maxOccurs="unbounded" />
+	</complexType>
+
+	<complexType name="message.particle" abstract="true">
+		<attribute name="name" use="required" type="string" />
+		<attribute name="required" default="N" type="tns:enum.boolean" />
+	</complexType>
+
+	<complexType name="field.reference">
+		<complexContent>
+			<extension base="tns:message.particle">
+				<attribute name="repeating" default="N" type="tns:enum.boolean" />
+			</extension>
+		</complexContent>
+	</complexType>
+
+	<complexType name="component.reference">
+		<complexContent>
+			<extension base="tns:message.particle">
+			</extension>
+		</complexContent>
+	</complexType>
+
+	<complexType name="group.definition">
+		<complexContent>
+			<extension base="tns:message.particle">
+				<group ref="tns:particles" minOccurs="1" maxOccurs="unbounded" />
+			</extension>
+		</complexContent>
+	</complexType>
+
+	<complexType name="type.definition" abstract="true">
+		<attribute name="name" use="required" type="string" />
+	</complexType>
+
+	<complexType name="message.definition">
+		<complexContent>
+			<extension base="tns:type.definition">
+				<group ref="tns:particles" minOccurs="1" maxOccurs="unbounded" />
+				<attribute name="msgtype" use="required" type="string" />
+				<attribute name="msgcat" use="required" type="tns:enum.messageCategory" />
+			</extension>
+		</complexContent>
+	</complexType>
+
+	<complexType name="component.definition">
+		<complexContent>
+			<extension base="tns:type.definition">
+				<group ref="tns:particles" minOccurs="1" maxOccurs="unbounded" />
+			</extension>
+		</complexContent>
+	</complexType>
+
+	<complexType name="field.definition">
+		<complexContent>
+			<extension base="tns:type.definition">
+				<sequence>
+					<element name="value" minOccurs="0" maxOccurs="unbounded">
+						<complexType>
+							<attribute name="enum" use="required" />
+							<attribute name="description" use="required" />
+						</complexType>
+					</element>
+				</sequence>
+				<attribute name="number" use="required" type="int" />
+				<attribute name="type" use="required" type="tns:enum.fieldType" />
+				<attribute name="allowOtherValues" type="boolean" default="false" />
+			</extension>
+		</complexContent>
+	</complexType>
+
+	<simpleType name="enum.boolean">
+		<restriction base="string">
+			<enumeration value="Y" />
+			<enumeration value="N" />
+		</restriction>
+	</simpleType>
+
+	<simpleType name="enum.messageCategory">
+		<restriction base="string">
+			<enumeration value="admin" />
+			<enumeration value="app" />
+		</restriction>
+	</simpleType>
+
+	<simpleType name="enum.fieldType">
+		<restriction base="string">
+
+			<enumeration value="INT" />
+			<enumeration value="LENGTH" />
+			<enumeration value="TAGNUM" />
+			<enumeration value="SEQNUM" />
+			<enumeration value="NUMINGROUP" />
+			<enumeration value="DAYOFMONTH">
+				<annotation>
+					<documentation>Added 4.1</documentation>
+				</annotation>
+			</enumeration>
+
+			<enumeration value="FLOAT" />
+			<enumeration value="QTY">
+				<annotation>
+					<documentation>Added 4.2</documentation>
+				</annotation>
+			</enumeration>
+			<enumeration value="PRICE">
+				<annotation>
+					<documentation>Added 4.2</documentation>
+				</annotation>
+			</enumeration>
+			<enumeration value="PRICEOFFSET">
+				<annotation>
+					<documentation>Added 4.2</documentation>
+				</annotation>
+			</enumeration>
+			<enumeration value="AMT">
+				<annotation>
+					<documentation>Added 4.2</documentation>
+				</annotation>
+			</enumeration>
+			<enumeration value="PERCENTAGE" />
+
+			<enumeration value="CHAR" />
+			<enumeration value="BOOLEAN" />
+
+			<enumeration value="STRING">
+				<annotation>
+					<documentation>Added 4.2</documentation>
+				</annotation>
+			</enumeration>
+			<enumeration value="MULTIPLECHARVALUE" />
+			<enumeration value="MULTIPLESTRINGVALUE">
+				<annotation>
+					<documentation>Added 4.2</documentation>
+				</annotation>
+			</enumeration>
+			<enumeration value="COUNTRY" />
+			<enumeration value="CURRENCY">
+				<annotation>
+					<documentation>Added 4.2</documentation>
+				</annotation>
+			</enumeration>
+			<enumeration value="EXCHANGE">
+				<annotation>
+					<documentation>Added 4.2</documentation>
+				</annotation>
+			</enumeration>
+			<enumeration value="DATE">
+				<annotation>
+					<documentation>Added 4.0, deprecated 4.1</documentation>
+				</annotation>
+			</enumeration>
+			<enumeration value="TIME">
+				<annotation>
+					<documentation>Added 4.0, deprecated 4.1</documentation>
+				</annotation>
+			</enumeration>
+			<enumeration value="MONTHYEAR">
+				<annotation>
+					<documentation>Added 4.1</documentation>
+				</annotation>
+			</enumeration>
+			<enumeration value="UTCTIMESTAMP">
+				<annotation>
+					<documentation>Added 4.2</documentation>
+				</annotation>
+			</enumeration>
+			<enumeration value="UTCTIMEONLY">
+				<annotation>
+					<documentation>Added 4.2</documentation>
+				</annotation>
+			</enumeration>
+			<enumeration value="UTCDATEONLY" />
+			<enumeration value="UTCDATE">
+				<annotation>
+					<documentation>Added 4.2</documentation>
+				</annotation>
+			</enumeration>
+			<enumeration value="LOCALMKTDATE">
+				<annotation>
+					<documentation>Added 4.2</documentation>
+				</annotation>
+			</enumeration>
+			<enumeration value="TZTIMESTAMP" />
+			<enumeration value="TZTIMEONLY" />
+			<enumeration value="DATA" />
+
+			<enumeration value="PATTERN" />
+			<enumeration value="RESERVED100PLUS" />
+			<enumeration value="RESERVED1000PLUS" />
+			<enumeration value="RESERVED4000PLUS" />
+
+			<enumeration value="XMLDATA" />
+			<enumeration value="LANGUAGE" />
+
+		</restriction>
+	</simpleType>
+
+</schema>
