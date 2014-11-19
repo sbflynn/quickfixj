@@ -1,4 +1,6 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd"
+>
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>org.quickfixj</groupId>
@@ -53,7 +55,7 @@
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-jdk14</artifactId>
 			<version>1.6.3</version>
-		    <scope>test</scope>
+			<scope>test</scope>
 		</dependency>
 
 		<dependency>
@@ -86,7 +88,7 @@
 			</exclusions>
 		</dependency>
 		<dependency>
-		    <!-- slf4j facade for JCL which is required by proxool -->
+			<!-- slf4j facade for JCL which is required by proxool -->
 			<groupId>org.slf4j</groupId>
 			<artifactId>jcl-over-slf4j</artifactId>
 			<version>1.6.3</version>
@@ -143,9 +145,36 @@
 
 		<plugins>
 			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>jaxb2-maven-plugin</artifactId>
+				<version>1.6</version>
+				<configuration>
+					<schemaDirectory>${project.basedir}/src/main/resources/META-INF/xsd</schemaDirectory>
+					<outputDirectory>${project.build.directory}/generated-sources-xsd</outputDirectory>
+				</configuration>
+				<executions>
+					<execution>
+						<id>xjc</id>
+						<goals>
+							<goal>xjc</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
 				<groupId>org.quickfixj</groupId>
 				<artifactId>quickfixj-codegenerator</artifactId>
 				<version>${project.version}</version>
+				<configuration>
+					<validate>false</validate>
+				</configuration>
+				<dependencies>
+					<dependency>
+						<groupId>org.quickfixj</groupId>
+						<artifactId>quickfixj-core</artifactId>
+						<version>${project.version}</version>
+					</dependency>
+				</dependencies>
 				<executions>
 					<execution>
 						<id>fixt11</id>
@@ -263,7 +292,7 @@
 					<instructions>
 						<Export-Package>quickfix,quickfix.field.*,quickfix.mina.*,org.quickfixj.*</Export-Package>
 						<Import-Package>
-							<!-- add dynamically-loaded version-specific message factories (optional)-->
+							<!-- add dynamically-loaded version-specific message factories (optional) -->
 							quickfix.fix40;resolution:=optional,
 							quickfix.fix41;resolution:=optional,
 							quickfix.fix42;resolution:=optional,
@@ -276,7 +305,7 @@
 							<!-- add the required imports -->
 							quickfix,quickfix.field,*
 						</Import-Package>
-						<Private-Package/>
+						<Private-Package />
 					</instructions>
 				</configuration>
 			</plugin>
@@ -309,7 +338,7 @@
 			<plugin>
 				<artifactId>maven-surefire-report-plugin</artifactId>
 				<version>2.16</version>
-				<reportSets/>
+				<reportSets />
 				<configuration>
 					<showSuccess>true</showSuccess>
 				</configuration>
@@ -336,7 +365,7 @@
 				</property>
 			</activation>
 			<properties>
-				<acceptance.tests/>
+				<acceptance.tests />
 			</properties>
 		</profile>
 	</profiles>

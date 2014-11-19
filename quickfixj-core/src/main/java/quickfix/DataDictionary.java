@@ -35,14 +35,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.XMLConstants;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.bind.helpers.DefaultValidationEventHandler;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
 
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
+import org.quickfixj.xml.dictionary.ComponentDefinition;
+import org.quickfixj.xml.dictionary.ComponentReference;
+import org.quickfixj.xml.dictionary.DataDictionaryConfig;
+import org.quickfixj.xml.dictionary.DataDictionaryConfig.Fields;
+import org.quickfixj.xml.dictionary.DataDictionaryConfig.Messages;
+import org.quickfixj.xml.dictionary.DataDictionarySubsection;
+import org.quickfixj.xml.dictionary.EnumBoolean;
+import org.quickfixj.xml.dictionary.FieldDefinition;
+import org.quickfixj.xml.dictionary.FieldReference;
+import org.quickfixj.xml.dictionary.GroupDefinition;
+import org.quickfixj.xml.dictionary.MessageDefinition;
+import org.quickfixj.xml.dictionary.MessageParticle;
+import org.quickfixj.xml.dictionary.ObjectFactory;
+import org.xml.sax.SAXException;
 
 import quickfix.field.BeginString;
 import quickfix.field.MsgType;
@@ -59,38 +74,65 @@ import quickfix.field.converter.UtcTimestampConverter;
  * Provide the message metadata for various versions of FIX.
  */
 public class DataDictionary {
+
     private static final String FIXT_PREFIX = "FIXT";
+
     private static final String FIX_PREFIX = "FIX";
+
     public static final String ANY_VALUE = "__ANY__";
+
     public static final String HEADER_ID = "HEADER";
+
     public static final String TRAILER_ID = "TRAILER";
+
     private static final String MESSAGE_CATEGORY_ADMIN = "admin".intern();
+
     private static final String MESSAGE_CATEGORY_APP = "app".intern();
 
     private static final int USER_DEFINED_TAG_MIN = 5000;
-    private static final String NO = "N";
+
     private boolean hasVersion = false;
+
     private boolean checkFieldsOutOfOrder = true;
+
     private boolean checkFieldsHaveValues = true;
+
     private boolean checkUserDefinedFields = true;
+
     private boolean checkUnorderedGroupFields = true;
+
     private boolean allowUnknownMessageFields = false;
+
+    private int[] orderedFieldsArray;
+
     private String beginString;
+
     private final Map<String, Set<Integer>> messageFields = new HashMap<String, Set<Integer>>();
+
     private final Map<String, Set<Integer>> requiredFields = new HashMap<String, Set<Integer>>();
+
     private final Set<String> messages = new HashSet<String>();
+
     private final Map<String, String> messageCategory = new HashMap<String, String>();
+
     private final Map<String, String> messageTypeForName = new HashMap<String, String>();
+
     private final LinkedHashSet<Integer> fields = new LinkedHashSet<Integer>();
+
     private final Map<Integer, FieldType> fieldTypes = new HashMap<Integer, FieldType>();
+
     private final Map<Integer, Set<String>> fieldValues = new HashMap<Integer, Set<String>>();
+
     private final Map<Integer, String> fieldNames = new HashMap<Integer, String>();
+
     private final Map<String, Integer> names = new HashMap<String, Integer>();
+
     private final Map<IntStringPair, String> valueNames = new HashMap<IntStringPair, String>();
+
     private final Map<IntStringPair, GroupInfo> groups = new HashMap<IntStringPair, GroupInfo>();
-    private final Map<String, Node> components = new HashMap<String, Node>();
 
     private DataDictionary() {
+
     }
 
     /**
@@ -100,6 +142,7 @@ public class DataDictionary {
      * @throws ConfigError
      */
     public DataDictionary(String location) throws ConfigError {
+
         read(location);
     }
 
@@ -110,19 +153,23 @@ public class DataDictionary {
      * @throws ConfigError
      */
     public DataDictionary(InputStream in) throws ConfigError {
-        load(in);
+
+        loadJaxb(in);
     }
 
     /**
      * Copy a data dictionary.
      *
-     * @param source the source dictionary that will be copied into this dictionary
+     * @param source the source dictionary that will be copied into this
+     *        dictionary
      */
     public DataDictionary(DataDictionary source) {
+
         copyFrom(source);
     }
 
     private void setVersion(String beginString) {
+
         this.beginString = beginString;
         hasVersion = true;
     }
@@ -133,16 +180,20 @@ public class DataDictionary {
      * @return the FIX version
      */
     public String getVersion() {
+
         return beginString;
     }
 
     private void addField(int field) {
+
         fields.add(field);
     }
 
     private void addFieldName(int field, String name) throws ConfigError {
+
         if (names.put(name, field) != null) {
-            throw new ConfigError("Field named " + name + " defined multiple times");
+            throw new ConfigError("Field named " + name
+                    + " defined multiple times");
         }
         fieldNames.put(field, name);
     }
@@ -154,10 +205,12 @@ public class DataDictionary {
      * @return the field name
      */
     public String getFieldName(int field) {
+
         return fieldNames.get(field);
     }
 
     private void addValueName(int field, String value, String name) {
+
         valueNames.put(new IntStringPair(field, value), name);
     }
 
@@ -169,6 +222,7 @@ public class DataDictionary {
      * @return the value's name
      */
     public String getValueName(int field, String value) {
+
         return valueNames.get(new IntStringPair(field, value));
     }
 
@@ -179,6 +233,7 @@ public class DataDictionary {
      * @return true if the field is defined, false otherwise
      */
     public boolean isField(int field) {
+
         return fields.contains(field);
     }
 
@@ -189,10 +244,12 @@ public class DataDictionary {
      * @return the field type
      */
     public FieldType getFieldTypeEnum(int field) {
+
         return fieldTypes.get(field);
     }
 
     private void addMsgType(String msgType, String msgName) {
+
         messages.add(msgType);
         if (msgName != null) {
             messageTypeForName.put(msgName, msgType);
@@ -206,6 +263,7 @@ public class DataDictionary {
      * @return the message type
      */
     public String getMsgType(String msgName) {
+
         return messageTypeForName.get(msgName);
     }
 
@@ -217,6 +275,7 @@ public class DataDictionary {
      * @return true if the message type if defined, false otherwise
      */
     public boolean isMsgType(String msgType) {
+
         return messages.contains(msgType);
     }
 
@@ -224,10 +283,11 @@ public class DataDictionary {
      * Predicate for determining if a message is in the admin category.
      *
      * @param msgType the messageType
-     * @return true, if the msgType is a AdminMessage
-     *         false, if the msgType is a ApplicationMessage
+     * @return true, if the msgType is a AdminMessage false, if the msgType is a
+     *         ApplicationMessage
      */
     public boolean isAdminMessage(String msgType) {
+
         // Categories are interned
         return MESSAGE_CATEGORY_ADMIN.equals(messageCategory.get(msgType));
     }
@@ -236,15 +296,17 @@ public class DataDictionary {
      * Predicate for determining if a message is in the app category.
      *
      * @param msgType the messageType
-     * @return true, if the msgType is a ApplicationMessage
-     *         false, if the msgType is a AdminMessage
+     * @return true, if the msgType is a ApplicationMessage false, if the
+     *         msgType is a AdminMessage
      */
     public boolean isAppMessage(String msgType) {
+
         // Categories are interned
         return MESSAGE_CATEGORY_APP.equals(messageCategory.get(msgType));
     }
 
     private void addMsgField(String msgType, int field) {
+
         Set<Integer> fields = messageFields.get(msgType);
         if (fields == null) {
             fields = new HashSet<Integer>();
@@ -261,6 +323,7 @@ public class DataDictionary {
      * @return true if field is defined for message, false otherwise.
      */
     public boolean isMsgField(String msgType, int field) {
+
         final Set<Integer> fields = messageFields.get(msgType);
         return fields != null && fields.contains(field);
     }
@@ -272,6 +335,7 @@ public class DataDictionary {
      * @return true if field is a header field, false otherwise.
      */
     public boolean isHeaderField(int field) {
+
         Set<Integer> fields = messageFields.get(HEADER_ID);
         return fields != null && fields.contains(field);
     }
@@ -283,11 +347,13 @@ public class DataDictionary {
      * @return true if field is a trailer field, false otherwise.
      */
     public boolean isTrailerField(int field) {
+
         Set<Integer> fields = messageFields.get(TRAILER_ID);
         return fields != null && fields.contains(field);
     }
 
     private void addFieldType(int field, FieldType fieldType) {
+
         fieldTypes.put(field, fieldType);
     }
 
@@ -299,6 +365,7 @@ public class DataDictionary {
      * @see #getFieldTypeEnum
      */
     public int getFieldType(int field) {
+
         return getFieldTypeEnum(field).getOrdinal();
     }
 
@@ -309,11 +376,13 @@ public class DataDictionary {
      * @return the tag
      */
     public int getFieldTag(String name) {
+
         final Integer tag = names.get(name);
         return tag != null ? tag : -1;
     }
 
     private void addRequiredField(String msgType, int field) {
+
         Set<Integer> fields = requiredFields.get(msgType);
         if (fields == null) {
             fields = new HashSet<Integer>();
@@ -330,6 +399,7 @@ public class DataDictionary {
      * @return true if field is required, false otherwise
      */
     public boolean isRequiredField(String msgType, int field) {
+
         final Set<Integer> fields = requiredFields.get(msgType);
         return fields != null && fields.contains(field);
     }
@@ -341,6 +411,7 @@ public class DataDictionary {
      * @return true if field s required, false otherwise
      */
     public boolean isRequiredHeaderField(int field) {
+
         return isRequiredField(HEADER_ID, field);
     }
 
@@ -351,10 +422,12 @@ public class DataDictionary {
      * @return true if field s required, false otherwise
      */
     public boolean isRequiredTrailerField(int field) {
+
         return isRequiredField(TRAILER_ID, field);
     }
 
     private void addFieldValue(int field, String value) {
+
         Set<String> values = fieldValues.get(field);
         if (values == null) {
             values = new HashSet<String>();
@@ -370,6 +443,7 @@ public class DataDictionary {
      * @return true if field is enumerated, false otherwise
      */
     public boolean hasFieldValue(int field) {
+
         final Set<String> values = fieldValues.get(field);
         return values != null && values.size() > 0;
     }
@@ -382,6 +456,7 @@ public class DataDictionary {
      * @return true if field value is valid, false otherwise
      */
     public boolean isFieldValue(int field, String value) {
+
         final Set<String> validValues = fieldValues.get(field);
 
         if (validValues == null || validValues.size() == 0) {
@@ -406,8 +481,11 @@ public class DataDictionary {
         return true;
     }
 
-    private void addGroup(String msg, int field, int delim, DataDictionary dataDictionary) {
-        groups.put(new IntStringPair(field, msg), new GroupInfo(delim, dataDictionary));
+    private void addGroup(String msg, int field, int delim,
+            DataDictionary dataDictionary) {
+
+        groups.put(new IntStringPair(field, msg), new GroupInfo(delim,
+                dataDictionary));
     }
 
     /**
@@ -419,6 +497,7 @@ public class DataDictionary {
      * @return true if field starts a repeating group, false otherwise
      */
     public boolean isGroup(String msg, int field) {
+
         return groups.containsKey(new IntStringPair(field, msg));
     }
 
@@ -429,6 +508,7 @@ public class DataDictionary {
      * @return true if field starts a repeating group, false otherwise
      */
     public boolean isHeaderGroup(int field) {
+
         return groups.containsKey(new IntStringPair(field, HEADER_ID));
     }
 
@@ -440,6 +520,7 @@ public class DataDictionary {
      * @return an object containing group-related metadata
      */
     public GroupInfo getGroup(String msg, int field) {
+
         return groups.get(new IntStringPair(field, msg));
     }
 
@@ -450,10 +531,12 @@ public class DataDictionary {
      * @return true if field is a raw data field, false otherwise
      */
     public boolean isDataField(int field) {
+
         return fieldTypes.get(field) == FieldType.Data;
     }
 
     private boolean isMultipleValueStringField(int field) {
+
         return fieldTypes.get(field) == FieldType.MultipleValueString;
     }
 
@@ -463,14 +546,17 @@ public class DataDictionary {
      * @param flag true = checked, false = not checked
      */
     public void setCheckFieldsOutOfOrder(boolean flag) {
+
         checkFieldsOutOfOrder = flag;
     }
 
     public boolean isCheckFieldsOutOfOrder() {
+
         return checkFieldsOutOfOrder;
     }
 
     public boolean isCheckUnorderedGroupFields() {
+
         return checkUnorderedGroupFields;
     }
 
@@ -480,6 +566,7 @@ public class DataDictionary {
      * @param flag true = checked, false = not checked
      */
     public void setCheckUnorderedGroupFields(boolean flag) {
+
         checkUnorderedGroupFields = flag;
         for (GroupInfo gi : groups.values()) {
             gi.getDataDictionary().setCheckUnorderedGroupFields(flag);
@@ -492,6 +579,7 @@ public class DataDictionary {
      * @param flag true = checked, false = not checked
      */
     public void setCheckFieldsHaveValues(boolean flag) {
+
         checkFieldsHaveValues = flag;
         for (GroupInfo gi : groups.values()) {
             gi.getDataDictionary().setCheckFieldsHaveValues(flag);
@@ -504,6 +592,7 @@ public class DataDictionary {
      * @param flag true = checked, false = not checked
      */
     public void setCheckUserDefinedFields(boolean flag) {
+
         checkUserDefinedFields = flag;
         for (GroupInfo gi : groups.values()) {
             gi.getDataDictionary().setCheckUserDefinedFields(flag);
@@ -511,13 +600,16 @@ public class DataDictionary {
     }
 
     public void setAllowUnknownMessageFields(boolean allowUnknownFields) {
+
         allowUnknownMessageFields = allowUnknownFields;
         for (GroupInfo gi : groups.values()) {
-            gi.getDataDictionary().setAllowUnknownMessageFields(allowUnknownFields);
+            gi.getDataDictionary().setAllowUnknownMessageFields(
+                    allowUnknownFields);
         }
     }
 
     private void copyFrom(DataDictionary rhs) {
+
         hasVersion = rhs.hasVersion;
         beginString = rhs.beginString;
         checkFieldsOutOfOrder = rhs.checkFieldsOutOfOrder;
@@ -534,11 +626,11 @@ public class DataDictionary {
         copyMap(names, rhs.names);
         copyMap(valueNames, rhs.valueNames);
         copyMap(groups, rhs.groups);
-        copyMap(components, rhs.components);
     }
 
     @SuppressWarnings("unchecked")
     private <K, V> void copyMap(Map<K, V> lhs, Map<K, V> rhs) {
+
         lhs.clear();
         for (Map.Entry<K, V> entry : rhs.entrySet()) {
             Object value = entry.getValue();
@@ -559,6 +651,7 @@ public class DataDictionary {
     }
 
     private <V> void copyCollection(Collection<V> lhs, Collection<V> rhs) {
+
         lhs.clear();
         lhs.addAll(rhs);
     }
@@ -571,37 +664,45 @@ public class DataDictionary {
      * @throws FieldNotFound if a field cannot be found
      * @throws IncorrectDataFormat
      */
-    public void validate(Message message) throws IncorrectTagValue, FieldNotFound,
-            IncorrectDataFormat {
+    public void validate(Message message) throws IncorrectTagValue,
+            FieldNotFound, IncorrectDataFormat {
+
         validate(message, false);
     }
 
     /**
-     * Validate the message body, with header and trailer fields being validated conditionally.
+     * Validate the message body, with header and trailer fields being validated
+     * conditionally.
      *
      * @param message the message
-     * @param bodyOnly whether to validate just the message body, or to validate the header and trailer sections as well.
+     * @param bodyOnly whether to validate just the message body, or to validate
+     *        the header and trailer sections as well.
      * @throws IncorrectTagValue if a field value is not valid
      * @throws FieldNotFound if a field cannot be found
      * @throws IncorrectDataFormat
      */
-    public void validate(Message message, boolean bodyOnly) throws IncorrectTagValue,
-            FieldNotFound, IncorrectDataFormat {
+    public void validate(Message message, boolean bodyOnly)
+            throws IncorrectTagValue, FieldNotFound, IncorrectDataFormat {
+
         validate(message, bodyOnly ? null : this, this);
     }
 
     static void validate(Message message, DataDictionary sessionDataDictionary,
-            DataDictionary applicationDataDictionary) throws IncorrectTagValue, FieldNotFound,
-            IncorrectDataFormat {
+            DataDictionary applicationDataDictionary) throws IncorrectTagValue,
+            FieldNotFound, IncorrectDataFormat {
+
         final boolean bodyOnly = sessionDataDictionary == null;
 
         if (isVersionSpecified(sessionDataDictionary)
                 && !sessionDataDictionary.getVersion().equals(
                         message.getHeader().getString(BeginString.FIELD))
-                && !message.getHeader().getString(BeginString.FIELD).equals("FIXT.1.1")
+                && !message.getHeader().getString(BeginString.FIELD)
+                        .equals("FIXT.1.1")
                 && !sessionDataDictionary.getVersion().equals("FIX.5.0")) {
-            throw new UnsupportedVersion("Message version '" + message.getHeader().getString(BeginString.FIELD)
-                    + "' does not match the data dictionary version '" + sessionDataDictionary.getVersion() + "'");
+            throw new UnsupportedVersion("Message version '"
+                    + message.getHeader().getString(BeginString.FIELD)
+                    + "' does not match the data dictionary version '"
+                    + sessionDataDictionary.getVersion() + "'");
         }
 
         if (!message.hasValidStructure() && message.getException() != null) {
@@ -611,24 +712,29 @@ public class DataDictionary {
         final String msgType = message.getHeader().getString(MsgType.FIELD);
         if (isVersionSpecified(applicationDataDictionary)) {
             applicationDataDictionary.checkMsgType(msgType);
-            applicationDataDictionary.checkHasRequired(message.getHeader(), message,
-                    message.getTrailer(), msgType, bodyOnly);
+            applicationDataDictionary.checkHasRequired(message.getHeader(),
+                    message, message.getTrailer(), msgType, bodyOnly);
         }
 
         if (!bodyOnly) {
-            sessionDataDictionary.iterate(message.getHeader(), HEADER_ID, sessionDataDictionary);
-            sessionDataDictionary.iterate(message.getTrailer(), TRAILER_ID, sessionDataDictionary);
+            sessionDataDictionary.iterate(message.getHeader(), HEADER_ID,
+                    sessionDataDictionary);
+            sessionDataDictionary.iterate(message.getTrailer(), TRAILER_ID,
+                    sessionDataDictionary);
         }
 
-        applicationDataDictionary.iterate(message, msgType, applicationDataDictionary);
+        applicationDataDictionary.iterate(message, msgType,
+                applicationDataDictionary);
     }
 
     private static boolean isVersionSpecified(DataDictionary dd) {
+
         return dd != null && dd.hasVersion;
     }
 
-    private void iterate(FieldMap map, String msgType, DataDictionary dd) throws IncorrectTagValue,
-            IncorrectDataFormat {
+    private void iterate(FieldMap map, String msgType, DataDictionary dd)
+            throws IncorrectTagValue, IncorrectDataFormat {
+
         final Iterator<Field<?>> iterator = map.iterator();
         while (iterator.hasNext()) {
             final StringField field = (StringField) iterator.next();
@@ -651,14 +757,16 @@ public class DataDictionary {
 
         for (final List<Group> groups : map.getGroups().values()) {
             for (final Group group : groups) {
-                iterate(group, msgType, dd.getGroup(msgType, group.getFieldTag())
-                        .getDataDictionary());
+                iterate(group, msgType,
+                        dd.getGroup(msgType, group.getFieldTag())
+                                .getDataDictionary());
             }
         }
     }
 
     // / Check if message type is defined in spec.
     private void checkMsgType(String msgType) {
+
         if (!isMsgType(msgType)) {
             // It would be better to include the msgType in exception message
             // Doing that will break acceptance tests
@@ -668,17 +776,22 @@ public class DataDictionary {
 
     // / If we need to check for the tag in the dictionary
     private boolean shouldCheckTag(Field<?> field) {
-        return checkUserDefinedFields || field.getField() < USER_DEFINED_TAG_MIN;
+
+        return checkUserDefinedFields
+                || field.getField() < USER_DEFINED_TAG_MIN;
     }
 
     // / Check if field tag number is defined in spec.
     void checkValidTagNumber(Field<?> field) {
+
         if (!fields.contains(Integer.valueOf(field.getTag()))) {
-            throw new FieldException(SessionRejectReason.INVALID_TAG_NUMBER, field.getField());
+            throw new FieldException(SessionRejectReason.INVALID_TAG_NUMBER,
+                    field.getField());
         }
     }
 
     private void checkValidFormat(StringField field) throws IncorrectDataFormat {
+
         try {
             final FieldType fieldType = getFieldTypeEnum(field.getTag());
             if (fieldType == FieldType.String) {
@@ -721,7 +834,8 @@ public class DataDictionary {
                 UtcDateOnlyConverter.convert(field.getValue());
             } else if (fieldType == FieldType.UtcTimeOnly) {
                 UtcTimeOnlyConverter.convert(field.getValue());
-            } else if (fieldType == FieldType.UtcTimeStamp || fieldType == FieldType.Time) {
+            } else if (fieldType == FieldType.UtcTimeStamp
+                    || fieldType == FieldType.Time) {
                 UtcTimestampConverter.convert(field.getValue());
             } else if (fieldType == FieldType.NumInGroup) {
                 IntConverter.convert(field.getValue());
@@ -740,6 +854,7 @@ public class DataDictionary {
     }
 
     private void checkValue(StringField field) throws IncorrectTagValue {
+
         final int tag = field.getField();
         if (!hasFieldValue(tag)) {
             return;
@@ -753,25 +868,33 @@ public class DataDictionary {
 
     // / Check if a field has a value.
     private void checkHasValue(StringField field) {
+
         if (checkFieldsHaveValues && field.getValue().length() == 0) {
-            throw new FieldException(SessionRejectReason.TAG_SPECIFIED_WITHOUT_A_VALUE,
+            throw new FieldException(
+                    SessionRejectReason.TAG_SPECIFIED_WITHOUT_A_VALUE,
                     field.getField());
         }
     }
 
     // / Check if a field is in this message type.
     private void checkIsInMessage(Field<?> field, String msgType) {
-        if (!isMsgField(msgType, field.getField()) && !allowUnknownMessageFields) {
-            throw new FieldException(SessionRejectReason.TAG_NOT_DEFINED_FOR_THIS_MESSAGE_TYPE,
+
+        if (!isMsgField(msgType, field.getField())
+                && !allowUnknownMessageFields) {
+            throw new FieldException(
+                    SessionRejectReason.TAG_NOT_DEFINED_FOR_THIS_MESSAGE_TYPE,
                     field.getField());
         }
     }
 
     // / Check if group count matches number of groups in
-    private void checkGroupCount(StringField field, FieldMap fieldMap, String msgType) {
+    private void checkGroupCount(StringField field, FieldMap fieldMap,
+            String msgType) {
+
         final int fieldNum = field.getField();
         if (isGroup(msgType, fieldNum)) {
-            if (fieldMap.getGroupCount(fieldNum) != Integer.parseInt(field.getValue())) {
+            if (fieldMap.getGroupCount(fieldNum) != Integer.parseInt(field
+                    .getValue())) {
                 throw new FieldException(
                         SessionRejectReason.INCORRECT_NUMINGROUP_COUNT_FOR_REPEATING_GROUP,
                         fieldNum);
@@ -780,8 +903,9 @@ public class DataDictionary {
     }
 
     // / Check if a message has all required fields.
-    void checkHasRequired(FieldMap header, FieldMap body, FieldMap trailer, String msgType,
-            boolean bodyOnly) {
+    void checkHasRequired(FieldMap header, FieldMap body, FieldMap trailer,
+            String msgType, boolean bodyOnly) {
+
         if (!bodyOnly) {
             checkHasRequired(HEADER_ID, header, bodyOnly);
             checkHasRequired(TRAILER_ID, trailer, bodyOnly);
@@ -790,15 +914,20 @@ public class DataDictionary {
         checkHasRequired(msgType, body, bodyOnly);
     }
 
-    private void checkHasRequired(String msgType, FieldMap fields, boolean bodyOnly) {
-        final Set<Integer> requiredFieldsForMessage = requiredFields.get(msgType);
-        if (requiredFieldsForMessage == null || requiredFieldsForMessage.size() == 0) {
+    private void checkHasRequired(String msgType, FieldMap fields,
+            boolean bodyOnly) {
+
+        final Set<Integer> requiredFieldsForMessage = requiredFields
+                .get(msgType);
+        if (requiredFieldsForMessage == null
+                || requiredFieldsForMessage.size() == 0) {
             return;
         }
 
         for (int field : requiredFieldsForMessage) {
             if (!fields.isSetField(field)) {
-                throw new FieldException(SessionRejectReason.REQUIRED_TAG_MISSING, field);
+                throw new FieldException(
+                        SessionRejectReason.REQUIRED_TAG_MISSING, field);
             }
         }
 
@@ -808,8 +937,9 @@ public class DataDictionary {
                 final GroupInfo p = getGroup(msgType, entry.getKey());
                 if (p != null) {
                     for (Group groupInstance : entry.getValue()) {
-                        p.getDataDictionary().checkHasRequired(groupInstance, groupInstance,
-                                groupInstance, msgType, bodyOnly);
+                        p.getDataDictionary()
+                                .checkHasRequired(groupInstance, groupInstance,
+                                        groupInstance, msgType, bodyOnly);
                     }
                 }
             }
@@ -817,14 +947,16 @@ public class DataDictionary {
     }
 
     private void read(String location) throws ConfigError {
-        final InputStream inputStream = FileUtil.open(getClass(), location, URL, FILESYSTEM,
-                CONTEXT_RESOURCE, CLASSLOADER_RESOURCE);
+
+        final InputStream inputStream = FileUtil.open(getClass(), location,
+                URL, FILESYSTEM, CONTEXT_RESOURCE, CLASSLOADER_RESOURCE);
         if (inputStream == null) {
-            throw new DataDictionary.Exception("Could not find data dictionary: " + location);
+            throw new DataDictionary.Exception(
+                    "Could not find data dictionary: " + location);
         }
 
         try {
-            load(inputStream);
+            loadJaxb(inputStream);
         } catch (final java.lang.Exception e) {
             throw new ConfigError(location + ": " + e.getMessage(), e);
         } finally {
@@ -836,216 +968,302 @@ public class DataDictionary {
         }
     }
 
-    private void load(InputStream inputStream) throws ConfigError {
-        final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        Document document;
+    private void loadJaxb(InputStream inputStream) throws ConfigError {
+
+        DataDictionaryConfig config = null;
+
         try {
-            final DocumentBuilder builder = factory.newDocumentBuilder();
-            document = builder.parse(inputStream);
-        } catch (final Throwable e) {
-            throw new ConfigError("Could not parse data dictionary file", e);
+
+            SchemaFactory sf = SchemaFactory
+                    .newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+
+            Schema schema = sf.newSchema(getClass().getResource(
+                    "/META-INF/xsd/fix-dictionary.xsd"));
+
+            JAXBContext jc = JAXBContext.newInstance(ObjectFactory.class);
+
+            Unmarshaller unmarshaller = jc.createUnmarshaller();
+
+            unmarshaller.setSchema(schema);
+            unmarshaller.setEventHandler(new DefaultValidationEventHandler());
+
+            config = unmarshaller.unmarshal(new StreamSource(inputStream),
+                    DataDictionaryConfig.class).getValue();
+
+        } catch (SAXException e) {
+
+            throw new ConfigError("Could not load data dictionary schema", e);
+
+        } catch (JAXBException e) {
+
+            throw new ConfigError("Could not bind data dictionary file", e);
         }
 
-        final Element documentElement = document.getDocumentElement();
-        if (!documentElement.getNodeName().equals("fix")) {
+        if (config == null) {
+
             throw new ConfigError(
-                    "Could not parse data dictionary file, or no <fix> node found at root");
+                    "Could not parse data dictionary file - no <fix> node found at root ");
         }
 
-        if (!documentElement.hasAttribute("major")) {
-            throw new ConfigError("major attribute not found on <fix>");
-        }
+        String dictionaryType = String.format("%s.%s.%s", config.getType(),
+                config.getMajor(), config.getMinor());
 
-        if (!documentElement.hasAttribute("minor")) {
-            throw new ConfigError("minor attribute not found on <fix>");
-        }
-
-        final String dictionaryType = documentElement.hasAttribute("type") ? documentElement
-                .getAttribute("type") : FIX_PREFIX;
-
-        setVersion(dictionaryType + "." + documentElement.getAttribute("major") + "."
-                + documentElement.getAttribute("minor"));
-
-        // Index Components
-        final NodeList componentsNode = documentElement.getElementsByTagName("components");
-        if (componentsNode.getLength() > 0) {
-            final NodeList componentNodes = componentsNode.item(0).getChildNodes();
-            for (int i = 0; i < componentNodes.getLength(); i++) {
-                final Node componentNode = componentNodes.item(i);
-                if (componentNode.getNodeName().equals("component")) {
-                    final String name = getAttribute(componentNode, "name");
-                    if (name == null) {
-                        throw new ConfigError("<component> does not have a name attribute");
-                    }
-                    components.put(name, componentNode);
-                }
-            }
-        }
+        setVersion(dictionaryType);
 
         // FIELDS
-        final NodeList fieldsNode = documentElement.getElementsByTagName("fields");
-        if (fieldsNode.getLength() == 0) {
-            throw new ConfigError("<fields> section not found in data dictionary");
-        }
+        Fields fieldsList = config.getFields();
 
-        final NodeList fieldNodes = fieldsNode.item(0).getChildNodes();
-        if (fieldNodes.getLength() == 0) {
+        if (fieldsList.getField().isEmpty()) {
+
             throw new ConfigError("No fields defined");
         }
 
-        for (int i = 0; i < fieldNodes.getLength(); i++) {
-            final Node fieldNode = fieldNodes.item(i);
-            if (fieldNode.getNodeName().equals("field")) {
-                final String name = getAttribute(fieldNode, "name");
-                if (name == null) {
-                    throw new ConfigError("<field> does not have a name attribute");
+        for (FieldDefinition fieldNode : fieldsList.getField()) {
+
+            int num = fieldNode.getNumber();
+
+            String type = fieldNode.getType().value();
+
+            addField(num);
+            addFieldType(num, FieldType.fromName(getVersion(), type));
+            addFieldName(num, fieldNode.getName());
+
+            for (FieldDefinition.Value valueNode : fieldNode.getValue()) {
+
+                addFieldValue(num, valueNode.getEnum());
+
+                if (valueNode.getDescription() != null) {
+
+                    addValueName(num, valueNode.getEnum(),
+                            valueNode.getDescription());
                 }
+            }
 
-                final String number = getAttribute(fieldNode, "number");
-                if (number == null) {
-                    throw new ConfigError("<field> " + name + " does not have a number attribute");
-                }
+            if (!fieldNode.getValue().isEmpty()
+                    && fieldNode.isAllowOtherValues()) {
 
-                final int num = Integer.parseInt(number);
-
-                final String type = getAttribute(fieldNode, "type");
-                if (type == null) {
-                    throw new ConfigError("<field> " + name + " does not have a type attribute");
-                }
-
-                addField(num);
-                addFieldType(num, FieldType.fromName(getVersion(), type));
-                addFieldName(num, name);
-
-                final NodeList valueNodes = fieldNode.getChildNodes();
-                for (int j = 0; j < valueNodes.getLength(); j++) {
-                    final Node valueNode = valueNodes.item(j);
-                    if (valueNode.getNodeName().equals("value")) {
-                        final String enumeration = getAttribute(valueNode, "enum");
-                        if (enumeration == null) {
-                            throw new ConfigError("<value> does not have enum attribute in field "
-                                    + name);
-                        }
-                        addFieldValue(num, enumeration);
-                        final String description = getAttribute(valueNode, "description");
-                        if (description != null) {
-                            addValueName(num, enumeration, description);
-                        }
-                    }
-                }
-
-                if (fieldValues.containsKey(num)) {
-                    final String allowOtherValues = getAttribute(fieldNode, "allowOtherValues");
-                    if (allowOtherValues != null && Boolean.parseBoolean(allowOtherValues)) {
-                        addFieldValue(num, ANY_VALUE);
-                    }
-                }
+                addFieldValue(num, ANY_VALUE);
             }
         }
 
-        if (beginString.startsWith(FIXT_PREFIX) || beginString.compareTo(FixVersions.FIX50) < 0) {
-            // HEADER
-            final NodeList headerNode = documentElement.getElementsByTagName("header");
-            if (headerNode.getLength() == 0) {
-                throw new ConfigError("<header> section not found in data dictionary");
-            }
+        if (beginString.startsWith(FIXT_PREFIX)
+                || beginString.compareTo(FixVersions.FIX50) < 0) {
 
-            load(document, HEADER_ID, headerNode.item(0));
+            // HEADER
+            loadJaxb(config, config.getHeader(), HEADER_ID);
 
             // TRAILER
-            final NodeList trailerNode = documentElement.getElementsByTagName("trailer");
-            if (trailerNode.getLength() == 0) {
-                throw new ConfigError("<trailer> section not found in data dictionary");
-            }
-
-            load(document, TRAILER_ID, trailerNode.item(0));
+            loadJaxb(config, config.getTrailer(), TRAILER_ID);
         }
 
         // MSGTYPE
-        final NodeList messagesNode = documentElement.getElementsByTagName("messages");
-        if (messagesNode.getLength() == 0) {
-            throw new ConfigError("<messages> section not found in data dictionary");
-        }
+        Messages messages = config.getMessages();
 
-        final NodeList messageNodes = messagesNode.item(0).getChildNodes();
-        if (messageNodes.getLength() == 0) {
-            throw new ConfigError("No messages defined");
-        }
+        for (MessageDefinition messageNode : messages.getMessage()) {
 
-        for (int i = 0; i < messageNodes.getLength(); i++) {
-            final Node messageNode = messageNodes.item(i);
-            if (messageNode.getNodeName().equals("message")) {
-                final String msgtype = getAttribute(messageNode, "msgtype");
-                if (msgtype == null) {
-                    throw new ConfigError("<message> does not have a msgtype attribute");
-                }
+            String msgtype = messageNode.getMsgtype();
+            String msgcat = messageNode.getMsgcat().value();
 
-                final String msgcat = getAttribute(messageNode, "msgcat");
-                if (msgcat != null) {
-                    messageCategory.put(msgtype, msgcat.intern());
-                }
+            messageCategory.put(msgtype, msgcat);
 
-                final String name = getAttribute(messageNode, "name");
-                addMsgType(msgtype, name);
+            addMsgType(msgtype, messageNode.getName());
+            addValueName(MsgType.FIELD, msgtype, messageNode.getName());
 
-                if (name != null) {
-                    addValueName(MsgType.FIELD, msgtype, name);
-                }
-
-                load(document, msgtype, messageNode);
-            }
+            loadJaxb(config, messageNode);
         }
     }
 
-    private void load(Document document, String msgtype, Node node) throws ConfigError {
-        String name;
-        final NodeList fieldNodes = node.getChildNodes();
-        if (fieldNodes.getLength() == 0) {
-            throw new ConfigError("No fields found: msgType=" + msgtype);
-        }
+    private void loadJaxb(DataDictionaryConfig config,
+            DataDictionarySubsection subsection, String msgtype)
+            throws ConfigError {
 
-        for (int j = 0; j < fieldNodes.getLength(); j++) {
-            final Node fieldNode = fieldNodes.item(j);
+        for (MessageParticle particle : subsection.getParticles()) {
 
-            if (fieldNode.getNodeName().equals("field") || fieldNode.getNodeName().equals("group")) {
-                name = getAttribute(fieldNode, "name");
-                if (name == null) {
-                    throw new ConfigError("<field> does not have a name attribute");
-                }
+            if ((particle instanceof FieldReference)
+                    || (particle instanceof GroupDefinition)) {
 
-                final int num = lookupXMLFieldNumber(document, name);
+                final int num = names.get(particle.getName());
+
                 addMsgField(msgtype, num);
 
-                final String required = getAttribute(fieldNode, "required", NO);
-                if (required == null) {
-                    throw new ConfigError("<" + fieldNode.getNodeName()
-                            + "> does not have a 'required' attribute");
-                }
-                if (required.equalsIgnoreCase("Y")) {
+                if (particle.getRequired() == EnumBoolean.Y) {
+
                     addRequiredField(msgtype, num);
                 }
-            } else if (fieldNode.getNodeName().equals("component")) {
 
-                final String required = getAttribute(fieldNode, "required");
-                if (required == null) {
-                    throw new ConfigError("<component> does not have a 'required' attribute");
-                }
-                addXMLComponentFields(document, fieldNode, msgtype, this,
-                        required.equalsIgnoreCase("Y"));
+            } else if (particle instanceof ComponentReference) {
+
+                addXMLComponentFields(config, (ComponentReference) particle,
+                        msgtype, this, particle.getRequired() == EnumBoolean.Y);
             }
-            if (fieldNode.getNodeName().equals("group")) {
-                final String required = getAttribute(fieldNode, "required");
-                if (required == null) {
-                    throw new ConfigError("<group> does not have a 'required' attribute");
-                }
-                addXMLGroup(document, fieldNode, msgtype, this, required.equalsIgnoreCase("Y"));
+
+            if (particle instanceof GroupDefinition) {
+
+                addXMLGroup(config, (GroupDefinition) particle, msgtype, this,
+                        particle.getRequired() == EnumBoolean.Y);
             }
         }
     }
 
-    private int[] orderedFieldsArray;
+    private void loadJaxb(DataDictionaryConfig config,
+            MessageDefinition messageNode) throws ConfigError {
+
+        for (MessageParticle particle : messageNode.getParticles()) {
+
+            if ((particle instanceof FieldReference)
+                    || (particle instanceof GroupDefinition)) {
+
+                String name = particle.getName();
+
+                final int num = names.get(name);
+
+                addMsgField(messageNode.getMsgtype(), num);
+
+                EnumBoolean required = particle.getRequired();
+
+                if (required == EnumBoolean.Y) {
+
+                    addRequiredField(messageNode.getMsgtype(), num);
+                }
+
+            } else if (particle instanceof ComponentReference) {
+
+                addXMLComponentFields(config, (ComponentReference) particle,
+                        messageNode.getMsgtype(), this,
+                        particle.getRequired() == EnumBoolean.Y);
+            }
+
+            if (particle instanceof GroupDefinition) {
+
+                addXMLGroup(config, (GroupDefinition) particle,
+                        messageNode.getMsgtype(), this,
+                        particle.getRequired() == EnumBoolean.Y);
+            }
+        }
+    }
+
+    private void addXMLGroup(DataDictionaryConfig config,
+            GroupDefinition group, String msgtype, DataDictionary dd,
+            boolean groupRequired) throws ConfigError {
+
+        String name = group.getName();
+
+        final int num = names.get(name);
+
+        int delim = 0;
+        int field = 0;
+
+        final DataDictionary groupDD = new DataDictionary();
+        groupDD.setVersion(dd.getVersion());
+
+        for (MessageParticle particle : group.getParticles()) {
+
+            if (particle instanceof FieldReference) {
+
+                field = names.get(particle.getName());
+                groupDD.addField(field);
+                EnumBoolean required = particle.getRequired();
+                if (required == EnumBoolean.Y && groupRequired) {
+                    groupDD.addRequiredField(msgtype, field);
+                }
+
+            } else if (particle instanceof ComponentReference) {
+
+                field = addXMLComponentFields(config,
+                        (ComponentReference) particle, msgtype, groupDD, false);
+
+            } else if (particle instanceof GroupDefinition) {
+
+                field = names.get(particle.getName());
+                groupDD.addField(field);
+
+                EnumBoolean required = particle.getRequired();
+
+                if (required == EnumBoolean.Y && groupRequired) {
+
+                    groupDD.addRequiredField(msgtype, field);
+                }
+
+                addXMLGroup(config, (GroupDefinition) particle, msgtype,
+                        groupDD, required == EnumBoolean.Y);
+            }
+
+            if (delim == 0) {
+
+                delim = field;
+            }
+        }
+
+        if (delim != 0) {
+
+            dd.addGroup(msgtype, num, delim, groupDD);
+        }
+    }
+
+    private int addXMLComponentFields(DataDictionaryConfig config,
+            ComponentReference componentReference, String msgtype,
+            DataDictionary dd, boolean componentRequired) throws ConfigError {
+
+        int firstField = 0;
+
+        ComponentDefinition component = findComponent(config,
+                componentReference.getName());
+
+        for (MessageParticle particle : component.getParticles()) {
+
+            if ((particle instanceof FieldReference)
+                    || (particle instanceof GroupDefinition)) {
+
+                final int field = names.get(particle.getName());
+
+                if (firstField == 0) {
+                    firstField = field;
+                }
+
+                if (particle.getRequired() == EnumBoolean.Y
+                        && componentRequired) {
+                    addRequiredField(msgtype, field);
+                }
+
+                dd.addField(field);
+                dd.addMsgField(msgtype, field);
+            }
+
+            if (particle instanceof GroupDefinition) {
+
+                addXMLGroup(config, (GroupDefinition) particle, msgtype, dd,
+                        particle.getRequired() == EnumBoolean.Y);
+
+            } else if (particle instanceof ComponentReference) {
+
+                addXMLComponentFields(config, (ComponentReference) particle,
+                        msgtype, dd, particle.getRequired() == EnumBoolean.Y);
+            }
+        }
+
+        return firstField;
+    }
+
+    private ComponentDefinition findComponent(DataDictionaryConfig config,
+            String name) throws ConfigError {
+
+        if (config.getComponents() != null) {
+
+            for (ComponentDefinition component : config.getComponents()
+                    .getComponent()) {
+
+                if (component.getName().equals(name)) {
+
+                    return component;
+                }
+            }
+        }
+
+        throw new ConfigError("No component for reference name " + name);
+    }
 
     public int[] getOrderedFields() {
+
         if (orderedFieldsArray == null) {
             orderedFieldsArray = new int[fields.size()];
 
@@ -1059,173 +1277,58 @@ public class DataDictionary {
         return orderedFieldsArray;
     }
 
-    private int lookupXMLFieldNumber(Document document, Node node) throws ConfigError {
-        final Element element = (Element) node;
-        if (!element.hasAttribute("name")) {
-            throw new ConfigError("No name given to field");
-        }
-        return lookupXMLFieldNumber(document, element.getAttribute("name"));
-    }
-
-    private int lookupXMLFieldNumber(Document document, String name) throws ConfigError {
-        final Integer fieldNumber = names.get(name);
-        if (fieldNumber == null) {
-            throw new ConfigError("Field " + name + " not defined in fields section");
-        }
-        return fieldNumber;
-    }
-
-    private int addXMLComponentFields(Document document, Node node, String msgtype,
-            DataDictionary dd, boolean componentRequired) throws ConfigError {
-        int firstField = 0;
-
-        String name = getAttribute(node, "name");
-        if (name == null) {
-            throw new ConfigError("No name given to component");
-        }
-
-        final Node componentNode = components.get(name);
-        if (componentNode == null) {
-            throw new ConfigError("Component " + name + " not found");
-        }
-
-        final NodeList componentFieldNodes = componentNode.getChildNodes();
-        for (int i = 0; i < componentFieldNodes.getLength(); i++) {
-            final Node componentFieldNode = componentFieldNodes.item(i);
-
-            if (componentFieldNode.getNodeName().equals("field")
-                    || componentFieldNode.getNodeName().equals("group")) {
-                name = getAttribute(componentFieldNode, "name");
-                if (name == null) {
-                    throw new ConfigError("No name given to field");
-                }
-
-                final int field = lookupXMLFieldNumber(document, name);
-                if (firstField == 0) {
-                    firstField = field;
-                }
-
-                final String required = getAttribute(componentFieldNode, "required");
-                if (required.equalsIgnoreCase("Y") && componentRequired) {
-                    addRequiredField(msgtype, field);
-                }
-
-                dd.addField(field);
-                dd.addMsgField(msgtype, field);
-            }
-            if (componentFieldNode.getNodeName().equals("group")) {
-                final String required = getAttribute(componentFieldNode, "required");
-                final boolean isRequired = required.equalsIgnoreCase("Y");
-                addXMLGroup(document, componentFieldNode, msgtype, dd, isRequired);
-            }
-
-            if (componentFieldNode.getNodeName().equals("component")) {
-                final String required = getAttribute(componentFieldNode, "required");
-                final boolean isRequired = required.equalsIgnoreCase("Y");
-                addXMLComponentFields(document, componentFieldNode, msgtype, dd, isRequired);
-            }
-        }
-        return firstField;
-    }
-
-    private void addXMLGroup(Document document, Node node, String msgtype, DataDictionary dd,
-            boolean groupRequired) throws ConfigError {
-        final String name = getAttribute(node, "name");
-        if (name == null) {
-            throw new ConfigError("No name given to group");
-        }
-        final int group = lookupXMLFieldNumber(document, name);
-        int delim = 0;
-        int field = 0;
-        final DataDictionary groupDD = new DataDictionary();
-        groupDD.setVersion(dd.getVersion());
-        final NodeList fieldNodeList = node.getChildNodes();
-        for (int i = 0; i < fieldNodeList.getLength(); i++) {
-            final Node fieldNode = fieldNodeList.item(i);
-            if (fieldNode.getNodeName().equals("field")) {
-                field = lookupXMLFieldNumber(document, fieldNode);
-                groupDD.addField(field);
-                final String required = getAttribute(fieldNode, "required");
-                if (required != null && required.equalsIgnoreCase("Y") && groupRequired) {
-                    groupDD.addRequiredField(msgtype, field);
-                }
-            } else if (fieldNode.getNodeName().equals("component")) {
-                field = addXMLComponentFields(document, fieldNode, msgtype, groupDD, false);
-            } else if (fieldNode.getNodeName().equals("group")) {
-                field = lookupXMLFieldNumber(document, fieldNode);
-                groupDD.addField(field);
-                final String required = getAttribute(fieldNode, "required");
-                if (required != null && required.equalsIgnoreCase("Y") && groupRequired) {
-                    groupDD.addRequiredField(msgtype, field);
-                }
-                final boolean isRequired = required != null && required.equalsIgnoreCase("Y");
-                addXMLGroup(document, fieldNode, msgtype, groupDD, isRequired);
-            }
-            if (delim == 0) {
-                delim = field;
-            }
-        }
-
-        if (delim != 0) {
-            dd.addGroup(msgtype, group, delim, groupDD);
-        }
-    }
-
-    private String getAttribute(Node node, String name) {
-        return getAttribute(node, name, null);
-    }
-
-    private String getAttribute(Node node, String name, String defaultValue) {
-        final NamedNodeMap attributes = node.getAttributes();
-        if (attributes != null) {
-            final Node namedItem = attributes.getNamedItem(name);
-            return namedItem != null ? namedItem.getNodeValue() : null;
-        }
-        return defaultValue;
-    }
-
     /**
      * Data dictionary-related exception.
      */
     public static class Exception extends RuntimeException {
 
+        /**
+         * The serialVersionUID property.
+         */
+        private static final long serialVersionUID = 1L;
+
         public Exception(Throwable cause) {
+
             super(cause);
         }
 
         public Exception(String message) {
+
             super(message);
         }
     }
 
     private static final class IntStringPair {
+
         private final int intValue;
 
         private final String stringValue;
 
         public IntStringPair(int value, String value2) {
+
             intValue = value;
             stringValue = value2;
         }
 
-        //public int getIntValue() {
-        //    return intValue;
-        //}
+        // public int getIntValue() {
+        // return intValue;
+        // }
 
-        //public String getStringValue() {
-        //    return stringValue;
-        //}
+        // public String getStringValue() {
+        // return stringValue;
+        // }
 
         @Override
         public boolean equals(Object other) {
-            return this == other
-                    || other instanceof IntStringPair
-                       && intValue == ((IntStringPair) other).intValue
-                       && stringValue.equals(((IntStringPair) other).stringValue);
+
+            return this == other || other instanceof IntStringPair
+                    && intValue == ((IntStringPair) other).intValue
+                    && stringValue.equals(((IntStringPair) other).stringValue);
         }
 
         @Override
         public int hashCode() {
+
             return stringValue.hashCode() + intValue;
         }
 
@@ -1234,8 +1337,10 @@ public class DataDictionary {
          */
         @Override
         public String toString() {
+
             final StringBuilder b = new StringBuilder();
-            b.append('(').append(intValue).append(',').append(stringValue).append(')');
+            b.append('(').append(intValue).append(',').append(stringValue)
+                    .append(')');
             return b.toString();
         }
     }
@@ -1244,16 +1349,19 @@ public class DataDictionary {
      * Contains meta-data for FIX repeating groups
      */
     public static final class GroupInfo {
+
         private final int delimiterField;
 
         private final DataDictionary dataDictionary;
 
         private GroupInfo(int field, DataDictionary dictionary) {
+
             delimiterField = field;
             dataDictionary = dictionary;
         }
 
         public DataDictionary getDataDictionary() {
+
             return dataDictionary;
         }
 
@@ -1265,6 +1373,7 @@ public class DataDictionary {
          */
         @Deprecated
         public int getDelimeterField() {
+
             return delimiterField;
         }
 
@@ -1274,21 +1383,24 @@ public class DataDictionary {
          * @return delimiter field
          */
         public int getDelimiterField() {
+
             return delimiterField;
         }
 
         @Override
         public boolean equals(Object other) {
+
             return this == other
                     || other instanceof GroupInfo
-                       && delimiterField == ((GroupInfo) other).delimiterField
-                       && dataDictionary.equals(((GroupInfo) other).dataDictionary);
+                    && delimiterField == ((GroupInfo) other).delimiterField
+                    && dataDictionary
+                            .equals(((GroupInfo) other).dataDictionary);
         }
 
         @Override
         public int hashCode() {
+
             return delimiterField;
         }
     }
-
 }
