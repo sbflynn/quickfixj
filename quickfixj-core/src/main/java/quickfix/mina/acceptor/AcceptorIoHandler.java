@@ -25,15 +25,14 @@ import java.net.SocketAddress;
 
 import org.apache.mina.core.session.IoSession;
 
+import quickfix.FixMessageTypes;
+import quickfix.FixTags;
 import quickfix.Log;
 import quickfix.Message;
 import quickfix.MessageUtils;
 import quickfix.Session;
 import quickfix.SessionID;
-import quickfix.field.ApplVerID;
-import quickfix.field.DefaultApplVerID;
-import quickfix.field.HeartBtInt;
-import quickfix.field.MsgType;
+import quickfix.field.StringField;
 import quickfix.mina.AbstractIoHandler;
 import quickfix.mina.EventHandlingStrategy;
 import quickfix.mina.IoSessionResponder;
@@ -41,12 +40,14 @@ import quickfix.mina.NetworkingOptions;
 import quickfix.mina.SessionConnector;
 
 class AcceptorIoHandler extends AbstractIoHandler {
+
     private final EventHandlingStrategy eventHandlingStrategy;
 
     private final AcceptorSessionProvider sessionProvider;
 
     public AcceptorIoHandler(AcceptorSessionProvider sessionProvider,
             NetworkingOptions networkingOptions, EventHandlingStrategy eventHandlingStrategy) {
+
         super(networkingOptions);
         this.sessionProvider = sessionProvider;
         this.eventHandlingStrategy = eventHandlingStrategy;
@@ -54,6 +55,7 @@ class AcceptorIoHandler extends AbstractIoHandler {
 
     @Override
     public void sessionCreated(IoSession session) throws Exception {
+
         super.sessionCreated(session);
         log.info("MINA session created: " + "local=" + session.getLocalAddress() + ", "
                 + session.getClass() + ", remote=" + session.getRemoteAddress());
@@ -61,11 +63,13 @@ class AcceptorIoHandler extends AbstractIoHandler {
 
     @Override
     protected void processMessage(IoSession protocolSession, Message message) throws Exception {
+
         Session qfSession = (Session) protocolSession.getAttribute(SessionConnector.QF_SESSION);
         if (qfSession == null) {
-            if (message.getHeader().getString(MsgType.FIELD).equals(MsgType.LOGON)) {
+            if (message.getHeader().getString(FixTags.MSG_TYPE).equals(FixMessageTypes.LOGON)) {
                 final SessionID sessionID = MessageUtils.getReverseSessionID(message);
-                qfSession = sessionProvider.getSession(sessionID, eventHandlingStrategy.getSessionConnector());
+                qfSession = sessionProvider.getSession(sessionID,
+                        eventHandlingStrategy.getSessionConnector());
                 if (qfSession != null) {
                     final Log sessionLog = qfSession.getLog();
                     if (qfSession.hasResponder()) {
@@ -77,7 +81,7 @@ class AcceptorIoHandler extends AbstractIoHandler {
                     }
                     sessionLog.onEvent("Accepting session " + qfSession.getSessionID() + " from "
                             + protocolSession.getRemoteAddress());
-                    final int heartbeatInterval = message.getInt(HeartBtInt.FIELD);
+                    final int heartbeatInterval = message.getInt(FixTags.HEART_BT_INT);
                     qfSession.setHeartBeatInterval(heartbeatInterval);
                     sessionLog.onEvent("Acceptor heartbeat set to " + heartbeatInterval
                             + " seconds");
@@ -87,12 +91,12 @@ class AcceptorIoHandler extends AbstractIoHandler {
                             networkingOptions.getSynchronousWrites(), networkingOptions
                                     .getSynchronousWriteTimeout()));
                     if (sessionID.isFIXT()) { // QFJ-592
-                        if (message.isSetField(DefaultApplVerID.FIELD)) {
-                            final ApplVerID applVerID = new ApplVerID(
-                                    message.getString(DefaultApplVerID.FIELD));
+                        if (message.isSetField(FixTags.DEFAULT_APPL_VER_ID)) {
+                            final StringField applVerID = new StringField(FixTags.APPL_VER_ID,
+                                    message.getString(FixTags.DEFAULT_APPL_VER_ID));
                             qfSession.setTargetDefaultApplicationVersionID(applVerID);
-                            log.info("Setting DefaultApplVerID (" + DefaultApplVerID.FIELD + "="
-                                    + applVerID.getValue() + ") from Logon");
+                            log.info("Setting DefaultApplVerID (" + FixTags.DEFAULT_APPL_VER_ID
+                                    + "=" + applVerID.getValue() + ") from Logon");
                         }
                     }
                 } else {
@@ -115,6 +119,7 @@ class AcceptorIoHandler extends AbstractIoHandler {
 
     @Override
     protected Session findQFSession(IoSession protocolSession, SessionID sessionID) {
+
         Session s = super.findQFSession(protocolSession, sessionID);
         if (s == null) {
             s = sessionProvider.getSession(sessionID, eventHandlingStrategy.getSessionConnector());
@@ -122,7 +127,8 @@ class AcceptorIoHandler extends AbstractIoHandler {
         if (s != null && protocolSession.getAttribute(SessionConnector.QF_SESSION) == null) {
             SocketAddress remoteAddress = protocolSession.getRemoteAddress();
             if (remoteAddress instanceof InetSocketAddress) {
-                final InetAddress remoteInetAddress = ((InetSocketAddress) remoteAddress).getAddress();
+                final InetAddress remoteInetAddress = ((InetSocketAddress) remoteAddress)
+                        .getAddress();
                 if (!s.isAllowedForSession(remoteInetAddress)) {
                     s.getLog().onEvent(
                             "Refused connection to session " + s.getSessionID() + " from "

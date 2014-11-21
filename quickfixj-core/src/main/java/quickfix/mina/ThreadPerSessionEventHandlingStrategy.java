@@ -51,10 +51,12 @@ public class ThreadPerSessionEventHandlingStrategy implements EventHandlingStrat
         this.queueCapacity = queueCapacity;
     }
 
+    @Override
     public void onMessage(Session quickfixSession, Message message) {
         MessageDispatchingThread dispatcher = dispatchers.get(quickfixSession.getSessionID());
         if (dispatcher == null) {
-            final MessageDispatchingThread temp = new MessageDispatchingThread(quickfixSession, queueCapacity);
+            final MessageDispatchingThread temp = new MessageDispatchingThread(quickfixSession,
+                    queueCapacity);
             dispatcher = dispatchers.putIfAbsent(quickfixSession.getSessionID(), temp);
             if (dispatcher == null) {
                 dispatcher = temp;
@@ -69,6 +71,7 @@ public class ThreadPerSessionEventHandlingStrategy implements EventHandlingStrat
      * between multiple sessions here.
      * However it is made available here for other callers (such as SessionProviders wishing to register dynamic sessions).
      */
+    @Override
     public SessionConnector getSessionConnector() {
         return sessionConnector;
     }
@@ -179,6 +182,7 @@ public class ThreadPerSessionEventHandlingStrategy implements EventHandlingStrat
         return messages.poll(THREAD_WAIT_FOR_MESSAGE_MS, TimeUnit.MILLISECONDS);
     }
 
+    @Override
     public int getQueueSize() {
         int ret = 0;
         for (final MessageDispatchingThread mdt : dispatchers.values()) {

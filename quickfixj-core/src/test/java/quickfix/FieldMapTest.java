@@ -1,14 +1,18 @@
 package quickfix;
 
+import java.util.Date;
+import java.util.Iterator;
+
+import org.quickfixj.FIXField;
+
+import quickfix.field.EffectiveTime;
+import quickfix.field.MDEntryTime;
+import quickfix.field.UtcTimeOnlyField;
+import quickfix.field.UtcTimeStampField;
+import quickfix.field.converter.UtcTimeOnlyConverter;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
-import quickfix.field.EffectiveTime;
-import quickfix.field.MDEntryTime;
-import quickfix.field.converter.UtcTimeOnlyConverter;
-
-import java.util.Date;
-import java.util.Iterator;
 
 /**
  * Tests the {@link FieldMap} class.
@@ -30,26 +34,27 @@ public class FieldMapTest extends TestCase {
         FieldMap map = new Message();
         Date aDate = new Date();
         map.setField(new UtcTimeStampField(EffectiveTime.FIELD, aDate, false));
-        assertEquals("milliseconds should not be preserved", aDate.getTime() - (aDate.getTime() % 1000),
-                    map.getField(new EffectiveTime()).getValue().getTime());
+        assertEquals("milliseconds should not be preserved", aDate.getTime()
+                - (aDate.getTime() % 1000), map.getField(new EffectiveTime()).getValue().getTime());
 
         // now set it with preserving millis
         map.setField(new UtcTimeStampField(EffectiveTime.FIELD, aDate, true));
         assertEquals("milliseconds should be preserved", aDate.getTime(),
-                    map.getField(new EffectiveTime()).getValue().getTime());
+                map.getField(new EffectiveTime()).getValue().getTime());
     }
 
     public void testSetUtcTimeOnlyField() throws Exception {
         FieldMap map = new Message();
         Date aDate = new Date();
         map.setField(new UtcTimeOnlyField(MDEntryTime.FIELD, aDate, false));
-        assertEquals("milliseconds should not be preserved", UtcTimeOnlyConverter.convert(aDate, false),
-                    UtcTimeOnlyConverter.convert(map.getField(new MDEntryTime()).getValue(), false));
+        assertEquals("milliseconds should not be preserved",
+                UtcTimeOnlyConverter.convert(aDate, false),
+                UtcTimeOnlyConverter.convert(map.getField(new MDEntryTime()).getValue(), false));
 
         // now set it with preserving millis
         map.setField(new UtcTimeOnlyField(MDEntryTime.FIELD, aDate, true));
         assertEquals("milliseconds should be preserved", UtcTimeOnlyConverter.convert(aDate, true),
-                    UtcTimeOnlyConverter.convert(map.getField(new MDEntryTime()).getValue(), true));
+                UtcTimeOnlyConverter.convert(map.getField(new MDEntryTime()).getValue(), true));
     }
 
     /**
@@ -60,17 +65,17 @@ public class FieldMapTest extends TestCase {
         Date aDate = new Date();
         map.setField(new EffectiveTime(aDate));
         assertEquals("milliseconds should be preserved", aDate.getTime(),
-                    map.getField(new EffectiveTime()).getValue().getTime());
+                map.getField(new EffectiveTime()).getValue().getTime());
         map.setField(new MDEntryTime(aDate));
         assertEquals("milliseconds should be preserved", UtcTimeOnlyConverter.convert(aDate, true),
-                    UtcTimeOnlyConverter.convert(map.getField(new MDEntryTime()).getValue(), true));
+                UtcTimeOnlyConverter.convert(map.getField(new MDEntryTime()).getValue(), true));
     }
 
     private void testOrdering(int[] vals, int[] order, int[] expected) {
         FieldMap map = new Message(order);
         for (int v : vals)
             map.setInt(v, v);
-        Iterator<Field<?>> it = map.iterator();
+        Iterator<FIXField<?>> it = map.iterator();
         for (int e : expected)
             assertEquals(String.valueOf(e), it.next().getObject());
     }

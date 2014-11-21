@@ -30,25 +30,30 @@ import org.apache.mina.filter.codec.ProtocolDecoderException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import quickfix.FixMessageTypes;
 import quickfix.InvalidMessage;
 import quickfix.Message;
 import quickfix.MessageUtils;
 import quickfix.Session;
 import quickfix.SessionID;
-import quickfix.field.MsgType;
 
 /**
  * Abstract class used for acceptor and initiator IO handlers.
  */
 public abstract class AbstractIoHandler extends IoHandlerAdapter {
+
     protected final Logger log = LoggerFactory.getLogger(getClass());
+
     private final NetworkingOptions networkingOptions;
 
     public AbstractIoHandler(NetworkingOptions options) {
+
         networkingOptions = options;
     }
 
+    @Override
     public void exceptionCaught(IoSession ioSession, Throwable cause) throws Exception {
+
         boolean disconnectNeeded = false;
         Session quickFixSession = findQFSession(ioSession);
         Throwable realCause = cause;
@@ -83,12 +88,16 @@ public abstract class AbstractIoHandler extends IoHandlerAdapter {
         }
     }
 
+    @Override
     public void sessionCreated(IoSession ioSession) throws Exception {
+
         super.sessionCreated(ioSession);
         networkingOptions.apply(ioSession);
     }
 
+    @Override
     public void sessionClosed(IoSession ioSession) throws Exception {
+
         try {
             Session quickFixSession = findQFSession(ioSession);
             if (quickFixSession != null) {
@@ -103,7 +112,9 @@ public abstract class AbstractIoHandler extends IoHandlerAdapter {
         }
     }
 
+    @Override
     public void messageReceived(IoSession ioSession, Object message) throws Exception {
+
         String messageString = (String) message;
         SessionID remoteSessionID = MessageUtils.getReverseSessionID(messageString);
         Session quickFixSession = findQFSession(ioSession, remoteSessionID);
@@ -113,7 +124,7 @@ public abstract class AbstractIoHandler extends IoHandlerAdapter {
                 Message fixMessage = parse(quickFixSession, messageString);
                 processMessage(ioSession, fixMessage);
             } catch (InvalidMessage e) {
-                if (MsgType.LOGON.equals(MessageUtils.getMessageType(messageString))) {
+                if (FixMessageTypes.LOGON.equals(MessageUtils.getMessageType(messageString))) {
                     log.error("Invalid LOGON message, disconnecting: " + e.getMessage());
                     ioSession.close(true);
                 } else {
@@ -127,6 +138,7 @@ public abstract class AbstractIoHandler extends IoHandlerAdapter {
     }
 
     protected Session findQFSession(IoSession ioSession, SessionID sessionID) {
+
         Session quickfixSession = findQFSession(ioSession);
         if (quickfixSession == null) {
             quickfixSession = Session.lookupSession(sessionID);
@@ -135,10 +147,12 @@ public abstract class AbstractIoHandler extends IoHandlerAdapter {
     }
 
     private Session findQFSession(IoSession ioSession) {
+
         return (Session) ioSession.getAttribute(SessionConnector.QF_SESSION);
     }
 
     protected NetworkingOptions getNetworkingOptions() {
+
         return networkingOptions;
     }
 

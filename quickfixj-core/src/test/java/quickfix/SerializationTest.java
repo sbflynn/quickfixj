@@ -24,6 +24,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.regex.Pattern;
 
+import quickfix.field.Field;
 import junit.framework.TestCase;
 
 public class SerializationTest extends TestCase {

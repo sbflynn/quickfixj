@@ -21,36 +21,53 @@ package quickfix;
 
 import java.util.HashMap;
 
-import quickfix.field.BusinessRejectReason;
-
 /**
  * Description strings for business reject reasons.
- *
- * @see BusinessRejectReason
  */
-public class BusinessRejectReasonText extends BusinessRejectReason {
+public class BusinessRejectReasonText {
+
+    public static final int OTHER = 0;
+
+    public static final int UNKOWN_ID = 1;
+
+    public static final int UNKNOWN_SECURITY = 2;
+
+    public static final int UNSUPPORTED_MESSAGE_TYPE = 3;
+
+    public static final int APPLICATION_NOT_AVAILABLE = 4;
+
+    public static final int CONDITIONALLY_REQUIRED_FIELD_MISSING = 5;
+
+    public static final int NOT_AUTHORIZED = 6;
+
+    public static final int DELIVERTO_FIRM_NOT_AVAILABLE_AT_THIS_TIME = 7;
+
     private static HashMap<Integer, String> rejectReasonText = new HashMap<Integer, String>();
 
     static {
-        rejectReasonText.put(FIELD, "Field");
         rejectReasonText.put(OTHER, "Other");
         rejectReasonText.put(UNKOWN_ID, "Unknown ID");
         rejectReasonText.put(UNKNOWN_SECURITY, "Unknown Security");
-        rejectReasonText.put(UNSUPPORTED_MESSAGE_TYPE, "Unsupported Message Type");
-        rejectReasonText.put(APPLICATION_NOT_AVAILABLE, "Application Not Available");
-        rejectReasonText.put(CONDITIONALLY_REQUIRED_FIELD_MISSING, "Conditionally Required Field Missing");
+        rejectReasonText.put(UNSUPPORTED_MESSAGE_TYPE,
+                "Unsupported Message Type");
+        rejectReasonText.put(APPLICATION_NOT_AVAILABLE,
+                "Application Not Available");
+        rejectReasonText.put(CONDITIONALLY_REQUIRED_FIELD_MISSING,
+                "Conditionally Required Field Missing");
         rejectReasonText.put(NOT_AUTHORIZED, "Not authorized");
-        rejectReasonText.put(DELIVERTO_FIRM_NOT_AVAILABLE_AT_THIS_TIME, "DeliverTo Firm Not Available At This Time");
+        rejectReasonText.put(DELIVERTO_FIRM_NOT_AVAILABLE_AT_THIS_TIME,
+                "DeliverTo Firm Not Available At This Time");
     }
 
     /**
      * Get the description string for a specified business reject reason.
      *
      * @param rejectReason the reason
-     * @return the description or null if there isn't a description for that reason
+     * @return the description or null if there isn't a description for that
+     *         reason
      */
     public static String getMessage(int rejectReason) {
+
         return rejectReasonText.get(Integer.valueOf(rejectReason));
     }
-
 }

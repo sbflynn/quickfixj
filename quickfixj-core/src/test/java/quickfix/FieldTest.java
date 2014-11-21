@@ -19,17 +19,31 @@
 
 package quickfix;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertTrue;
+
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Date;
 
-import static junit.framework.Assert.assertTrue;
-import static junit.framework.Assert.assertEquals;
 import org.junit.Test;
 import org.quickfixj.CharsetSupport;
+
+import quickfix.field.BooleanField;
+import quickfix.field.BytesField;
+import quickfix.field.CharField;
+import quickfix.field.DateField;
+import quickfix.field.DecimalField;
+import quickfix.field.DoubleField;
+import quickfix.field.Field;
+import quickfix.field.IntField;
 import quickfix.field.RawData;
 import quickfix.field.Side;
+import quickfix.field.StringField;
+import quickfix.field.UtcDateOnlyField;
+import quickfix.field.UtcTimeOnlyField;
+import quickfix.field.UtcTimeStampField;
 
 public class FieldTest {
 
@@ -51,13 +65,14 @@ public class FieldTest {
     }
 
     private void testFieldCalcuations(String value, int checksum, int length) {
-        Field<String> field = new Field<String>(12, value);
+        Field<String> field = new StringField(12, value);
         field.setObject(value);
         assertEquals("12=" + value, field.toString());
         assertEquals(checksum, field.getChecksum());
         assertEquals(length, field.getLength());
 
-        value = value.substring(0, value.length() - 1) + (char)(value.charAt(value.length() - 1) + 1);
+        value = value.substring(0, value.length() - 1)
+                + (char) (value.charAt(value.length() - 1) + 1);
         checksum = (checksum + 1) & 0xFF;
         field.setObject(value);
         assertEquals("12=" + value, field.toString());
@@ -167,7 +182,7 @@ public class FieldTest {
         assertEquals(33, field.getTag());
         assertEquals(45.6, field.getValue(), 0);
     }
-    
+
     @Test(expected = NumberFormatException.class)
     public void testDoubleFieldException() {
         DoubleField field = new DoubleField(11, Double.NaN);

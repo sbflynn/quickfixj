@@ -26,6 +26,7 @@ import quickfix.field.LegSymbol;
 import quickfix.field.OrderID;
 import quickfix.field.SessionRejectReason;
 import quickfix.field.SettlDate2;
+import quickfix.field.StringField;
 import quickfix.field.Symbol;
 import quickfix.fix44.Quote;
 
@@ -289,7 +290,7 @@ public class RepeatingGroupTest extends TestCase {
     private Message buildValidatedMessage(String sourceFIXString, DataDictionary dd)
             throws InvalidMessage {
         final Message message = messageFactory.create(MessageUtils.getStringField(sourceFIXString,
-                BeginString.FIELD), MessageUtils.getMessageType(sourceFIXString));
+                FixTags.BEGIN_STRING), MessageUtils.getMessageType(sourceFIXString));
         message.fromString(sourceFIXString, dd, true);
         return message;
     }

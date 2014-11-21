@@ -42,8 +42,8 @@ public class MessageUtilsTest extends TestCase {
     public void testGetStringField() throws Exception {
         String messageString = "8=FIX.4.2\0019=12\00135=X\001108=30\00110=049\001";
         assertEquals("wrong value", "FIX.4.2", MessageUtils.getStringField(messageString,
-                BeginString.FIELD));
-        assertEquals("wrong value", "X", MessageUtils.getStringField(messageString, MsgType.FIELD));
+                FixTags.BEGIN_STRING));
+        assertEquals("wrong value", "X", MessageUtils.getStringField(messageString, FixTags.MSG_TYPE));
         assertNull(messageString, MessageUtils.getStringField(messageString, SenderCompID.FIELD));
     }
 

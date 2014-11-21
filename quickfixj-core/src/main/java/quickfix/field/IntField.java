@@ -17,35 +17,44 @@
  * are not clear to you.
  ******************************************************************************/
 
-package quickfix;
+package quickfix.field;
 
-import java.util.Date;
+import java.lang.Integer;
 
 /**
- * A timestamp-valued message field (a timestamp has both a date and a time).
+ * A integer message field.
  */
-public class UtcTimeStampField extends DateField {
-    private boolean includeMilliseconds = true;
+public class IntField extends Field<Integer> {
 
-    public UtcTimeStampField(int field) {
-        super(field);
+    public IntField(int field) {
+        super(field, 0);
     }
 
-    protected UtcTimeStampField(int field, Date data) {
+    public IntField(int field, Integer data) {
         super(field, data);
     }
 
-    public UtcTimeStampField(int field, boolean includeMilliseconds) {
-        super(field);
-        this.includeMilliseconds = includeMilliseconds;
-    }
-
-    protected UtcTimeStampField(int field, Date data, boolean includeMilliseconds) {
+    public IntField(int field, int data) {
         super(field, data);
-        this.includeMilliseconds = includeMilliseconds;
     }
 
-    boolean showMilliseconds() {
-        return includeMilliseconds;
+    public void setValue(Integer value) {
+        setObject(value);
+    }
+
+    public void setValue(int value) {
+        setObject(value);
+    }
+
+    public int getValue() {
+        return getObject();
+    }
+
+    public boolean valueEquals(Integer value) {
+        return getObject().equals(value);
+    }
+
+    public boolean valueEquals(int value) {
+        return getObject().equals(value);
     }
 }

@@ -17,41 +17,24 @@
  * are not clear to you.
  ******************************************************************************/
 
-package quickfix;
+package quickfix.field;
 
-import java.io.UnsupportedEncodingException;
-
-import org.quickfixj.QFJException;
+import java.util.Date;
 
 /**
- * BytesField enables better handling of binary data. With BytesFields binary data can
- * be directly put into FIX messages without casting them into Strings.
+ * A date-valued message field.
  */
-public class BytesField extends Field<byte[]> {
+public class UtcDateOnlyField extends DateField {
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
 
-    public BytesField(int field) {
-        super(field, new byte[0]);
+    public UtcDateOnlyField(int field) {
+        super(field);
     }
 
-    public BytesField(int field, byte[] data) {
+    public UtcDateOnlyField(int field, Date data) {
         super(field, data);
     }
-
-    public void setValue(byte[] data) {
-        setObject(data);
-    }
-
-    public byte[] getValue() {
-        return getObject();
-    }
-
-    @Override
-    protected String objectAsString() {
-        try {
-            return new String(getObject(), "UTF8");
-        } catch (UnsupportedEncodingException e) {
-            throw new QFJException(e);
-        }
-    }
-
 }

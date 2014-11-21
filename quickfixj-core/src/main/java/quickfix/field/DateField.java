@@ -17,7 +17,7 @@
  * are not clear to you.
  ******************************************************************************/
 
-package quickfix;
+package quickfix.field;
 
 import java.util.Date;
 
@@ -26,11 +26,11 @@ import java.util.Date;
  */
 public class DateField extends Field<Date> {
 
-    protected DateField(int field) {
+    public DateField(int field) {
         super(field, new Date());
     }
 
-    protected DateField(int field, Date data) {
+    public DateField(int field, Date data) {
         super(field, data);
     }
 

@@ -17,7 +17,7 @@
  * are not clear to you.
  ******************************************************************************/
 
-package quickfix;
+package quickfix.field;
 
 /**
  * A double-values message field.

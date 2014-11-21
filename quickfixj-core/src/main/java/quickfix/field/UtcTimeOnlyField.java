@@ -17,30 +17,40 @@
  * are not clear to you.
  ******************************************************************************/
 
-package quickfix;
+package quickfix.field;
 
-/**
- * A string-valued message field.
+import java.util.Date;
+
+/*
+ * A time-valued message field.
  */
-public class StringField extends Field<String> {
+public class UtcTimeOnlyField extends DateField {
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
 
-    public StringField(int field) {
-        super(field, "");
+    private boolean includeMilliseconds = true;
+
+    public UtcTimeOnlyField(int field) {
+        super(field);
     }
 
-    public StringField(int field, String data) {
+    public UtcTimeOnlyField(int field, Date data) {
         super(field, data);
     }
 
-    public void setValue(String value) {
-        setObject(value);
+    public UtcTimeOnlyField(int field, boolean includeMilliseconds) {
+        super(field);
+        this.includeMilliseconds = includeMilliseconds;
     }
 
-    public String getValue() {
-        return getObject();
+    public UtcTimeOnlyField(int field, Date data, boolean includeMilliseconds) {
+        super(field, data);
+        this.includeMilliseconds = includeMilliseconds;
     }
 
-    public boolean valueEquals(String value) {
-        return getValue().equals(value);
+    public boolean showMilliseconds() {
+        return includeMilliseconds;
     }
 }

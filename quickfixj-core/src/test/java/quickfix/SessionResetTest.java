@@ -54,7 +54,7 @@ public class SessionResetTest {
         logonResponse.setInt(HeartBtInt.FIELD, logonRequest.getInt(HeartBtInt.FIELD));
 
         final Message.Header header = logonResponse.getHeader();
-        header.setString(BeginString.FIELD, sessionID.getBeginString());
+        header.setString(FixTags.BEGIN_STRING, sessionID.getBeginString());
         header.setString(SenderCompID.FIELD, sessionID.getSenderCompID());
         header.setString(TargetCompID.FIELD, sessionID.getTargetCompID());
         header.setInt(MsgSeqNum.FIELD, 1);

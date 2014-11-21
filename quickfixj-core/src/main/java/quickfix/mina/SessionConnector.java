@@ -70,7 +70,8 @@ public abstract class SessionConnector implements Connector {
     private ScheduledFuture<?> sessionTimerFuture;
     private IoFilterChainBuilder ioFilterChainBuilder;
 
-    public SessionConnector(SessionSettings settings, SessionFactory sessionFactory) throws ConfigError {
+    public SessionConnector(SessionSettings settings, SessionFactory sessionFactory)
+            throws ConfigError {
         this.settings = settings;
         this.sessionFactory = sessionFactory;
         if (settings == null) {
@@ -117,6 +118,7 @@ public abstract class SessionConnector implements Connector {
      *
      * @return list of session identifiers
      */
+    @Override
     public ArrayList<SessionID> getSessions() {
         return new ArrayList<SessionID>(sessions.keySet());
     }
@@ -154,6 +156,7 @@ public abstract class SessionConnector implements Connector {
      *
      * @return false if no session or at least one session is not logged on
      */
+    @Override
     public boolean isLoggedOn() {
         // if no session, not logged on
         if (sessions.isEmpty())
@@ -238,7 +241,8 @@ public abstract class SessionConnector implements Connector {
         }
     }
 
-    protected void logError(SessionID sessionID, IoSession protocolSession, String message, Throwable t) {
+    protected void logError(SessionID sessionID, IoSession protocolSession, String message,
+            Throwable t) {
         log.error(message + getLogSuffix(sessionID, protocolSession), t);
     }
 
@@ -254,8 +258,8 @@ public abstract class SessionConnector implements Connector {
     }
 
     protected void startSessionTimer() {
-        sessionTimerFuture = scheduledExecutorService.scheduleAtFixedRate(new SessionTimerTask(), 0, 1000L,
-                TimeUnit.MILLISECONDS);
+        sessionTimerFuture = scheduledExecutorService.scheduleAtFixedRate(new SessionTimerTask(),
+                0, 1000L, TimeUnit.MILLISECONDS);
         log.info("SessionTimer started");
     }
 
@@ -271,13 +275,15 @@ public abstract class SessionConnector implements Connector {
     }
 
     private class SessionTimerTask implements Runnable {
+        @Override
         public void run() {
             try {
                 for (Session session : sessions.values()) {
                     try {
                         session.next();
                     } catch (IOException e) {
-                        logError(session.getSessionID(), null, "Error in session timer processing", e);
+                        logError(session.getSessionID(), null, "Error in session timer processing",
+                                e);
                     }
                 }
             } catch (Throwable e) {
@@ -288,6 +294,7 @@ public abstract class SessionConnector implements Connector {
 
     private static class QFTimerThreadFactory implements ThreadFactory {
 
+        @Override
         public Thread newThread(Runnable runnable) {
             Thread thread = new Thread(runnable, "QFJ Timer");
             thread.setDaemon(true);

@@ -17,55 +17,41 @@
  * are not clear to you.
  ******************************************************************************/
 
-package quickfix;
+package quickfix.field;
 
-import java.math.BigDecimal;
+import java.lang.Boolean;
 
-/**
- * A double-values message field.
- */
-public class DecimalField extends Field<BigDecimal> {
+public class BooleanField extends Field<Boolean> {
 
-    private int padding = 0;
-
-    public DecimalField(int field) {
-        super(field, BigDecimal.ZERO);
+    public BooleanField(int field) {
+        super(field, false);
     }
 
-    public DecimalField(int field, BigDecimal data) {
+    public BooleanField(int field, Boolean data) {
         super(field, data);
     }
 
-    public DecimalField(int field, double data) {
-        super(field, BigDecimal.valueOf(data));
-    }
-
-    public DecimalField(int field, BigDecimal data, int padding) {
+    public BooleanField(int field, boolean data) {
         super(field, data);
-        this.padding = padding;
     }
 
-    public void setValue(BigDecimal value) {
+    public void setValue(Boolean value) {
         setObject(value);
     }
 
-    public void setValue(double value) {
-        setObject(BigDecimal.valueOf(value));
+    public void setValue(boolean value) {
+        setObject(value);
     }
 
-    public BigDecimal getValue() {
+    public boolean getValue() {
         return getObject();
     }
 
-    public int getPadding() {
-        return padding;
+    public boolean valueEquals(Boolean value) {
+        return getObject().equals(value);
     }
 
-    public boolean valueEquals(BigDecimal value) {
-        return getValue().compareTo(value) == 0;
-    }
-
-    public boolean valueEquals(double value) {
-        return getValue().compareTo(new BigDecimal(value)) == 0;
+    public boolean valueEquals(boolean value) {
+        return getObject().equals(value);
     }
 }

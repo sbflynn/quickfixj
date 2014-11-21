@@ -24,28 +24,37 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import quickfix.FieldNotFound;
+import quickfix.FixMessageTypes;
+import quickfix.FixTags;
 import quickfix.LogUtil;
 import quickfix.Message;
 import quickfix.Session;
 import quickfix.SystemTime;
-import quickfix.field.MsgType;
 
 /**
  * Processes messages for all sessions in a single thread.
  */
 public class SingleThreadedEventHandlingStrategy implements EventHandlingStrategy {
+
     private static final String MESSAGE_PROCESSOR_THREAD_NAME = "QFJ Message Processor";
+
     private final BlockingQueue<SessionMessageEvent> eventQueue;
+
     private final SessionConnector sessionConnector;
+
     private boolean isStopped;
+
     private long stopTime = 0L;
 
     public SingleThreadedEventHandlingStrategy(SessionConnector connector, int queueCapacity) {
+
         sessionConnector = connector;
         eventQueue = new LinkedBlockingQueue<SessionMessageEvent>(queueCapacity);
     }
 
+    @Override
     public void onMessage(Session quickfixSession, Message message) {
+
         try {
             eventQueue.put(new SessionMessageEvent(quickfixSession, message));
         } catch (InterruptedException e) {
@@ -53,18 +62,22 @@ public class SingleThreadedEventHandlingStrategy implements EventHandlingStrateg
         }
     }
 
+    @Override
     public SessionConnector getSessionConnector() {
+
         return sessionConnector;
     }
 
     public void block() {
+
         while (true) {
             synchronized (this) {
                 if (isStopped) {
                     if (stopTime == 0) {
                         stopTime = SystemTime.currentTimeMillis();
                     }
-                    if (!sessionConnector.isLoggedOn() || SystemTime.currentTimeMillis() - stopTime > 5000L) {
+                    if (!sessionConnector.isLoggedOn()
+                            || SystemTime.currentTimeMillis() - stopTime > 5000L) {
                         sessionConnector.stopSessionTimer();
                         // reset the stoptime
                         stopTime = 0;
@@ -84,13 +97,18 @@ public class SingleThreadedEventHandlingStrategy implements EventHandlingStrateg
     }
 
     private SessionMessageEvent getMessage() throws InterruptedException {
+
         return eventQueue.poll(1000L, TimeUnit.MILLISECONDS);
     }
 
     public void blockInThread() {
+
         startHandlingMessages();
         Thread messageProcessingThread = new Thread(new Runnable() {
+
+            @Override
             public void run() {
+
                 block();
             }
         }, MESSAGE_PROCESSOR_THREAD_NAME);
@@ -99,22 +117,26 @@ public class SingleThreadedEventHandlingStrategy implements EventHandlingStrateg
     }
 
     private static class SessionMessageEvent {
+
         private final Session quickfixSession;
+
         private final Message message;
 
         public SessionMessageEvent(Session session, Message message) {
+
             this.message = message;
             quickfixSession = session;
         }
 
         public void processMessage() {
+
             try {
                 if (quickfixSession.hasResponder()) {
                     quickfixSession.next(message);
                 } else {
                     try {
-                        final String msgType = message.getHeader().getString(MsgType.FIELD);
-                        if (msgType.equals(MsgType.LOGOUT))
+                        final String msgType = message.getHeader().getString(FixTags.MSG_TYPE);
+                        if (msgType.equals(FixMessageTypes.LOGOUT))
                             quickfixSession.next(message);
                     } catch (FieldNotFound ex) {
                         // ignore
@@ -127,15 +149,18 @@ public class SingleThreadedEventHandlingStrategy implements EventHandlingStrateg
     }
 
     private synchronized void startHandlingMessages() {
+
         isStopped = false;
     }
 
     public synchronized void stopHandlingMessages() {
+
         isStopped = true;
     }
 
+    @Override
     public int getQueueSize() {
+
         return eventQueue.size();
     }
-
 }

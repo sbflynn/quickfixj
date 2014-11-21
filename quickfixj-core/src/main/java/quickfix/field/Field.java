@@ -17,26 +17,27 @@
  * are not clear to you.
  ******************************************************************************/
 
-package quickfix;
-
-import org.quickfixj.CharsetSupport;
+package quickfix.field;
 
 import java.io.Serializable;
-import java.nio.charset.Charset;
+
+import org.quickfixj.CharsetSupport;
+import org.quickfixj.FIXField;
+
+import quickfix.MessageUtils;
 
 /**
  * Base class for FIX message fields. This class should be
  * abstract but that would break compatibility with the QF JNI
  * classes.
  */
-public /*abstract*/ class Field<T> implements Serializable {
-    static final long serialVersionUID = 7098326013456432197L;
+public abstract class Field<T> implements FIXField<T>, Serializable {
+    private static final long serialVersionUID = 7098326013456432197L;
     private int tag;
     private T object;
-    private boolean isCalculated = false;
     private String data;
 
-    public Field(int field, T object) {
+    protected Field(int field, T object) {
         this.tag = field;
         this.object = object;
     }
@@ -46,28 +47,14 @@ public /*abstract*/ class Field<T> implements Serializable {
      *
      * @return the tag
      */
+    @Override
     public int getTag() {
         return tag;
     }
 
-    /**
-     * Gets the field's tag. (QF/C++ compatibility)
-     *
-     * @return the tag
-     * @see quickfix.Field#getTag()
-     */
-    public int getField() {
-        return getTag();
-    }
-
-    /**
-     * Sets the field's value to the given object.
-     *
-     * @param object
-     */
-    protected void setObject(T object) {
-        this.object = object;
-        isCalculated = false;
+    public void setTag(int tag) {
+        this.tag = tag;
+        data = null;
     }
 
     /**
@@ -75,8 +62,29 @@ public /*abstract*/ class Field<T> implements Serializable {
      *
      * @return an object representing the field's value
      */
+    @Override
     public T getObject() {
         return object;
+    }
+
+    /**
+     * Sets the field's value to the given object.
+     *
+     * @param object
+     */
+    public void setObject(T object) {
+        this.object = object;
+        data = null;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @since 2.0
+     */
+    @Override
+    public CharSequence getCharacters() {
+        return getObject().toString();
     }
 
     /**
@@ -84,26 +92,47 @@ public /*abstract*/ class Field<T> implements Serializable {
      *
      * @return the formatted field
      */
+    @Override
     public String toString() {
         calculate();
         return data;
     }
 
-    /*package*/ void toString(StringBuilder buffer) {
-        buffer.append(tag).append('=').append(objectAsString());
+    @Deprecated
+    public void toString(StringBuilder buffer) {
+        buffer.append(getTag()).append('=').append(getCharacters());
     }
 
     protected String objectAsString() {
         return object.toString();
     }
 
+    @Override
     public boolean equals(Object object) {
-        return super.equals(object)
-                || object instanceof Field
-                   && tag == ((Field<?>) object).getField()
-                   && getObject().equals(((Field<?>) object).getObject());
+
+        if (this == object) {
+
+            return true;
+        }
+
+        if (object instanceof FIXField<?>) {
+            FIXField<?> field = (FIXField<?>) object;
+
+            if (getTag() != field.getTag()) {
+
+                return false;
+            }
+
+            if (getTag() != field.getTag()) {
+
+                return getCharacters().equals(field.getCharacters());
+            }
+        }
+
+        return false;
     }
 
+    @Override
     public int hashCode() {
         return object.hashCode();
     }
@@ -114,7 +143,8 @@ public /*abstract*/ class Field<T> implements Serializable {
      *
      * @return the length of this field's encoded bytes
      */
-    /*package*/ int getLength() {
+    @Override
+    public int getLength() {
         calculate();
         return MessageUtils.length(CharsetSupport.getCharsetInstance(), data) + 1;
     }
@@ -125,26 +155,22 @@ public /*abstract*/ class Field<T> implements Serializable {
      *
      * @return the checksum of this field's encoded bytes
      */
-    /*package*/ int getChecksum() {
+    @Override
+    public int getChecksum() {
         calculate();
         return (MessageUtils.checksum(CharsetSupport.getCharsetInstance(), data, false) + 1) & 0xFF;
     }
 
     private void calculate() {
-        if (isCalculated) {
-            return;
+        if (data == null) {
+
+            StringBuilder buffer = new StringBuilder();
+
+            buffer.append(getTag());
+            buffer.append('=');
+            buffer.append(getCharacters());
+
+            data = buffer.toString();
         }
-
-        StringBuilder buffer = new StringBuilder();
-        toString(buffer);
-        data = buffer.toString();
-
-        isCalculated = true;
-    }
-
-    public void setTag(int tag) {
-        this.tag = tag;
-        isCalculated = false;
-        calculate();
     }
 }

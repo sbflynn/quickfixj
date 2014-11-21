@@ -83,7 +83,8 @@ public class NetworkingOptions {
         soLinger = getInteger(properties, SETTING_SOCKET_LINGER, null);
         tcpNoDelay = getBoolean(properties, SETTING_SOCKET_TCP_NODELAY, Boolean.TRUE);
         synchronousWrites = getBoolean(properties, SETTING_SOCKET_SYNCHRONOUS_WRITES, Boolean.FALSE);
-        synchronousWriteTimeout = getInteger(properties, SETTING_SOCKET_SYNCHRONOUS_WRITE_TIMEOUT, 30000);
+        synchronousWriteTimeout = getInteger(properties, SETTING_SOCKET_SYNCHRONOUS_WRITE_TIMEOUT,
+                30000);
 
         Integer trafficClassSetting;
         try {
@@ -108,7 +109,8 @@ public class NetworkingOptions {
         trafficClass = trafficClassSetting;
     }
 
-    private Boolean getBoolean(Properties properties, String key, Boolean defaultValue) throws FieldConvertError {
+    private Boolean getBoolean(Properties properties, String key, Boolean defaultValue)
+            throws FieldConvertError {
         Boolean value = properties.containsKey(key) ? Boolean.valueOf(BooleanConverter
                 .convert(properties.getProperty(key))) : defaultValue;
         logOption(key, value);
@@ -121,9 +123,10 @@ public class NetworkingOptions {
         }
     }
 
-    private Integer getInteger(Properties properties, String key, Integer defaultValue) throws FieldConvertError {
-        Integer value = properties.containsKey(key) ? Integer.valueOf(IntConverter.convert(properties
-                .getProperty(key))) : defaultValue;
+    private Integer getInteger(Properties properties, String key, Integer defaultValue)
+            throws FieldConvertError {
+        Integer value = properties.containsKey(key) ? Integer.valueOf(IntConverter
+                .convert(properties.getProperty(key))) : defaultValue;
         logOption(key, value);
         return value;
     }

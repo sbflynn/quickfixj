@@ -30,6 +30,7 @@ public interface LogFactory {
      * @deprecated This method is not needed by QFJ and is generally not implemented.
      * @return the log implementation
      */
+    @Deprecated
     Log create();
 
     /**

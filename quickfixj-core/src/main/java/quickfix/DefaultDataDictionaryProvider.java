@@ -19,29 +19,37 @@
 
 package quickfix;
 
-import static quickfix.MessageUtils.*;
+import static quickfix.MessageUtils.toBeginString;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.quickfixj.FIXField;
 import org.quickfixj.QFJException;
 
-import quickfix.field.ApplVerID;
+import quickfix.field.StringField;
 
 public class DefaultDataDictionaryProvider implements DataDictionaryProvider {
+
     private Map<String, DataDictionary> transportDictionaries = new ConcurrentHashMap<String, DataDictionary>();
+
     private Map<AppVersionKey, DataDictionary> applicationDictionaries = new ConcurrentHashMap<AppVersionKey, DataDictionary>();
+
     private final boolean findDataDictionaries;
 
     public DefaultDataDictionaryProvider() {
+
         findDataDictionaries = true;
     }
 
     public DefaultDataDictionaryProvider(boolean findDataDictionaries) {
+
         this.findDataDictionaries = findDataDictionaries;
     }
 
+    @Override
     public synchronized DataDictionary getSessionDataDictionary(String beginString) {
+
         DataDictionary dd = transportDictionaries.get(beginString);
         if (dd == null && findDataDictionaries) {
             String path = beginString.replace(".", "") + ".xml";
@@ -55,7 +63,9 @@ public class DefaultDataDictionaryProvider implements DataDictionaryProvider {
         return dd;
     }
 
-    public DataDictionary getApplicationDataDictionary(ApplVerID applVerID) {
+    @Override
+    public DataDictionary getApplicationDataDictionary(StringField applVerID) {
+
         AppVersionKey appVersionKey = new AppVersionKey(applVerID);
         DataDictionary dd = applicationDictionaries.get(appVersionKey);
         if (dd == null && findDataDictionaries) {
@@ -72,22 +82,27 @@ public class DefaultDataDictionaryProvider implements DataDictionaryProvider {
     }
 
     public void addTransportDictionary(String beginString, DataDictionary dd) {
+
         transportDictionaries.put(beginString, dd);
     }
 
-    public void addApplicationDictionary(ApplVerID applVerID, DataDictionary dataDictionary) {
+    public void addApplicationDictionary(StringField applVerID, DataDictionary dataDictionary) {
+
         applicationDictionaries.put(new AppVersionKey(applVerID), dataDictionary);
     }
 
     private static class AppVersionKey {
-        private final ApplVerID applVerID;
 
-        public AppVersionKey(ApplVerID applVerID) {
+        private final FIXField<?> applVerID;
+
+        public AppVersionKey(FIXField<?> applVerID) {
+
             this.applVerID = applVerID;
         }
 
         @Override
         public int hashCode() {
+
             final int prime = 31;
             int result = 1;
             result = prime * result + ((applVerID == null) ? 0 : applVerID.hashCode());
@@ -96,6 +111,7 @@ public class DefaultDataDictionaryProvider implements DataDictionaryProvider {
 
         @Override
         public boolean equals(Object obj) {
+
             if (this == obj) {
                 return true;
             }

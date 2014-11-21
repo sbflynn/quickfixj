@@ -23,7 +23,6 @@ import java.io.ByteArrayInputStream;
 import java.net.URL;
 import java.net.URLClassLoader;
 
-import junit.framework.TestCase;
 import quickfix.field.Account;
 import quickfix.field.BodyLength;
 import quickfix.field.CheckSum;
@@ -46,6 +45,7 @@ import quickfix.field.TimeInForce;
 import quickfix.field.TransactTime;
 import quickfix.fix44.NewOrderSingle;
 import quickfix.test.util.ExpectedTestFailure;
+import junit.framework.TestCase;
 
 public class DataDictionaryTest extends TestCase {
 
@@ -239,8 +239,8 @@ public class DataDictionaryTest extends TestCase {
 
     public void testMessageDataDictionaryMismatch() throws Exception {
         final quickfix.fix43.NewOrderSingle newSingle = new quickfix.fix43.NewOrderSingle(
-                new ClOrdID("123"), new HandlInst(HandlInst.MANUAL_ORDER), new Side(Side.BUY), new TransactTime(), new OrdType(
-                        OrdType.LIMIT));
+                new ClOrdID("123"), new HandlInst(HandlInst.MANUAL_ORDER), new Side(Side.BUY),
+                new TransactTime(), new OrdType(OrdType.LIMIT));
         newSingle.setField(new OrderQty(42));
         newSingle.setField(new Price(42.37));
         newSingle.setField(new Symbol("QFJ"));
@@ -294,8 +294,8 @@ public class DataDictionaryTest extends TestCase {
 
     public void testMessageCategory() throws Exception {
         DataDictionary dd = getDictionary();
-        assertTrue(dd.isAdminMessage(MsgType.LOGON));
-        assertFalse(dd.isAppMessage(MsgType.LOGON));
+        assertTrue(dd.isAdminMessage(FixMessageTypes.LOGON));
+        assertFalse(dd.isAppMessage(FixMessageTypes.LOGON));
         assertFalse(dd.isAdminMessage(MsgType.ORDER_SINGLE));
         assertTrue(dd.isAppMessage(MsgType.ORDER_SINGLE));
     }
@@ -339,17 +339,17 @@ public class DataDictionaryTest extends TestCase {
         final DataDictionary dictionary = new DataDictionary(getDictionary());
         dictionary.setCheckUnorderedGroupFields(false);
         Message messageWithGroupLevel1 = new Message(
-            "8=FIX.4.4\0019=185\00135=D\00134=25\00149=SENDER\00156=TARGET\00152=20110412-13:43:00\001" +
-            "60=20110412-13:43:00\0011=testAccount\00111=123\00121=3\00138=42\00140=2\00144=42.37\001" +
-            "54=1\00155=QFJ\00159=0\00178=1\00179=allocAccount\001736=currency\001661=1\00110=130\001",
-            dictionary);
+                "8=FIX.4.4\0019=185\00135=D\00134=25\00149=SENDER\00156=TARGET\00152=20110412-13:43:00\001"
+                        + "60=20110412-13:43:00\0011=testAccount\00111=123\00121=3\00138=42\00140=2\00144=42.37\001"
+                        + "54=1\00155=QFJ\00159=0\00178=1\00179=allocAccount\001736=currency\001661=1\00110=130\001",
+                dictionary);
         dictionary.validate(messageWithGroupLevel1);
 
         Message messageWithGroupLevel2 = new Message(
-            "8=FIX.4.4\0019=185\00135=D\00134=25\00149=SENDER\00156=TARGET\00152=20110412-13:43:00\001" +
-            "60=20110412-13:43:00\0011=testAccount\00111=123\00121=3\00138=42\00140=2\00144=42.37\001" +
-            "54=1\00155=QFJ\00159=0\00178=1\00179=allocAccount\001539=1\001524=1\001538=1\001525=a\00110=145\001",
-            dictionary);
+                "8=FIX.4.4\0019=185\00135=D\00134=25\00149=SENDER\00156=TARGET\00152=20110412-13:43:00\001"
+                        + "60=20110412-13:43:00\0011=testAccount\00111=123\00121=3\00138=42\00140=2\00144=42.37\001"
+                        + "54=1\00155=QFJ\00159=0\00178=1\00179=allocAccount\001539=1\001524=1\001538=1\001525=a\00110=145\001",
+                dictionary);
         dictionary.validate(messageWithGroupLevel2);
     }
 
@@ -359,10 +359,10 @@ public class DataDictionaryTest extends TestCase {
         final DataDictionary dataDictionary = new DataDictionary(getDictionary());
         dataDictionary.setCheckFieldsOutOfOrder(true);
 
-        String correctFixMessage = "8=FIX.4.4\0019=218\00135=D\00149=cust\00150=trader\001" +
-            "56=FixGateway\00134=449\00152=20110420-09:17:40\00111=clordid\00154=1\00138=50\001" +
-            "59=6\00140=2\00144=77.1\001432=20110531\00115=CHF\00122=8\00155=symbol\001" +
-            "48=CH1234.CHF\00121=1\00160=20110420-11:17:39.000\00163=0\001207=VX\00110=009\001";
+        String correctFixMessage = "8=FIX.4.4\0019=218\00135=D\00149=cust\00150=trader\001"
+                + "56=FixGateway\00134=449\00152=20110420-09:17:40\00111=clordid\00154=1\00138=50\001"
+                + "59=6\00140=2\00144=77.1\001432=20110531\00115=CHF\00122=8\00155=symbol\001"
+                + "48=CH1234.CHF\00121=1\00160=20110420-11:17:39.000\00163=0\001207=VX\00110=009\001";
 
         // in any case, it must be validated as the message is correct
         //doValidation and checkFieldsOutOfOrder
@@ -397,10 +397,10 @@ public class DataDictionaryTest extends TestCase {
         final DataDictionary dataDictionary = new DataDictionary(getDictionary());
         dataDictionary.setCheckFieldsOutOfOrder(true);
 
-        String incorrectFixMessage = "8=FIX.4.4\0019=218\00135=D\00149=cust\00156=FixGateway\001" +
-            "34=449\00152=20110420-09:17:40\00111=clordid\00154=1\00138=50\00159=6\00140=2\001" +
-            "44=77.1\001432=20110531\00115=CHF\00122=8\00155=symbol\00148=CH1234.CHF\00121=1\001" +
-            "60=20110420-11:17:39.000\00163=0\001207=VX\00150=trader\00110=009\001";
+        String incorrectFixMessage = "8=FIX.4.4\0019=218\00135=D\00149=cust\00156=FixGateway\001"
+                + "34=449\00152=20110420-09:17:40\00111=clordid\00154=1\00138=50\00159=6\00140=2\001"
+                + "44=77.1\001432=20110531\00115=CHF\00122=8\00155=symbol\00148=CH1234.CHF\00121=1\001"
+                + "60=20110420-11:17:39.000\00163=0\001207=VX\00150=trader\00110=009\001";
 
         //doValidation and checkFieldsOutOfOrder -> should fail
         final NewOrderSingle nos1 = new NewOrderSingle();
@@ -463,7 +463,7 @@ public class DataDictionaryTest extends TestCase {
      * @throws Exception if the named data dictionary cannot be loaded
      */
     public static DataDictionary getDictionary(String fileName) throws Exception {
-        return new DataDictionary(DataDictionaryTest.class.getClassLoader()
-                .getResourceAsStream(fileName));
+        return new DataDictionary(DataDictionaryTest.class.getClassLoader().getResourceAsStream(
+                fileName));
     }
 }

@@ -57,6 +57,6 @@ public class DefaultMessageFactoryTest {
 
     private static void assertMessage(Class<?> expectedMessageClass, String expectedMessageType, Message message) throws Exception {
         assertEquals(expectedMessageClass, message.getClass());
-        assertEquals(expectedMessageType, message.getHeader().getString(MsgType.FIELD));
+        assertEquals(expectedMessageType, message.getHeader().getString(FixTags.MSG_TYPE));
     }
 }

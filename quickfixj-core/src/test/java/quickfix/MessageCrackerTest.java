@@ -204,7 +204,7 @@ public class MessageCrackerTest {
     @Test
     public void testFixT11AppMessageCracking() throws Exception {
         quickfix.fix50.Email message = new quickfix.fix50.Email();
-        message.getHeader().setString(BeginString.FIELD, FixVersions.BEGINSTRING_FIXT11);
+        message.getHeader().setString(FixTags.BEGIN_STRING, FixVersions.BEGINSTRING_FIXT11);
         message.getHeader().setString(SenderCompID.FIELD, "SENDER");
         message.getHeader().setString(TargetCompID.FIELD, "TARGET");
         message.getHeader().setString(ApplVerID.FIELD, ApplVerID.FIX50SP2);
@@ -283,7 +283,7 @@ public class MessageCrackerTest {
 
     private quickfix.fix44.Email createFix44Email() {
         quickfix.fix44.Email message = new quickfix.fix44.Email();
-        message.getHeader().setString(BeginString.FIELD, FixVersions.BEGINSTRING_FIXT11);
+        message.getHeader().setString(FixTags.BEGIN_STRING, FixVersions.BEGINSTRING_FIXT11);
         message.getHeader().setString(SenderCompID.FIELD, "SENDER");
         message.getHeader().setString(TargetCompID.FIELD, "TARGET");
         return message;

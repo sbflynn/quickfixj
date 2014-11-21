@@ -29,6 +29,7 @@ abstract class AbstractLog implements Log, Closeable {
         this.logHeartbeats = logHeartbeats;
     }
 
+    @Override
     public final void onIncoming(String message) {
         if (!logHeartbeats && MessageUtils.isHeartbeat(message)) {
             return;
@@ -38,6 +39,7 @@ abstract class AbstractLog implements Log, Closeable {
 
     protected abstract void logIncoming(String message);
 
+    @Override
     public final void onOutgoing(String message) {
         if (!logHeartbeats && MessageUtils.isHeartbeat(message)) {
             return;
@@ -47,6 +49,7 @@ abstract class AbstractLog implements Log, Closeable {
 
     protected abstract void logOutgoing(String message);
 
+    @Override
     public void close() throws IOException {
         // default is to do nothing
     }

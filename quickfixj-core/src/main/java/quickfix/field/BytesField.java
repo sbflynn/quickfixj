@@ -17,44 +17,41 @@
  * are not clear to you.
  ******************************************************************************/
 
-package quickfix;
+package quickfix.field;
 
-import java.lang.Character;
+import java.io.UnsupportedEncodingException;
+
+import org.quickfixj.QFJException;
 
 /**
- * A character message field.
+ * BytesField enables better handling of binary data. With BytesFields binary data can
+ * be directly put into FIX messages without casting them into Strings.
  */
-public class CharField extends Field<Character> {
+public class BytesField extends Field<byte[]> {
 
-    public CharField(int field) {
-        super(field, ' ');
+    public BytesField(int field) {
+        super(field, new byte[0]);
     }
 
-    public CharField(int field, Character data) {
+    public BytesField(int field, byte[] data) {
         super(field, data);
     }
 
-    public CharField(int field, char data) {
-        super(field, data);
+    public void setValue(byte[] data) {
+        setObject(data);
     }
 
-    public void setValue(Character value) {
-        setObject(value);
-    }
-
-    public void setValue(char value) {
-        setObject(value);
-    }
-
-    public char getValue() {
+    public byte[] getValue() {
         return getObject();
     }
 
-    public boolean valueEquals(Character value) {
-        return getObject().equals(value);
+    @Override
+    protected String objectAsString() {
+        try {
+            return new String(getObject(), "UTF8");
+        } catch (UnsupportedEncodingException e) {
+            throw new QFJException(e);
+        }
     }
 
-    public boolean valueEquals(char value) {
-        return getObject().equals(value);
-    }
 }

@@ -30,7 +30,9 @@ import quickfix.mina.NetworkingOptions;
 import quickfix.mina.SessionConnector;
 
 class InitiatorIoHandler extends AbstractIoHandler {
+
     private final Session quickfixSession;
+
     private final EventHandlingStrategy eventHandlingStrategy;
 
     public InitiatorIoHandler(Session quickfixSession, NetworkingOptions networkingOptions,
@@ -40,20 +42,20 @@ class InitiatorIoHandler extends AbstractIoHandler {
         this.eventHandlingStrategy = eventHandlingStrategy;
     }
 
+    @Override
     public void sessionCreated(IoSession session) throws Exception {
         super.sessionCreated(session);
         session.setAttribute(SessionConnector.QF_SESSION, quickfixSession);
         NetworkingOptions networkingOptions = getNetworkingOptions();
-        quickfixSession.setResponder(new IoSessionResponder(session,
-                networkingOptions.getSynchronousWrites(),
-                networkingOptions.getSynchronousWriteTimeout()));
+        quickfixSession.setResponder(new IoSessionResponder(session, networkingOptions
+                .getSynchronousWrites(), networkingOptions.getSynchronousWriteTimeout()));
         log.info("MINA session created for " + quickfixSession.getSessionID() + ": local="
                 + session.getLocalAddress() + ", " + session.getClass() + ", remote="
                 + session.getRemoteAddress());
     }
 
+    @Override
     protected void processMessage(IoSession protocolSession, Message message) throws Exception {
         eventHandlingStrategy.onMessage(quickfixSession, message);
     }
-
 }

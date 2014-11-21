@@ -19,8 +19,15 @@
 
 package quickfix;
 
-import static quickfix.FixVersions.*;
-import quickfix.field.MsgType;
+import static quickfix.FixVersions.BEGINSTRING_FIX40;
+import static quickfix.FixVersions.BEGINSTRING_FIX41;
+import static quickfix.FixVersions.BEGINSTRING_FIX42;
+import static quickfix.FixVersions.BEGINSTRING_FIX43;
+import static quickfix.FixVersions.BEGINSTRING_FIX44;
+import static quickfix.FixVersions.BEGINSTRING_FIXT11;
+import static quickfix.FixVersions.FIX50;
+import static quickfix.FixVersions.FIX50SP1;
+import static quickfix.FixVersions.FIX50SP2;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,8 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * The default factory for creating FIX message instances.
  */
 public class DefaultMessageFactory implements MessageFactory {
-    private final Map<String, MessageFactory> messageFactories
-        = new ConcurrentHashMap<String, MessageFactory>();
+    private final Map<String, MessageFactory> messageFactories = new ConcurrentHashMap<String, MessageFactory>();
 
     /**
      * Constructs a DefaultMessageFactory, which dynamically loads and delegates to
@@ -77,14 +83,15 @@ public class DefaultMessageFactory implements MessageFactory {
      * @throws RuntimeException if the named factory class cannot be instantiated
      */
     @SuppressWarnings("unchecked")
-    public void addFactory(String beginString, String factoryClassName) throws ClassNotFoundException {
+    public void addFactory(String beginString, String factoryClassName)
+            throws ClassNotFoundException {
         // try to load the class
         Class<? extends MessageFactory> factoryClass = null;
         try {
             // try using our own classloader
             factoryClass = (Class<? extends MessageFactory>) Class.forName(factoryClassName);
         } catch (ClassNotFoundException e) {
-                // try using context classloader (i.e. allow caller to specify it)
+            // try using context classloader (i.e. allow caller to specify it)
             Thread.currentThread().getContextClassLoader().loadClass(factoryClassName);
         }
         // if factory is found, add it
@@ -134,7 +141,7 @@ public class DefaultMessageFactory implements MessageFactory {
         }
 
         Message message = new Message();
-        message.getHeader().setString(MsgType.FIELD, msgType);
+        message.getHeader().setString(FixTags.MSG_TYPE, msgType);
 
         return message;
     }

@@ -19,6 +19,8 @@
 
 package quickfix;
 
+import quickfix.field.IntField;
+
 /**
  * Represents a repeating field group within a message.
  */

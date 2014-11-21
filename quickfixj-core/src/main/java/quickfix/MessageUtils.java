@@ -24,61 +24,62 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.quickfixj.CharsetSupport;
+import org.quickfixj.FIXField;
 import org.quickfixj.QFJException;
 
 import quickfix.Message.Header;
-import quickfix.field.ApplVerID;
-import quickfix.field.BeginString;
-import quickfix.field.DefaultApplVerID;
-import quickfix.field.MsgType;
-import quickfix.field.SenderCompID;
-import quickfix.field.SenderLocationID;
-import quickfix.field.SenderSubID;
-import quickfix.field.TargetCompID;
-import quickfix.field.TargetLocationID;
-import quickfix.field.TargetSubID;
+import quickfix.field.StringField;
 
 public class MessageUtils {
 
     private static final char FIELD_SEPARATOR = '\001';
 
     public static SessionID getSessionID(Message fixMessage) {
+
         final Header header = fixMessage.getHeader();
-        return new SessionID(getFieldOrDefault(header, BeginString.FIELD, null), getFieldOrDefault(
-                header, SenderCompID.FIELD, null), getFieldOrDefault(header, SenderSubID.FIELD,
-                null), getFieldOrDefault(header, SenderLocationID.FIELD, null), getFieldOrDefault(
-                header, TargetCompID.FIELD, null), getFieldOrDefault(header, TargetSubID.FIELD,
-                null), getFieldOrDefault(header, TargetLocationID.FIELD, null), null);
+        return new SessionID(getFieldOrDefault(header, FixTags.BEGIN_STRING, null),
+                getFieldOrDefault(header, FixTags.SENDER_COMP_ID, null), getFieldOrDefault(header,
+                        FixTags.SENDER_SUB_ID, null), getFieldOrDefault(header,
+                        FixTags.SENDER_LOCATION_ID, null), getFieldOrDefault(header,
+                        FixTags.TARGET_COMP_ID, null), getFieldOrDefault(header,
+                        FixTags.TARGET_SUB_ID, null), getFieldOrDefault(header,
+                        FixTags.TARGET_LOCATION_ID, null), null);
     }
 
     public static SessionID getSessionID(String messageString) {
-        return new SessionID(getStringField(messageString, BeginString.FIELD), getStringField(
-                messageString, SenderCompID.FIELD),
-                getStringField(messageString, SenderSubID.FIELD), getStringField(messageString,
-                        SenderLocationID.FIELD), getStringField(messageString, TargetCompID.FIELD),
-                getStringField(messageString, TargetSubID.FIELD), getStringField(messageString,
-                        TargetLocationID.FIELD), null);
+
+        return new SessionID(getStringField(messageString, FixTags.BEGIN_STRING), getStringField(
+                messageString, FixTags.SENDER_COMP_ID), getStringField(messageString,
+                FixTags.SENDER_SUB_ID), getStringField(messageString, FixTags.SENDER_LOCATION_ID),
+                getStringField(messageString, FixTags.TARGET_COMP_ID), getStringField(
+                        messageString, FixTags.TARGET_SUB_ID), getStringField(messageString,
+                        FixTags.TARGET_LOCATION_ID), null);
     }
 
     public static SessionID getReverseSessionID(Message fixMessage) {
+
         final Header header = fixMessage.getHeader();
-        return new SessionID(getFieldOrDefault(header, BeginString.FIELD, null), getFieldOrDefault(
-                header, TargetCompID.FIELD, null), getFieldOrDefault(header, TargetSubID.FIELD,
-                null), getFieldOrDefault(header, TargetLocationID.FIELD, null), getFieldOrDefault(
-                header, SenderCompID.FIELD, null), getFieldOrDefault(header, SenderSubID.FIELD,
-                null), getFieldOrDefault(header, SenderLocationID.FIELD, null), null);
+        return new SessionID(getFieldOrDefault(header, FixTags.BEGIN_STRING, null),
+                getFieldOrDefault(header, FixTags.TARGET_COMP_ID, null), getFieldOrDefault(header,
+                        FixTags.TARGET_SUB_ID, null), getFieldOrDefault(header,
+                        FixTags.TARGET_LOCATION_ID, null), getFieldOrDefault(header,
+                        FixTags.SENDER_COMP_ID, null), getFieldOrDefault(header,
+                        FixTags.SENDER_SUB_ID, null), getFieldOrDefault(header,
+                        FixTags.SENDER_LOCATION_ID, null), null);
     }
 
     public static SessionID getReverseSessionID(String messageString) {
-        return new SessionID(getStringField(messageString, BeginString.FIELD), getStringField(
-                messageString, TargetCompID.FIELD),
-                getStringField(messageString, TargetSubID.FIELD), getStringField(messageString,
-                        TargetLocationID.FIELD), getStringField(messageString, SenderCompID.FIELD),
-                getStringField(messageString, SenderSubID.FIELD), getStringField(messageString,
-                        SenderLocationID.FIELD), null);
+
+        return new SessionID(getStringField(messageString, FixTags.BEGIN_STRING), getStringField(
+                messageString, FixTags.TARGET_COMP_ID), getStringField(messageString,
+                FixTags.TARGET_SUB_ID), getStringField(messageString, FixTags.TARGET_LOCATION_ID),
+                getStringField(messageString, FixTags.SENDER_COMP_ID), getStringField(
+                        messageString, FixTags.SENDER_SUB_ID), getStringField(messageString,
+                        FixTags.SENDER_LOCATION_ID), null);
     }
 
     private static String getFieldOrDefault(FieldMap fields, int tag, String defaultValue) {
+
         if (fields.isSetField(tag)) {
             try {
                 return fields.getString(tag);
@@ -92,8 +93,8 @@ public class MessageUtils {
     }
 
     /**
-     * Utility method for parsing a mesasge. This should only be used for parsing messages from
-     * FIX versions 4.4 or earlier.
+     * Utility method for parsing a mesasge. This should only be used for
+     * parsing messages from FIX versions 4.4 or earlier.
      *
      * @param messageFactory
      * @param dataDictionary
@@ -103,6 +104,7 @@ public class MessageUtils {
      */
     public static Message parse(MessageFactory messageFactory, DataDictionary dataDictionary,
             String messageString) throws InvalidMessage {
+
         final int index = messageString.indexOf(FIELD_SEPARATOR);
         if (index < 0) {
             throw new InvalidMessage("Message does not contain any field separator");
@@ -123,10 +125,11 @@ public class MessageUtils {
      * @throws InvalidMessage
      */
     public static Message parse(Session session, String messageString) throws InvalidMessage {
-        final String beginString = getStringField(messageString, BeginString.FIELD);
+
+        final String beginString = getStringField(messageString, FixTags.BEGIN_STRING);
         final String msgType = getMessageType(messageString);
 
-        ApplVerID applVerID;
+        StringField applVerID;
 
         if (FixVersions.BEGINSTRING_FIXT11.equals(beginString)) {
             applVerID = getApplVerID(session, messageString);
@@ -153,13 +156,14 @@ public class MessageUtils {
         return message;
     }
 
-    private static ApplVerID getApplVerID(Session session, String messageString)
+    private static StringField getApplVerID(Session session, String messageString)
             throws InvalidMessage {
-        ApplVerID applVerID = null;
 
-        final String applVerIdString = getStringField(messageString, ApplVerID.FIELD);
+        StringField applVerID = null;
+
+        final String applVerIdString = getStringField(messageString, FixTags.APPL_VER_ID);
         if (applVerIdString != null) {
-            applVerID = new ApplVerID(applVerIdString);
+            applVerID = new StringField(FixTags.APPL_VER_ID, applVerIdString);
         }
 
         if (applVerID == null) {
@@ -168,9 +172,9 @@ public class MessageUtils {
 
         if (applVerID == null && isLogon(messageString)) {
             final String defaultApplVerIdString = getStringField(messageString,
-                    DefaultApplVerID.FIELD);
+                    FixTags.DEFAULT_APPL_VER_ID);
             if (defaultApplVerIdString != null) {
-                applVerID = new ApplVerID(defaultApplVerIdString);
+                applVerID = new StringField(FixTags.APPL_VER_ID, defaultApplVerIdString);
             }
         }
 
@@ -182,18 +186,22 @@ public class MessageUtils {
     }
 
     public static boolean isAdminMessage(String msgType) {
+
         return msgType.length() == 1 && "0A12345".contains(msgType);
     }
 
     public static boolean isHeartbeat(String message) {
-        return isMessageType(message, MsgType.HEARTBEAT);
+
+        return isMessageType(message, FixMessageTypes.HEARTBEAT);
     }
 
     public static boolean isLogon(String message) {
-        return isMessageType(message, MsgType.LOGON);
+
+        return isMessageType(message, FixMessageTypes.LOGON);
     }
 
     private static boolean isMessageType(String message, String msgType) {
+
         try {
             return msgType.equals(getMessageType(message));
         } catch (final InvalidMessage e) {
@@ -202,6 +210,7 @@ public class MessageUtils {
     }
 
     public static String getMessageType(String messageString) throws InvalidMessage {
+
         final String value = getStringField(messageString, 35);
         if (value == null) {
             throw new InvalidMessage("Missing or garbled message type in " + messageString);
@@ -210,6 +219,7 @@ public class MessageUtils {
     }
 
     public static String getStringField(String messageString, int tag) {
+
         String value = null;
         final String tagString = Integer.toString(tag);
         int start = messageString.indexOf(tagString, 0);
@@ -236,16 +246,17 @@ public class MessageUtils {
     }
 
     private static Map<String, String> applVerIDtoBeginString = new HashMap<String, String>() {
+
         {
             // No support for earlier versions of FIX
-            put(ApplVerID.FIX40, FixVersions.BEGINSTRING_FIX40);
-            put(ApplVerID.FIX41, FixVersions.BEGINSTRING_FIX41);
-            put(ApplVerID.FIX42, FixVersions.BEGINSTRING_FIX42);
-            put(ApplVerID.FIX43, FixVersions.BEGINSTRING_FIX43);
-            put(ApplVerID.FIX44, FixVersions.BEGINSTRING_FIX44);
-            put(ApplVerID.FIX50, FixVersions.FIX50);
-            put(ApplVerID.FIX50SP1, FixVersions.FIX50SP1);
-            put(ApplVerID.FIX50SP2, FixVersions.FIX50SP2);
+            put(FixVersions.APPL_VER_ID_FIX40, FixVersions.BEGINSTRING_FIX40);
+            put(FixVersions.APPL_VER_ID_FIX41, FixVersions.BEGINSTRING_FIX41);
+            put(FixVersions.APPL_VER_ID_FIX42, FixVersions.BEGINSTRING_FIX42);
+            put(FixVersions.APPL_VER_ID_FIX43, FixVersions.BEGINSTRING_FIX43);
+            put(FixVersions.APPL_VER_ID_FIX44, FixVersions.BEGINSTRING_FIX44);
+            put(FixVersions.APPL_VER_ID_FIX50, FixVersions.FIX50);
+            put(FixVersions.APPL_VER_ID_FIX50SP1, FixVersions.FIX50SP1);
+            put(FixVersions.APPL_VER_ID_FIX50SP2, FixVersions.FIX50SP2);
         }
     };
 
@@ -257,25 +268,35 @@ public class MessageUtils {
      * @throws QFJException if conversion fails.
      * @see ApplVerID
      */
-    public static String toBeginString(ApplVerID applVerID) throws QFJException {
-        final String beginString = applVerIDtoBeginString.get(applVerID.getValue());
+    public static String toBeginString(FIXField<?> applVerID) throws QFJException {
+
+        final String beginString = applVerIDtoBeginString.get(applVerID.getCharacters());
         if (beginString == null) {
-            throw new QFJException("Unknown or unsupported ApplVerID: " + applVerID.getValue());
+            throw new QFJException("Unknown or unsupported ApplVerID: " + applVerID.getCharacters());
         }
         return beginString;
     }
 
-    private static Map<String, ApplVerID> beginStringToApplVerID = new HashMap<String, ApplVerID>() {
+    private static Map<String, StringField> beginStringToApplVerID = new HashMap<String, StringField>() {
+
         {
             // No support for earlier versions of FIX
-            put(FixVersions.BEGINSTRING_FIX40, new ApplVerID(ApplVerID.FIX40));
-            put(FixVersions.BEGINSTRING_FIX41, new ApplVerID(ApplVerID.FIX41));
-            put(FixVersions.BEGINSTRING_FIX42, new ApplVerID(ApplVerID.FIX42));
-            put(FixVersions.BEGINSTRING_FIX43, new ApplVerID(ApplVerID.FIX43));
-            put(FixVersions.BEGINSTRING_FIX44, new ApplVerID(ApplVerID.FIX44));
-            put(FixVersions.FIX50, new ApplVerID(ApplVerID.FIX50));
-            put(FixVersions.FIX50SP1, new ApplVerID(ApplVerID.FIX50SP1));
-            put(FixVersions.FIX50SP2, new ApplVerID(ApplVerID.FIX50SP2));
+            put(FixVersions.BEGINSTRING_FIX40, new StringField(FixTags.APPL_VER_ID,
+                    FixVersions.APPL_VER_ID_FIX40));
+            put(FixVersions.BEGINSTRING_FIX41, new StringField(FixTags.APPL_VER_ID,
+                    FixVersions.APPL_VER_ID_FIX41));
+            put(FixVersions.BEGINSTRING_FIX42, new StringField(FixTags.APPL_VER_ID,
+                    FixVersions.APPL_VER_ID_FIX42));
+            put(FixVersions.BEGINSTRING_FIX43, new StringField(FixTags.APPL_VER_ID,
+                    FixVersions.APPL_VER_ID_FIX43));
+            put(FixVersions.BEGINSTRING_FIX44, new StringField(FixTags.APPL_VER_ID,
+                    FixVersions.APPL_VER_ID_FIX44));
+            put(FixVersions.FIX50, new StringField(FixTags.APPL_VER_ID,
+                    FixVersions.APPL_VER_ID_FIX50));
+            put(FixVersions.FIX50SP1, new StringField(FixTags.APPL_VER_ID,
+                    FixVersions.APPL_VER_ID_FIX50SP1));
+            put(FixVersions.FIX50SP2, new StringField(FixTags.APPL_VER_ID,
+                    FixVersions.APPL_VER_ID_FIX50SP2));
         }
     };
 
@@ -287,8 +308,9 @@ public class MessageUtils {
      * @throws QFJException if conversion fails.
      * @see FixVersions
      */
-    public static ApplVerID toApplVerID(String beginString) throws QFJException {
-        final ApplVerID applVerID = beginStringToApplVerID.get(beginString);
+    public static StringField toApplVerID(String beginString) throws QFJException {
+
+        final StringField applVerID = beginStringToApplVerID.get(beginString);
         if (applVerID == null) {
             throw new QFJException("Can't convert to ApplVerID: " + beginString);
         }
@@ -301,13 +323,15 @@ public class MessageUtils {
      * @param charset the charset used in encoding the data
      * @param data the data to calculate the checksum on
      * @param isEntireMessage specifies whether the data is an entire message;
-     *        if true, and it ends with a checksum field, that checksum
-     *        field is excluded from the current checksum calculation
+     *        if true, and it ends with a checksum field, that checksum field is
+     *        excluded from the current checksum calculation
      * @return the calculated checksum
      */
     public static int checksum(Charset charset, String data, boolean isEntireMessage) {
+
         int sum = 0;
-        if (CharsetSupport.isStringEquivalent(charset)) { // optimization - skip encoding
+        if (CharsetSupport.isStringEquivalent(charset)) { // optimization - skip
+                                                          // encoding
             int end = isEntireMessage ? data.lastIndexOf("\00110=") : -1;
             int len = end > -1 ? end + 1 : data.length();
             for (int i = 0; i < len; i++) {
@@ -323,30 +347,35 @@ public class MessageUtils {
                 sum += (bytes[i] & 0xFF);
             }
         }
-        return sum & 0xFF; // better than sum % 256 since it avoids overflow issues
+        return sum & 0xFF; // better than sum % 256 since it avoids overflow
+                           // issues
     }
 
     /**
-     * Calculates the checksum for the given message
-     * (excluding existing checksum field, if one exists).
-     * The {@link CharsetSupport#setCharset global charset} is used.
+     * Calculates the checksum for the given message (excluding existing
+     * checksum field, if one exists). The {@link CharsetSupport#setCharset
+     * global charset} is used.
      *
      * @param message the message to calculate the checksum on
      * @return the calculated checksum
      */
     public static int checksum(String message) {
+
         return checksum(CharsetSupport.getCharsetInstance(), message, true);
     }
 
     /**
-     * Calculates the length of the byte representation
-     * of the given string in the given charset.
+     * Calculates the length of the byte representation of the given string in
+     * the given charset.
      *
      * @param charset the charset used in encoding the data
      * @param data the data to calculate the length on
      * @return the calculated length
      */
     public static int length(Charset charset, String data) {
-        return CharsetSupport.isStringEquivalent(charset) ? data.length() : data.getBytes(charset).length;
+
+        return CharsetSupport.isStringEquivalent(charset)
+                ? data.length()
+                : data.getBytes(charset).length;
     }
 }

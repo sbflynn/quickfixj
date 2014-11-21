@@ -17,19 +17,31 @@
  * are not clear to you.
  ******************************************************************************/
 
-package quickfix;
+package quickfix.field;
 
-import java.util.Date;
 
 /**
- * A date-valued message field.
+ * A string-valued message field.
  */
-public class UtcDateOnlyField extends DateField {
-    public UtcDateOnlyField(int field) {
-        super(field);
+public class StringField extends Field<String> {
+
+    public StringField(int field) {
+        super(field, "");
     }
 
-    protected UtcDateOnlyField(int field, Date data) {
+    public StringField(int field, String data) {
         super(field, data);
+    }
+
+    public void setValue(String value) {
+        setObject(value);
+    }
+
+    public String getValue() {
+        return getObject();
+    }
+
+    public boolean valueEquals(String value) {
+        return getValue().equals(value);
     }
 }

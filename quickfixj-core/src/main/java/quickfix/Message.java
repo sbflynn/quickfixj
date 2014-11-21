@@ -32,86 +32,74 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 import org.quickfixj.CharsetSupport;
+import org.quickfixj.FIXField;
 import org.w3c.dom.CDATASection;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import quickfix.field.ApplVerID;
-import quickfix.field.BeginString;
-import quickfix.field.BodyLength;
-import quickfix.field.CheckSum;
-import quickfix.field.CstmApplVerID;
-import quickfix.field.DeliverToCompID;
-import quickfix.field.DeliverToLocationID;
-import quickfix.field.DeliverToSubID;
-import quickfix.field.LastMsgSeqNumProcessed;
-import quickfix.field.MessageEncoding;
-import quickfix.field.MsgSeqNum;
-import quickfix.field.MsgType;
-import quickfix.field.NoHops;
-import quickfix.field.OnBehalfOfCompID;
-import quickfix.field.OnBehalfOfLocationID;
-import quickfix.field.OnBehalfOfSendingTime;
-import quickfix.field.OnBehalfOfSubID;
-import quickfix.field.OrigSendingTime;
-import quickfix.field.PossDupFlag;
-import quickfix.field.PossResend;
-import quickfix.field.SecureDataLen;
-import quickfix.field.SenderCompID;
-import quickfix.field.SenderLocationID;
-import quickfix.field.SenderSubID;
-import quickfix.field.SendingTime;
-import quickfix.field.SessionRejectReason;
-import quickfix.field.Signature;
-import quickfix.field.SignatureLength;
-import quickfix.field.TargetCompID;
-import quickfix.field.TargetLocationID;
-import quickfix.field.TargetSubID;
-import quickfix.field.XmlData;
-import quickfix.field.XmlDataLen;
+import quickfix.field.StringField;
 
 /**
  * Represents a FIX message.
  */
 public class Message extends FieldMap {
 
-    static final long serialVersionUID = -3193357271891865972L;
+    private static final long serialVersionUID = -3193357271891865972L;
+
     protected Header header = new Header();
+
     protected Trailer trailer = new Trailer();
+
+    //
+    // Extract field
+    //
+    private String messageData;
+
+    private int position;
+
+    private StringField pushedBackField;
 
     // @GuardedBy("this")
     private FieldException exception;
 
     public Message() {
+
         // empty
     }
 
     protected Message(int[] fieldOrder) {
+
         super(fieldOrder);
     }
 
     public Message(String string) throws InvalidMessage {
+
         fromString(string, null, true);
     }
 
     public Message(String string, boolean validate) throws InvalidMessage {
+
         fromString(string, null, validate);
     }
 
     public Message(String string, DataDictionary dd) throws InvalidMessage {
+
         fromString(string, dd, true);
     }
 
     public Message(String string, DataDictionary dd, boolean validate) throws InvalidMessage {
+
         fromString(string, dd, validate);
     }
 
     public static boolean InitializeXML(String url) {
+
         throw new UnsupportedOperationException();
     }
 
     @Override
     public Object clone() {
+
         try {
             final Message message = getClass().newInstance();
             return cloneTo(message);
@@ -123,6 +111,7 @@ public class Message extends FieldMap {
     }
 
     private Object cloneTo(Message message) {
+
         message.initializeFrom(this);
         message.header.initializeFrom(getHeader());
         message.trailer.initializeFrom(getTrailer());
@@ -130,15 +119,17 @@ public class Message extends FieldMap {
     }
 
     /**
-     * Do not call this method concurrently while modifying the contents of the message.
-     * This is likely to produce unexpected results or will fail with a ConcurrentModificationException
-     * since FieldMap.calculateString() is iterating over the TreeMap of fields.
+     * Do not call this method concurrently while modifying the contents of the
+     * message. This is likely to produce unexpected results or will fail with a
+     * ConcurrentModificationException since FieldMap.calculateString() is
+     * iterating over the TreeMap of fields.
      */
     @Override
     public String toString() {
+
         final int bodyLength = bodyLength();
-        header.setInt(BodyLength.FIELD, bodyLength);
-        trailer.setString(CheckSum.FIELD, checksum());
+        header.setInt(FixTags.BODY_LENGTH, bodyLength);
+        trailer.setString(FixTags.CHECK_SUM, checksum());
 
         final StringBuilder sb = new StringBuilder(bodyLength);
         header.calculateString(sb, null, null);
@@ -149,104 +140,122 @@ public class Message extends FieldMap {
     }
 
     public int bodyLength() {
+
         return header.calculateLength() + calculateLength() + trailer.calculateLength();
     }
 
     private static DecimalFormat checksumFormat = new DecimalFormat("000");
 
     private String checksum() {
-        return checksumFormat.format(
-            (header.calculateChecksum() + calculateChecksum() + trailer.calculateChecksum()) & 0xFF);
+
+        return checksumFormat.format((header.calculateChecksum() + calculateChecksum() + trailer
+                .calculateChecksum()) & 0xFF);
     }
 
     public void headerAddGroup(Group group) {
+
         header.addGroup(group);
     }
 
     public void headerReplaceGroup(int num, Group group) {
+
         header.replaceGroup(num, group);
     }
 
     public Group headerGetGroup(int num, Group group) throws FieldNotFound {
+
         return header.getGroup(num, group);
     }
 
     public void headerRemoveGroup(Group group) {
+
         header.removeGroup(group);
     }
 
     public boolean headerHasGroup(int field) {
+
         return header.hasGroup(field);
     }
 
     public boolean headerHasGroup(int num, int field) {
+
         return header.hasGroup(num, field);
     }
 
     public boolean headerHasGroup(int num, Group group) {
+
         return headerHasGroup(num, group.getFieldTag());
     }
 
     public boolean headerHasGroup(Group group) {
+
         return headerHasGroup(group.getFieldTag());
     }
 
     public void trailerAddGroup(Group group) {
+
         trailer.addGroup(group);
     }
 
     public Group trailerGetGroup(int num, Group group) throws FieldNotFound {
+
         return trailer.getGroup(num, group);
     }
 
     public void trailerReplaceGroup(int num, Group group) {
+
         trailer.replaceGroup(num, group);
     }
 
     public void trailerRemoveGroup(Group group) {
+
         trailer.removeGroup(group);
     }
 
     public boolean trailerHasGroup(int field) {
+
         return trailer.hasGroup(field);
     }
 
     public boolean trailerHasGroup(int num, int field) {
+
         return trailer.hasGroup(num, field);
     }
 
     public boolean trailerHasGroup(int num, Group group) {
+
         return trailerHasGroup(num, group.getFieldTag());
     }
 
     public boolean trailerHasGroup(Group group) {
+
         return trailerHasGroup(group.getFieldTag());
     }
 
     /**
-     * Converts the message into a simple XML format. This format is
-     * probably not sufficient for production use, but it more intended
-     * for diagnostics and debugging. THIS IS NOT FIXML.
-     *
-     * To get names instead of tag number, use toXML(DataDictionary)
-     * instead.
+     * Converts the message into a simple XML format. This format is probably
+     * not sufficient for production use, but it more intended for diagnostics
+     * and debugging. THIS IS NOT FIXML. To get names instead of tag number, use
+     * toXML(DataDictionary) instead.
      *
      * @return an XML representation of the message.
      * @see #toXML(DataDictionary)
      */
     public String toXML() {
+
         return toXML(null);
     }
 
     /**
-     * Converts the message into a simple XML format. This format is
-     * probably not sufficient for production use, but it more intended
-     * for diagnostics and debugging. THIS IS NOT FIXML.
+     * Converts the message into a simple XML format. This format is probably
+     * not sufficient for production use, but it more intended for diagnostics
+     * and debugging. THIS IS NOT FIXML.
      *
      * @param dataDictionary
      * @return the XML representation of the message
      */
     public String toXML(DataDictionary dataDictionary) {
+
         try {
             final Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder()
                     .newDocument();
@@ -271,12 +280,13 @@ public class Message extends FieldMap {
 
     private void toXMLFields(Element message, String section, FieldMap fieldMap,
             DataDictionary dataDictionary) throws FieldNotFound {
+
         final Document document = message.getOwnerDocument();
         final Element fields = document.createElement(section);
         message.appendChild(fields);
-        final Iterator<Field<?>> fieldItr = fieldMap.iterator();
+        final Iterator<FIXField<?>> fieldItr = fieldMap.iterator();
         while (fieldItr.hasNext()) {
-            final Field<?> field = fieldItr.next();
+            final FIXField<?> field = fieldItr.next();
             final Element fieldElement = document.createElement("field");
             if (dataDictionary != null) {
                 final String name = dataDictionary.getFieldName(field.getTag());
@@ -314,17 +324,20 @@ public class Message extends FieldMap {
     }
 
     public final Header getHeader() {
+
         return header;
     }
 
     public final Trailer getTrailer() {
+
         return trailer;
     }
 
     public boolean isAdmin() {
-        if (header.isSetField(MsgType.FIELD)) {
+
+        if (header.isSetField(FixTags.MSG_TYPE)) {
             try {
-                final String msgType = header.getString(MsgType.FIELD);
+                final String msgType = header.getString(FixTags.MSG_TYPE);
                 return MessageUtils.isAdminMessage(msgType);
             } catch (final FieldNotFound e) {
                 // shouldn't happen
@@ -334,16 +347,19 @@ public class Message extends FieldMap {
     }
 
     public boolean isApp() {
+
         return !isAdmin();
     }
 
     @Override
     public boolean isEmpty() {
+
         return super.isEmpty() && header.isEmpty() && trailer.isEmpty() && position == 0;
     }
 
     @Override
     public void clear() {
+
         super.clear();
         header.clear();
         trailer.clear();
@@ -351,84 +367,96 @@ public class Message extends FieldMap {
     }
 
     public static class Header extends FieldMap {
-        static final long serialVersionUID = -3193357271891865972L;
-        private static final int[] EXCLUDED_HEADER_FIELDS = { BeginString.FIELD, BodyLength.FIELD,
-                MsgType.FIELD };
+
+        private static final long serialVersionUID = -3193357271891865972L;
+
+        private static final int[] EXCLUDED_HEADER_FIELDS = { FixTags.BEGIN_STRING,
+                FixTags.BODY_LENGTH, FixTags.MSG_TYPE };
 
         public Header() {
+
             super();
         }
 
         public Header(int[] fieldOrder) {
+
             super(fieldOrder);
         }
 
         @Override
         protected void calculateString(StringBuilder buffer, int[] excludedFields, int[] postFields) {
+
             super.calculateString(buffer, EXCLUDED_HEADER_FIELDS, postFields);
         }
     }
 
     public static class Trailer extends FieldMap {
-        static final long serialVersionUID = -3193357271891865972L;
-        private static final int[] TRAILER_FIELD_ORDER = { SignatureLength.FIELD, Signature.FIELD,
-                CheckSum.FIELD };
+
+        private static final long serialVersionUID = -3193357271891865972L;
+
+        private static final int[] TRAILER_FIELD_ORDER = { FixTags.SIGNATURE_LENGTH,
+                FixTags.SIGNATURE, FixTags.CHECK_SUM };
 
         public Trailer() {
+
             super(TRAILER_FIELD_ORDER);
         }
 
         public Trailer(int[] fieldOrder) {
+
             super(fieldOrder);
         }
 
         @Override
         protected void calculateString(StringBuilder buffer, int[] excludedFields, int[] postFields) {
-            super.calculateString(buffer, null, new int[] { CheckSum.FIELD });
+
+            super.calculateString(buffer, null, new int[] { FixTags.CHECK_SUM });
         }
     }
 
     public void reverseRoute(Header header) throws FieldNotFound {
-        this.header.removeField(BeginString.FIELD);
-        this.header.removeField(SenderCompID.FIELD);
-        this.header.removeField(SenderSubID.FIELD);
-        this.header.removeField(SenderLocationID.FIELD);
-        this.header.removeField(TargetCompID.FIELD);
-        this.header.removeField(TargetSubID.FIELD);
-        this.header.removeField(TargetLocationID.FIELD);
 
-        if (header.isSetField(BeginString.FIELD)) {
-            copyField(header, BeginString.FIELD, BeginString.FIELD);
+        this.header.removeField(FixTags.BEGIN_STRING);
+        this.header.removeField(FixTags.SENDER_COMP_ID);
+        this.header.removeField(FixTags.SENDER_SUB_ID);
+        this.header.removeField(FixTags.SENDER_LOCATION_ID);
+        this.header.removeField(FixTags.TARGET_COMP_ID);
+        this.header.removeField(FixTags.TARGET_SUB_ID);
+        this.header.removeField(FixTags.TARGET_LOCATION_ID);
 
-            copyField(header, SenderCompID.FIELD, TargetCompID.FIELD);
-            copyField(header, SenderSubID.FIELD, TargetSubID.FIELD);
-            copyField(header, SenderLocationID.FIELD, TargetLocationID.FIELD);
+        if (header.isSetField(FixTags.BEGIN_STRING)) {
+            copyField(header, FixTags.BEGIN_STRING, FixTags.BEGIN_STRING);
 
-            copyField(header, TargetCompID.FIELD, SenderCompID.FIELD);
-            copyField(header, TargetSubID.FIELD, SenderSubID.FIELD);
-            copyField(header, TargetLocationID.FIELD, SenderLocationID.FIELD);
+            copyField(header, FixTags.SENDER_COMP_ID, FixTags.TARGET_COMP_ID);
+            copyField(header, FixTags.SENDER_SUB_ID, FixTags.TARGET_SUB_ID);
+            copyField(header, FixTags.SENDER_LOCATION_ID, FixTags.TARGET_LOCATION_ID);
 
-            this.header.removeField(OnBehalfOfCompID.FIELD);
-            this.header.removeField(OnBehalfOfSubID.FIELD);
-            this.header.removeField(DeliverToCompID.FIELD);
-            this.header.removeField(DeliverToSubID.FIELD);
+            copyField(header, FixTags.TARGET_COMP_ID, FixTags.SENDER_COMP_ID);
+            copyField(header, FixTags.TARGET_SUB_ID, FixTags.SENDER_SUB_ID);
+            copyField(header, FixTags.TARGET_LOCATION_ID, FixTags.SENDER_LOCATION_ID);
 
-            copyField(header, OnBehalfOfCompID.FIELD, DeliverToCompID.FIELD);
-            copyField(header, OnBehalfOfSubID.FIELD, DeliverToSubID.FIELD);
-            copyField(header, DeliverToCompID.FIELD, OnBehalfOfCompID.FIELD);
-            copyField(header, DeliverToSubID.FIELD, OnBehalfOfSubID.FIELD);
+            this.header.removeField(FixTags.ON_BEHALF_OF_COMP_ID);
+            this.header.removeField(FixTags.ON_BEHALF_OF_SUB_ID);
+            this.header.removeField(FixTags.DELIVER_TO_COMP_ID);
+            this.header.removeField(FixTags.DELIVER_TO_SUB_ID);
 
-            this.header.removeField(OnBehalfOfLocationID.FIELD);
-            this.header.removeField(DeliverToLocationID.FIELD);
+            copyField(header, FixTags.ON_BEHALF_OF_COMP_ID, FixTags.DELIVER_TO_COMP_ID);
+            copyField(header, FixTags.ON_BEHALF_OF_SUB_ID, FixTags.DELIVER_TO_SUB_ID);
+            copyField(header, FixTags.DELIVER_TO_COMP_ID, FixTags.ON_BEHALF_OF_COMP_ID);
+            copyField(header, FixTags.DELIVER_TO_SUB_ID, FixTags.ON_BEHALF_OF_SUB_ID);
 
-            if (header.getString(BeginString.FIELD).compareTo(FixVersions.BEGINSTRING_FIX41) >= 0) {
-                copyField(header, OnBehalfOfLocationID.FIELD, DeliverToLocationID.FIELD);
-                copyField(header, DeliverToLocationID.FIELD, OnBehalfOfLocationID.FIELD);
+            this.header.removeField(FixTags.ON_BEHALF_OF_LOCATION_ID);
+            this.header.removeField(FixTags.DELIVER_TO_LOCATION_ID);
+
+            if (header.getString(FixTags.BEGIN_STRING).compareTo(FixVersions.BEGINSTRING_FIX41) >= 0) {
+                copyField(header, FixTags.ON_BEHALF_OF_LOCATION_ID, FixTags.DELIVER_TO_LOCATION_ID);
+                copyField(header, FixTags.DELIVER_TO_LOCATION_ID, FixTags.ON_BEHALF_OF_LOCATION_ID);
             }
         }
     }
 
     private void copyField(Header header, int fromField, int toField) throws FieldNotFound {
+
         if (header.isSetField(fromField)) {
             final String value = header.getString(fromField);
             if (value.length() > 0) {
@@ -438,16 +466,18 @@ public class Message extends FieldMap {
     }
 
     void setSessionID(SessionID sessionID) {
-        header.setString(BeginString.FIELD, sessionID.getBeginString());
-        header.setString(SenderCompID.FIELD, sessionID.getSenderCompID());
-        optionallySetID(header, SenderSubID.FIELD, sessionID.getSenderSubID());
-        optionallySetID(header, SenderLocationID.FIELD, sessionID.getSenderLocationID());
-        header.setString(TargetCompID.FIELD, sessionID.getTargetCompID());
-        optionallySetID(header, TargetSubID.FIELD, sessionID.getTargetSubID());
-        optionallySetID(header, TargetLocationID.FIELD, sessionID.getTargetLocationID());
+
+        header.setString(FixTags.BEGIN_STRING, sessionID.getBeginString());
+        header.setString(FixTags.SENDER_COMP_ID, sessionID.getSenderCompID());
+        optionallySetID(header, FixTags.SENDER_SUB_ID, sessionID.getSenderSubID());
+        optionallySetID(header, FixTags.SENDER_LOCATION_ID, sessionID.getSenderLocationID());
+        header.setString(FixTags.TARGET_COMP_ID, sessionID.getTargetCompID());
+        optionallySetID(header, FixTags.TARGET_SUB_ID, sessionID.getTargetSubID());
+        optionallySetID(header, FixTags.TARGET_LOCATION_ID, sessionID.getTargetLocationID());
     }
 
     private void optionallySetID(Header header, int field, String value) {
+
         if (!value.equals(SessionID.NOT_SET)) {
             header.setString(field, value);
         }
@@ -455,11 +485,13 @@ public class Message extends FieldMap {
 
     public void fromString(String messageData, DataDictionary dd, boolean doValidation)
             throws InvalidMessage {
+
         parse(messageData, dd, dd, doValidation);
     }
 
     public void fromString(String messageData, DataDictionary sessionDictionary,
             DataDictionary applicationDictionary, boolean doValidation) throws InvalidMessage {
+
         if (sessionDictionary.isAdminMessage(MessageUtils.getMessageType(messageData))) {
             applicationDictionary = sessionDictionary;
         }
@@ -468,6 +500,7 @@ public class Message extends FieldMap {
 
     void parse(String messageData, DataDictionary sessionDataDictionary,
             DataDictionary applicationDataDictionary, boolean doValidation) throws InvalidMessage {
+
         this.messageData = messageData;
 
         try {
@@ -483,9 +516,10 @@ public class Message extends FieldMap {
     }
 
     private void validateCheckSum(String messageData) throws InvalidMessage {
+
         try {
             // Body length is checked at the protocol layer
-            final int checksum = trailer.getInt(CheckSum.FIELD);
+            final int checksum = trailer.getInt(FixTags.CHECK_SUM);
             if (checksum != MessageUtils.checksum(messageData)) {
                 // message will be ignored if checksum is wrong or missing
                 throw new InvalidMessage("Expected CheckSum=" + MessageUtils.checksum(messageData)
@@ -497,13 +531,15 @@ public class Message extends FieldMap {
     }
 
     private void parseHeader(DataDictionary dd, boolean doValidation) throws InvalidMessage {
+
         if (doValidation) {
-            final boolean validHeaderFieldOrder = isNextField(dd, header, BeginString.FIELD)
-                    && isNextField(dd, header, BodyLength.FIELD)
-                    && isNextField(dd, header, MsgType.FIELD);
+            final boolean validHeaderFieldOrder = isNextField(dd, header, FixTags.BEGIN_STRING)
+                    && isNextField(dd, header, FixTags.BODY_LENGTH)
+                    && isNextField(dd, header, FixTags.MSG_TYPE);
             if (!validHeaderFieldOrder) {
                 // Invalid message preamble (first three fields) is a serious
-                // condition and is handled differently from other message parsing errors.
+                // condition and is handled differently from other message
+                // parsing errors.
                 throw new InvalidMessage("Header fields out of order in " + messageData);
             }
         }
@@ -512,7 +548,7 @@ public class Message extends FieldMap {
         while (field != null && isHeaderField(field, dd)) {
             header.setField(field);
 
-            if (dd != null && dd.isGroup(DataDictionary.HEADER_ID, field.getField())) {
+            if (dd != null && dd.isGroup(DataDictionary.HEADER_ID, field.getTag())) {
                 parseGroup(DataDictionary.HEADER_ID, field, dd, header);
             }
 
@@ -522,6 +558,7 @@ public class Message extends FieldMap {
     }
 
     private boolean isNextField(DataDictionary dd, Header fields, int tag) throws InvalidMessage {
+
         final StringField field = extractField(dd, header);
         if (field == null || field.getTag() != tag) {
             return false;
@@ -531,36 +568,39 @@ public class Message extends FieldMap {
     }
 
     private String getMsgType() throws InvalidMessage {
+
         try {
-            return header.getString(MsgType.FIELD);
+            return header.getString(FixTags.MSG_TYPE);
         } catch (final FieldNotFound e) {
             throw new InvalidMessage(e.getMessage() + " in " + messageData);
         }
     }
 
     private void parseBody(DataDictionary dd, boolean doValidation) throws InvalidMessage {
+
         StringField field = extractField(dd, this);
         while (field != null) {
-            if (isTrailerField(field.getField())) {
+            if (isTrailerField(field.getTag())) {
                 pushBack(field);
                 return;
             }
 
-            if (isHeaderField(field.getField())) {
+            if (isHeaderField(field.getTag())) {
                 // An acceptance test requires the sequence number to
                 // be available even if the related field is out of order
                 setField(header, field);
                 // Group case
-                if (dd != null && dd.isGroup(DataDictionary.HEADER_ID, field.getField())) {
+                if (dd != null && dd.isGroup(DataDictionary.HEADER_ID, field.getTag())) {
                     parseGroup(DataDictionary.HEADER_ID, field, dd, header);
                 }
                 if (doValidation && dd != null && dd.isCheckFieldsOutOfOrder())
-                    throw new FieldException(SessionRejectReason.TAG_SPECIFIED_OUT_OF_REQUIRED_ORDER,
-                        field.getTag());
+                    throw new FieldException(
+                            SessionRejectReasonText.TAG_SPECIFIED_OUT_OF_REQUIRED_ORDER,
+                            field.getTag());
             } else {
                 setField(this, field);
                 // Group case
-                if (dd != null && dd.isGroup(getMsgType(), field.getField())) {
+                if (dd != null && dd.isGroup(getMsgType(), field.getTag())) {
                     parseGroup(getMsgType(), field, dd, this);
                 }
             }
@@ -570,19 +610,22 @@ public class Message extends FieldMap {
     }
 
     private void setField(FieldMap fields, StringField field) {
+
         if (fields.isSetField(field)) {
-            throw new FieldException(SessionRejectReason.TAG_APPEARS_MORE_THAN_ONCE, field.getTag());
+            throw new FieldException(SessionRejectReasonText.TAG_APPEARS_MORE_THAN_ONCE,
+                    field.getTag());
         }
         fields.setField(field);
     }
 
     private void parseGroup(String msgType, StringField field, DataDictionary dd, FieldMap parent)
             throws InvalidMessage {
-        final DataDictionary.GroupInfo rg = dd.getGroup(msgType, field.getField());
+
+        final DataDictionary.GroupInfo rg = dd.getGroup(msgType, field.getTag());
         final DataDictionary groupDataDictionary = rg.getDataDictionary();
         final int[] fieldOrder = groupDataDictionary.getOrderedFields();
         int previousOffset = -1;
-        final int groupCountTag = field.getField();
+        final int groupCountTag = field.getTag();
         final int declaredGroupCount = Integer.parseInt(field.getValue());
         parent.setField(groupCountTag, field);
         final int firstField = rg.getDelimiterField();
@@ -592,7 +635,8 @@ public class Message extends FieldMap {
         while (inGroupParse) {
             field = extractField(dd, group != null ? group : parent);
             if (field == null) {
-                // QFJ-760: stop parsing since current position is greater than message length
+                // QFJ-760: stop parsing since current position is greater than
+                // message length
                 break;
             }
             int tag = field.getTag();
@@ -617,7 +661,7 @@ public class Message extends FieldMap {
             } else if (groupDataDictionary.isField(tag)) {
                 if (!firstFieldFound) {
                     throw new FieldException(
-                            SessionRejectReason.REPEATING_GROUP_FIELDS_OUT_OF_ORDER, tag);
+                            SessionRejectReasonText.REPEATING_GROUP_FIELDS_OUT_OF_ORDER, tag);
                 }
 
                 if (fieldOrder != null && dd.isCheckUnorderedGroupFields()) {
@@ -625,7 +669,8 @@ public class Message extends FieldMap {
                     if (offset > -1) {
                         if (offset <= previousOffset) {
                             throw new FieldException(
-                                    SessionRejectReason.REPEATING_GROUP_FIELDS_OUT_OF_ORDER, tag);
+                                    SessionRejectReasonText.REPEATING_GROUP_FIELDS_OUT_OF_ORDER,
+                                    tag);
                         }
                         previousOffset = offset;
                     }
@@ -636,99 +681,97 @@ public class Message extends FieldMap {
                 inGroupParse = false;
             }
         }
-        // add what we've already got and leave the rest to the validation (if enabled)
+        // add what we've already got and leave the rest to the validation (if
+        // enabled)
         if (group != null) {
             parent.addGroupRef(group);
         }
-        // For later validation that the group size matches the parsed group count
+        // For later validation that the group size matches the parsed group
+        // count
         parent.setGroupCount(groupCountTag, declaredGroupCount);
     }
 
     private void parseTrailer(DataDictionary dd) throws InvalidMessage {
+
         StringField field = extractField(dd, trailer);
         while (field != null) {
             if (!isTrailerField(field, dd)) {
-                throw new FieldException(SessionRejectReason.TAG_SPECIFIED_OUT_OF_REQUIRED_ORDER,
-                        field.getTag());
+                throw new FieldException(
+                        SessionRejectReasonText.TAG_SPECIFIED_OUT_OF_REQUIRED_ORDER, field.getTag());
             }
             trailer.setField(field);
             field = extractField(dd, trailer);
         }
     }
 
-    static boolean isHeaderField(Field<?> field, DataDictionary dd) {
-        return isHeaderField(field.getField())
-                || (dd != null && dd.isHeaderField(field.getField()));
+    static boolean isHeaderField(FIXField<?> field, DataDictionary dd) {
+
+        return isHeaderField(field.getTag()) || (dd != null && dd.isHeaderField(field.getTag()));
     }
 
     static boolean isHeaderField(int field) {
+
         switch (field) {
-        case BeginString.FIELD:
-        case BodyLength.FIELD:
-        case MsgType.FIELD:
-        case SenderCompID.FIELD:
-        case TargetCompID.FIELD:
-        case OnBehalfOfCompID.FIELD:
-        case DeliverToCompID.FIELD:
-        case SecureDataLen.FIELD:
-        case MsgSeqNum.FIELD:
-        case SenderSubID.FIELD:
-        case SenderLocationID.FIELD:
-        case TargetSubID.FIELD:
-        case TargetLocationID.FIELD:
-        case OnBehalfOfSubID.FIELD:
-        case OnBehalfOfLocationID.FIELD:
-        case DeliverToSubID.FIELD:
-        case DeliverToLocationID.FIELD:
-        case PossDupFlag.FIELD:
-        case PossResend.FIELD:
-        case SendingTime.FIELD:
-        case OrigSendingTime.FIELD:
-        case XmlDataLen.FIELD:
-        case XmlData.FIELD:
-        case MessageEncoding.FIELD:
-        case LastMsgSeqNumProcessed.FIELD:
-        case OnBehalfOfSendingTime.FIELD:
-        case ApplVerID.FIELD:
-        case CstmApplVerID.FIELD:
-        case NoHops.FIELD:
+        case FixTags.BEGIN_STRING:
+        case FixTags.BODY_LENGTH:
+        case FixTags.MSG_TYPE:
+        case FixTags.SENDER_COMP_ID:
+        case FixTags.TARGET_COMP_ID:
+        case FixTags.ON_BEHALF_OF_COMP_ID:
+        case FixTags.DELIVER_TO_COMP_ID:
+        case FixTags.SECURE_DATA_LEN:
+        case FixTags.MSG_SEQ_NUM:
+        case FixTags.SENDER_SUB_ID:
+        case FixTags.SENDER_LOCATION_ID:
+        case FixTags.TARGET_SUB_ID:
+        case FixTags.TARGET_LOCATION_ID:
+        case FixTags.ON_BEHALF_OF_SUB_ID:
+        case FixTags.ON_BEHALF_OF_LOCATION_ID:
+        case FixTags.DELIVER_TO_SUB_ID:
+        case FixTags.DELIVER_TO_LOCATION_ID:
+        case FixTags.POSS_DUP_FLAG:
+        case FixTags.POSS_RESEND:
+        case FixTags.SENDING_TIME:
+        case FixTags.ORIG_SENDING_TIME:
+        case FixTags.XML_DATA_LENGTH:
+        case FixTags.XML_DATA:
+        case FixTags.MESSAGE_ENCODING:
+        case FixTags.LAST_MSG_SEQ_NUM_PROCESSED:
+        case FixTags.ON_BEHALF_OF_SENDING_TIME:
+        case FixTags.APPL_VER_ID:
+        case FixTags.CSTM_APPL_VER_ID:
+        case FixTags.NO_HOPS:
             return true;
         default:
             return false;
         }
     }
 
-    static boolean isTrailerField(Field<?> field, DataDictionary dd) {
-        return isTrailerField(field.getField())
-                || (dd != null && dd.isTrailerField(field.getField()));
+    static boolean isTrailerField(FIXField<?> field, DataDictionary dd) {
+
+        return isTrailerField(field.getTag()) || (dd != null && dd.isTrailerField(field.getTag()));
     }
 
     static boolean isTrailerField(int field) {
+
         switch (field) {
-        case SignatureLength.FIELD:
-        case Signature.FIELD:
-        case CheckSum.FIELD:
+        case FixTags.SIGNATURE_LENGTH:
+        case FixTags.SIGNATURE:
+        case FixTags.CHECK_SUM:
             return true;
         default:
             return false;
         }
     }
 
-    //
-    // Extract field
-    //
-    private String messageData;
-
-    private int position;
-
-    private StringField pushedBackField;
-
     public void pushBack(StringField field) {
+
         pushedBackField = field;
     }
 
     private StringField extractField(DataDictionary dataDictionary, FieldMap fields)
             throws InvalidMessage {
+
         if (pushedBackField != null) {
             final StringField f = pushedBackField;
             pushedBackField = null;
@@ -771,15 +814,21 @@ public class Message extends FieldMap {
                 throw new InvalidMessage("Tag " + e.field + " not found in " + messageData);
             }
 
-            // since length is in bytes but data is a string, and it may also contain an SOH,
-            // we find the real field-ending SOH by checking the encoded bytes length
-            // (we avoid re-encoding when the chars length equals the bytes length, e.g. ASCII text,
-            // by assuming the chars length is always smaller than the encoded bytes length)
+            // since length is in bytes but data is a string, and it may also
+            // contain an SOH,
+            // we find the real field-ending SOH by checking the encoded bytes
+            // length
+            // (we avoid re-encoding when the chars length equals the bytes
+            // length, e.g. ASCII text,
+            // by assuming the chars length is always smaller than the encoded
+            // bytes length)
             while (sohOffset - equalsOffset - 1 < fieldLength
-                    && messageData.substring(equalsOffset + 1, sohOffset).getBytes(CharsetSupport.getCharsetInstance()).length < fieldLength) {
+                    && messageData.substring(equalsOffset + 1, sohOffset).getBytes(
+                            CharsetSupport.getCharsetInstance()).length < fieldLength) {
                 sohOffset = messageData.indexOf('\001', sohOffset + 1);
                 if (sohOffset == -1) {
-                    throw new InvalidMessage("SOH not found at end of field: " + tag + " in " + messageData);
+                    throw new InvalidMessage("SOH not found at end of field: " + tag + " in "
+                            + messageData);
                 }
             }
         }
@@ -794,20 +843,23 @@ public class Message extends FieldMap {
      * @return flag indicating whether the message has a valid structure
      */
     synchronized boolean hasValidStructure() {
+
         return exception == null;
     }
 
     public synchronized FieldException getException() {
+
         return exception;
     }
 
     /**
-     * Returns the first invalid tag, which is all that can be reported
-     * in the resulting FIX reject message.
+     * Returns the first invalid tag, which is all that can be reported in the
+     * resulting FIX reject message.
      *
      * @return the first invalid tag
      */
     synchronized int getInvalidTag() {
+
         return exception != null ? exception.getField() : 0;
     }
 
@@ -818,12 +870,12 @@ public class Message extends FieldMap {
      * @return the message type
      * @throws MessageParseError (QF JNI compatibility)
      */
-    public static MsgType identifyType(String message) throws MessageParseError {
+    public static StringField identifyType(String message) throws MessageParseError {
+
         try {
-            return new MsgType(MessageUtils.getMessageType(message));
+            return new StringField(FixTags.MSG_TYPE, MessageUtils.getMessageType(message));
         } catch (final InvalidMessage e) {
             throw new MessageParseError(e.getMessage(), e);
         }
     }
-
 }

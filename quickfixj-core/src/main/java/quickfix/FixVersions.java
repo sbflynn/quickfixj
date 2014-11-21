@@ -23,6 +23,18 @@ package quickfix;
  * Constants containing the BeginString field values for various FIX versions.
  */
 public interface FixVersions {
+
+    public static final String APPL_VER_ID_FIX27 = "0";
+    public static final String APPL_VER_ID_FIX30 = "1";
+    public static final String APPL_VER_ID_FIX40 = "2";
+    public static final String APPL_VER_ID_FIX41 = "3";
+    public static final String APPL_VER_ID_FIX42 = "4";
+    public static final String APPL_VER_ID_FIX43 = "5";
+    public static final String APPL_VER_ID_FIX44 = "6";
+    public static final String APPL_VER_ID_FIX50 = "7";
+    public static final String APPL_VER_ID_FIX50SP1 = "8";
+    public static final String APPL_VER_ID_FIX50SP2 = "9";
+    
     public static final String BEGINSTRING_FIX40 = "FIX.4.0";
     public static final String BEGINSTRING_FIX41 = "FIX.4.1";
     public static final String BEGINSTRING_FIX42 = "FIX.4.2";

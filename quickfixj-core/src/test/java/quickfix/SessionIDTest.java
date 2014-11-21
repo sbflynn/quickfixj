@@ -19,20 +19,17 @@
 
 package quickfix;
 
+import quickfix.field.StringField;
 import junit.framework.TestCase;
-import quickfix.field.BeginString;
-import quickfix.field.SenderCompID;
-import quickfix.field.SenderLocationID;
-import quickfix.field.SenderSubID;
-import quickfix.field.TargetCompID;
-import quickfix.field.TargetLocationID;
-import quickfix.field.TargetSubID;
 
 public class SessionIDTest extends TestCase {
     public void testAllFieldConstructor() throws Exception {
-        SessionID sessionID = new SessionID(new BeginString("FIX.4.2"), new SenderCompID("SENDER"),
-                new SenderSubID("SENDERSUB"), new SenderLocationID("SENDERLOC"), new TargetCompID(
-                        "TARGET"), new TargetSubID("TARGETSUB"), new TargetLocationID("TARGETLOC"),
+        SessionID sessionID = new SessionID(new StringField(FixTags.BEGIN_STRING, "FIX.4.2"),
+                new StringField(FixTags.SENDER_COMP_ID, "SENDER"), new StringField(
+                        FixTags.SENDER_SUB_ID, "SENDERSUB"), new StringField(
+                        FixTags.SENDER_LOCATION_ID, "SENDERLOC"), new StringField(
+                        FixTags.TARGET_COMP_ID, "TARGET"), new StringField(FixTags.TARGET_SUB_ID,
+                        "TARGETSUB"), new StringField(FixTags.TARGET_LOCATION_ID, "TARGETLOC"),
                 "QUALIFIER");
         assertAllFields(sessionID);
     }
@@ -55,8 +52,10 @@ public class SessionIDTest extends TestCase {
     }
 
     public void testFieldConstructorNoLocation() throws Exception {
-        SessionID sessionID = new SessionID(new BeginString("FIX.4.2"), new SenderCompID("SENDER"),
-                new SenderSubID("SENDERSUB"), new TargetCompID("TARGET"), new TargetSubID(
+        SessionID sessionID = new SessionID(new StringField(FixTags.BEGIN_STRING, "FIX.4.2"),
+                new StringField(FixTags.SENDER_COMP_ID, "SENDER"), new StringField(
+                        FixTags.SENDER_SUB_ID, "SENDERSUB"), new StringField(
+                        FixTags.TARGET_COMP_ID, "TARGET"), new StringField(FixTags.TARGET_SUB_ID,
                         "TARGETSUB"));
         assertFieldsNoLocation(sessionID);
     }
@@ -78,8 +77,9 @@ public class SessionIDTest extends TestCase {
     }
 
     public void testFieldConstructorNoLocationOrSub() throws Exception {
-        SessionID sessionID = new SessionID(new BeginString("FIX.4.2"), new SenderCompID("SENDER"),
-                new TargetCompID("TARGET"), "QUALIFIER");
+        SessionID sessionID = new SessionID(new StringField(FixTags.BEGIN_STRING, "FIX.4.2"),
+                new StringField(FixTags.SENDER_COMP_ID, "SENDER"), new StringField(
+                        FixTags.TARGET_COMP_ID, "TARGET"), "QUALIFIER");
         assertFieldsNoLocationOrSub(sessionID);
     }
 
@@ -100,8 +100,9 @@ public class SessionIDTest extends TestCase {
     }
 
     public void testFieldConstructorNoLocationSubOrQualifier() throws Exception {
-        SessionID sessionID = new SessionID(new BeginString("FIX.4.2"), new SenderCompID("SENDER"),
-                new TargetCompID("TARGET"));
+        SessionID sessionID = new SessionID(new StringField(FixTags.BEGIN_STRING, "FIX.4.2"),
+                new StringField(FixTags.SENDER_COMP_ID, "SENDER"), new StringField(
+                        FixTags.TARGET_COMP_ID, "TARGET"));
         assertFieldsNoLocationSubOrQualifier(sessionID);
     }
 
@@ -147,7 +148,7 @@ public class SessionIDTest extends TestCase {
     }
 
     public void testNullInFieldConstructor() {
-        SessionID sessionID = new SessionID((BeginString) null, null, null, null, null, null, null,
+        SessionID sessionID = new SessionID((StringField) null, null, null, null, null, null, null,
                 null);
         assertEmptyStrings(sessionID);
     }
