@@ -26,6 +26,11 @@ import org.apache.mina.filter.codec.ProtocolCodecException;
  */
 public class CriticalProtocolCodecException extends ProtocolCodecException {
 
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
+
     public CriticalProtocolCodecException() {
     }
 

@@ -47,7 +47,9 @@ public class MemoryStore implements MessageStore {
         this.sessionID = sessionID;
     }
 
-    public void get(int startSequence, int endSequence, Collection<String> messages) throws IOException {
+    @Override
+    public void get(int startSequence, int endSequence, Collection<String> messages)
+            throws IOException {
         for (int i = startSequence; i <= endSequence; i++) {
             String message = this.messages.get(i);
             if (message != null) {
@@ -61,10 +63,11 @@ public class MemoryStore implements MessageStore {
      * implemented. Use get(int, int, Collection) with the same
      * start and end sequence.
      */
-    public boolean get(int sequence, String message) throws IOException {
+    public boolean get(int sequence, String message) {
         throw new UnsupportedOperationException("not supported");
     }
 
+    @Override
     public Date getCreationTime() throws IOException {
         return creationTime.getTime();
     }
@@ -73,22 +76,27 @@ public class MemoryStore implements MessageStore {
         this.creationTime = creationTime;
     }
 
+    @Override
     public int getNextSenderMsgSeqNum() throws IOException {
         return nextSenderMsgSeqNum;
     }
 
+    @Override
     public int getNextTargetMsgSeqNum() throws IOException {
         return nextTargetMsgSeqNum;
     }
 
+    @Override
     public void incrNextSenderMsgSeqNum() throws IOException {
         setNextSenderMsgSeqNum(getNextSenderMsgSeqNum() + 1);
     }
 
+    @Override
     public void incrNextTargetMsgSeqNum() throws IOException {
         setNextTargetMsgSeqNum(getNextTargetMsgSeqNum() + 1);
     }
 
+    @Override
     public void reset() throws IOException {
         setNextSenderMsgSeqNum(1);
         setNextTargetMsgSeqNum(1);
@@ -96,18 +104,22 @@ public class MemoryStore implements MessageStore {
         creationTime = SystemTime.getUtcCalendar();
     }
 
+    @Override
     public boolean set(int sequence, String message) throws IOException {
         return messages.put(sequence, message) == null;
     }
 
+    @Override
     public void setNextSenderMsgSeqNum(int next) throws IOException {
         nextSenderMsgSeqNum = next;
     }
 
+    @Override
     public void setNextTargetMsgSeqNum(int next) throws IOException {
         nextTargetMsgSeqNum = next;
     }
 
+    @Override
     public void refresh() throws IOException {
         // IOException is declared to maintain strict compatibility with QF JNI
         final String text = "memory store does not support refresh!";

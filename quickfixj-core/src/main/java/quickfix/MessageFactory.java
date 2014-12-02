@@ -19,6 +19,8 @@
 
 package quickfix;
 
+import org.quickfixj.FIXBeginString;
+
 /**
  * Used by a Session to create a Message.
  *
@@ -33,7 +35,7 @@ public interface MessageFactory {
      * @param msgType the FIX message type (for example, "D" for an order)
      * @return a message instance
      */
-    Message create(String beginString, String msgType);
+    Message create(FIXBeginString beginString, String msgType);
 
     /**
      * Creates a group for the specified parent message type and
@@ -41,7 +43,7 @@ public interface MessageFactory {
      *
      * Example: to create a {@link quickfix.fix42.MarketDataRequest.NoMDEntryTypes}
      * you need to call
-     * create({@link quickfix.field.MsgType#MARKET_DATA_REQUEST}, {@link quickfix.field.NoMDEntryTypes#FIELD})
+     * create({@link quickfix.TAG.MsgType#MARKET_DATA_REQUEST}, {@link quickfix.TAG.NoMDEntryTypes#FIELD})
      *
      * Function returns null if the group cannot be created.
      *
@@ -50,5 +52,6 @@ public interface MessageFactory {
      * @param correspondingFieldID the fieldID of the field in the group
      * @return group, or null if the group can't be created.
      */
-    public Group create(String beginString, String msgType, int correspondingFieldID);
+    @Deprecated
+    public Group create(FIXBeginString beginString, String msgType, int correspondingFieldID);
 }

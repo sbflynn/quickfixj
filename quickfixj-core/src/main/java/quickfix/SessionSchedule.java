@@ -64,8 +64,10 @@ public class SessionSchedule {
             throw new ConfigError("Session " + sessionID + ": EndDay used without StartDay");
         }
 
-        startTime = getTimeEndPoint(settings, sessionID, defaultTimeZone, Session.SETTING_START_TIME, Session.SETTING_START_DAY);
-        endTime = getTimeEndPoint(settings, sessionID, defaultTimeZone, Session.SETTING_END_TIME, Session.SETTING_END_DAY);
+        startTime = getTimeEndPoint(settings, sessionID, defaultTimeZone,
+                Session.SETTING_START_TIME, Session.SETTING_START_DAY);
+        endTime = getTimeEndPoint(settings, sessionID, defaultTimeZone, Session.SETTING_END_TIME,
+                Session.SETTING_END_DAY);
         if (!nonStopSession)
             log.info("[" + sessionID + "] " + toString());
     }
@@ -134,6 +136,7 @@ public class SessionSchedule {
             return second;
         }
 
+        @Override
         public String toString() {
             try {
                 Calendar calendar = Calendar.getInstance(tz);
@@ -143,7 +146,7 @@ public class SessionSchedule {
                 final SimpleDateFormat utc = new SimpleDateFormat("HH:mm:ss");
                 utc.setTimeZone(TimeZone.getTimeZone("UTC"));
                 return (isSet(weekDay) ? DayConverter.toString(weekDay) + "," : "")
-                    + utc.format(calendar.getTime()) + "-" + utc.getTimeZone().getID();
+                        + utc.format(calendar.getTime()) + "-" + utc.getTimeZone().getID();
             } catch (ConfigError e) {
                 return "ERROR: " + e;
             }
@@ -153,6 +156,7 @@ public class SessionSchedule {
             return weekDay;
         }
 
+        @Override
         public boolean equals(Object o) {
             if (this == o) {
                 return true;
@@ -164,6 +168,7 @@ public class SessionSchedule {
             return false;
         }
 
+        @Override
         public int hashCode() {
             assert false : "hashCode not supported";
             return 0;
@@ -223,10 +228,12 @@ public class SessionSchedule {
             return t.compareTo(start) >= 0 && t.compareTo(end) <= 0;
         }
 
+        @Override
         public String toString() {
             return start.getTime() + " --> " + end.getTime();
         }
 
+        @Override
         public boolean equals(Object other) {
             if (this == other) {
                 return true;
@@ -238,6 +245,7 @@ public class SessionSchedule {
             return start.equals(otherInterval.start) && end.equals(otherInterval.end);
         }
 
+        @Override
         public int hashCode() {
             assert false : "hashCode not supported";
             return 0;
@@ -275,7 +283,7 @@ public class SessionSchedule {
     }
 
     public boolean isSessionTime() {
-        if(nonStopSession) {
+        if (nonStopSession) {
             return true;
         }
         Calendar now = SystemTime.getUtcCalendar();
@@ -283,6 +291,7 @@ public class SessionSchedule {
         return interval.isContainingTime(now);
     }
 
+    @Override
     public String toString() {
         StringBuilder buf = new StringBuilder();
 
@@ -348,9 +357,8 @@ public class SessionSchedule {
 
     private int getDay(SessionSettings settings, SessionID sessionID, String key, int defaultValue)
             throws ConfigError, FieldConvertError {
-        return settings.isSetting(sessionID, key) ?
-                DayConverter.toInteger(settings.getString(sessionID, key))
-                : NOT_SET;
+        return settings.isSetting(sessionID, key) ? DayConverter.toInteger(settings.getString(
+                sessionID, key)) : NOT_SET;
     }
 
     private boolean isSet(int value) {

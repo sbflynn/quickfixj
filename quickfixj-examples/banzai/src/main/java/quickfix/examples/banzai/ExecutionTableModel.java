@@ -25,6 +25,11 @@ import javax.swing.table.AbstractTableModel;
 
 public class ExecutionTableModel extends AbstractTableModel {
 
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
+
     private final static int SYMBOL = 0;
     private final static int QUANTITY = 1;
     private final static int SIDE = 2;
@@ -43,9 +48,10 @@ public class ExecutionTableModel extends AbstractTableModel {
         idToExecution = new HashMap<String, Execution>();
         exchangeIdToExecution = new HashMap<String, Execution>();
 
-        headers = new String[] {"Symbol", "Quantity", "Side", "Price"};
+        headers = new String[] { "Symbol", "Quantity", "Side", "Price" };
     }
 
+    @Override
     public boolean isCellEditable(int rowIndex, int columnIndex) {
         return false;
     }
@@ -72,24 +78,27 @@ public class ExecutionTableModel extends AbstractTableModel {
         return rowToExecution.get(Integer.valueOf(row));
     }
 
-    public void setValueAt(Object value, int rowIndex, int columnIndex) { }
-
+    @Override
     public Class<String> getColumnClass(int columnIndex) {
         return String.class;
     }
 
+    @Override
     public int getRowCount() {
         return rowToExecution.size();
     }
 
+    @Override
     public int getColumnCount() {
         return headers.length;
     }
 
+    @Override
     public String getColumnName(int columnIndex) {
         return headers[columnIndex];
     }
 
+    @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
         Execution execution = rowToExecution.get(Integer.valueOf(rowIndex));
 
@@ -102,7 +111,8 @@ public class ExecutionTableModel extends AbstractTableModel {
             return execution.getSide();
         case PRICE:
             return execution.getPrice();
+        default:
+            return "";
         }
-        return "";
     }
 }

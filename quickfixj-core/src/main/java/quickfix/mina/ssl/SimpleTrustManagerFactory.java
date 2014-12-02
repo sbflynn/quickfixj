@@ -33,14 +33,19 @@ import javax.net.ssl.X509TrustManager;
 public class SimpleTrustManagerFactory extends TrustManagerFactorySpi {
 
     static final X509TrustManager X509 = new X509TrustManager() {
+        @Override
         public void checkClientTrusted(X509Certificate[] x509Certificates, String s)
                 throws CertificateException {
+            // no-op
         }
 
+        @Override
         public void checkServerTrusted(X509Certificate[] x509Certificates, String s)
                 throws CertificateException {
+            // no-op
         }
 
+        @Override
         public X509Certificate[] getAcceptedIssuers() {
             return new X509Certificate[0];
         }
@@ -51,16 +56,19 @@ public class SimpleTrustManagerFactory extends TrustManagerFactorySpi {
     public SimpleTrustManagerFactory() {
     }
 
+    @Override
     protected TrustManager[] engineGetTrustManagers() {
         return X509_MANAGERS;
     }
 
+    @Override
     protected void engineInit(KeyStore keystore) throws KeyStoreException {
-        // noop
+        // no-op
     }
 
+    @Override
     protected void engineInit(ManagerFactoryParameters managerFactoryParameters)
             throws InvalidAlgorithmParameterException {
-        // noop
+        // no-op
     }
 }

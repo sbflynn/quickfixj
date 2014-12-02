@@ -22,7 +22,12 @@ package quickfix;
 /**
  * Message type not supported by application.
  */
-public class UnsupportedMessageType extends Exception {
+public class UnsupportedMessageType extends RuntimeException {
+
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
 
     public UnsupportedMessageType() {
         super();

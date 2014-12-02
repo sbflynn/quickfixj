@@ -23,7 +23,8 @@ import java.io.Serializable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import quickfix.field.StringField;
+import org.quickfixj.FIXBeginString;
+import org.quickfixj.FIXField;
 
 /**
  * Identifier for a session. Only supports a company ID (target, sender) and a
@@ -33,6 +34,11 @@ import quickfix.field.StringField;
  */
 public class SessionID implements Serializable {
 
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
+
     private static Pattern pattern = Pattern
             .compile("(.*?):(.*?)(?:/(.*?)|)(?:/(.*?)|)->(.*?)(?:/(.*?)|)(?:/(.*?)|)(?::(.*)|)");
 
@@ -40,7 +46,7 @@ public class SessionID implements Serializable {
 
     private final String id;
 
-    private final String beginString;
+    private final FIXBeginString beginString;
 
     private final String senderCompID;
 
@@ -56,11 +62,11 @@ public class SessionID implements Serializable {
 
     private final String sessionQualifier;
 
-    public SessionID(String beginString, String senderCompID, String senderSubID,
+    public SessionID(FIXBeginString beginString, String senderCompID, String senderSubID,
             String senderLocationID, String targetCompID, String targetSubID,
             String targetLocationID, String sessionQualifier) {
 
-        this.beginString = value(beginString);
+        this.beginString = beginString;
         this.senderCompID = value(senderCompID);
         this.senderSubID = value(senderSubID);
         this.senderLocationID = value(senderLocationID);
@@ -71,47 +77,51 @@ public class SessionID implements Serializable {
         id = createID();
     }
 
-    public SessionID(StringField beginString, StringField senderCompID, StringField senderSubID,
-            StringField senderLocationID, StringField targetCompID, StringField targetSubID,
-            StringField targetLocationID, String qualifier) {
+    public SessionID(FIXBeginString beginString, FIXField<String> senderCompID,
+            FIXField<String> senderSubID, FIXField<String> senderLocationID,
+            FIXField<String> targetCompID, FIXField<String> targetSubID,
+            FIXField<String> targetLocationID, String qualifier) {
 
-        this(value(beginString), value(senderCompID), value(senderSubID), value(senderLocationID),
+        this(beginString, value(senderCompID), value(senderSubID), value(senderLocationID),
                 value(targetCompID), value(targetSubID), value(targetLocationID), value(qualifier));
     }
 
-    public SessionID(String beginString, String senderCompID, String senderSubID,
+    public SessionID(FIXBeginString beginString, String senderCompID, String senderSubID,
             String targetCompID, String targetSubID) {
 
         this(beginString, senderCompID, senderSubID, NOT_SET, targetCompID, targetSubID, NOT_SET,
                 NOT_SET);
     }
 
-    public SessionID(StringField beginString, StringField senderCompID, StringField senderSubID,
-            StringField targetCompID, StringField targetSubID) {
+    public SessionID(FIXBeginString beginString, FIXField<String> senderCompID,
+            FIXField<String> senderSubID, FIXField<String> targetCompID,
+            FIXField<String> targetSubID) {
 
-        this(value(beginString), value(senderCompID), value(senderSubID), value(targetCompID),
+        this(beginString, value(senderCompID), value(senderSubID), value(targetCompID),
                 value(targetSubID));
     }
 
-    public SessionID(String beginString, String senderCompID, String targetCompID, String qualifier) {
+    public SessionID(FIXBeginString beginString, String senderCompID, String targetCompID,
+            String qualifier) {
 
         this(beginString, senderCompID, NOT_SET, NOT_SET, targetCompID, NOT_SET, NOT_SET, qualifier);
     }
 
-    public SessionID(StringField beginString, StringField senderCompID, StringField targetCompID,
-            String qualifier) {
+    public SessionID(FIXBeginString beginString, FIXField<String> senderCompID,
+            FIXField<String> targetCompID, String qualifier) {
 
-        this(value(beginString), value(senderCompID), value(targetCompID), value(qualifier));
+        this(beginString, value(senderCompID), value(targetCompID), value(qualifier));
     }
 
-    public SessionID(String beginString, String senderCompID, String targetCompID) {
+    public SessionID(FIXBeginString beginString, String senderCompID, String targetCompID) {
 
         this(beginString, senderCompID, NOT_SET, NOT_SET, targetCompID, NOT_SET, NOT_SET, NOT_SET);
     }
 
-    public SessionID(StringField beginString, StringField senderCompID, StringField targetCompID) {
+    public SessionID(FIXBeginString beginString, FIXField<String> senderCompID,
+            FIXField<String> targetCompID) {
 
-        this(value(beginString), value(senderCompID), value(targetCompID));
+        this(beginString, value(senderCompID), value(targetCompID));
     }
 
     public SessionID() {
@@ -126,7 +136,7 @@ public class SessionID implements Serializable {
         if (!matcher.matches()) {
             throw new IllegalArgumentException("Invalid session ID string: " + id);
         }
-        beginString = matcher.group(1);
+        beginString = FIXBeginString.parse(matcher.group(1));
         senderCompID = matcher.group(2);
         senderSubID = value(matcher.group(3));
         senderLocationID = value(matcher.group(4));
@@ -137,7 +147,7 @@ public class SessionID implements Serializable {
         this.id = createID();
     }
 
-    public String getBeginString() {
+    public FIXBeginString getBeginString() {
 
         return beginString;
     }
@@ -184,16 +194,19 @@ public class SessionID implements Serializable {
         return sessionQualifier;
     }
 
+    @Override
     public boolean equals(Object object) {
 
         return object != null && toString().equals(object.toString());
     }
 
+    @Override
     public String toString() {
 
         return id;
     }
 
+    @Override
     public int hashCode() {
 
         return toString().hashCode();
@@ -201,7 +214,7 @@ public class SessionID implements Serializable {
 
     private String createID() {
 
-        return beginString
+        return FIXBeginString.print(beginString)
                 + ":"
                 + senderCompID
                 + (isSet(senderSubID) ? "/" + senderSubID : "")
@@ -219,9 +232,9 @@ public class SessionID implements Serializable {
         return !value.equals(NOT_SET);
     }
 
-    private static String value(StringField f) {
+    private static String value(FIXField<?> f) {
 
-        return f != null ? f.getValue() : NOT_SET;
+        return f != null ? f.getCharacters().toString() : NOT_SET;
     }
 
     private static String value(String s) {
@@ -234,7 +247,7 @@ public class SessionID implements Serializable {
      */
     public boolean isFIXT() {
 
-        return FixVersions.BEGINSTRING_FIXT11.equals(beginString);
+        return FIXBeginString.FIXT11 == beginString;
     }
 
     /**

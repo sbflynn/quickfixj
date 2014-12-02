@@ -116,6 +116,7 @@ public class ScreenLogFactory implements LogFactory {
         this.heartBeats = logHeartBeats;
     }
 
+    @Override
     public Log create(SessionID sessionID) {
         try {
             incoming = getBooleanSetting(sessionID, ScreenLogFactory.SETTING_LOG_INCOMING, incoming);
@@ -125,7 +126,8 @@ public class ScreenLogFactory implements LogFactory {
                     heartBeats);
             includeMillis = getBooleanSetting(sessionID,
                     ScreenLogFactory.SETTING_INCLUDE_MILLIS_IN_TIMESTAMP, false);
-            return new ScreenLog(incoming, outgoing, events, heartBeats, includeMillis, sessionID, System.out);
+            return new ScreenLog(incoming, outgoing, events, heartBeats, includeMillis, sessionID,
+                    System.out);
         } catch (FieldConvertError e) {
             throw new RuntimeError(e);
         } catch (ConfigError e) {
@@ -140,9 +142,4 @@ public class ScreenLogFactory implements LogFactory {
         }
         return incoming;
     }
-
-    public Log create() {
-        throw new UnsupportedOperationException();
-    }
-
 }

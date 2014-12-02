@@ -31,7 +31,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -44,7 +43,13 @@ import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 
+import org.quickfixj.FIXDataDictionary;
 import org.quickfixj.FIXField;
+import org.quickfixj.FIXFieldGraph;
+import org.quickfixj.FIXFieldType;
+import org.quickfixj.FIXGroup;
+import org.quickfixj.FIXGroupField;
+import org.quickfixj.MessageBuilder;
 import org.quickfixj.xml.dictionary.ComponentDefinition;
 import org.quickfixj.xml.dictionary.ComponentReference;
 import org.quickfixj.xml.dictionary.DataDictionaryConfig;
@@ -60,7 +65,6 @@ import org.quickfixj.xml.dictionary.MessageParticle;
 import org.quickfixj.xml.dictionary.ObjectFactory;
 import org.xml.sax.SAXException;
 
-import quickfix.field.StringField;
 import quickfix.field.converter.BooleanConverter;
 import quickfix.field.converter.CharConverter;
 import quickfix.field.converter.DoubleConverter;
@@ -72,7 +76,7 @@ import quickfix.field.converter.UtcTimestampConverter;
 /**
  * Provide the message metadata for various versions of FIX.
  */
-public class DataDictionary {
+public class DataDictionary implements FIXDataDictionary {
 
     private static final String FIXT_PREFIX = "FIXT";
 
@@ -118,7 +122,7 @@ public class DataDictionary {
 
     private final LinkedHashSet<Integer> fields = new LinkedHashSet<Integer>();
 
-    private final Map<Integer, FieldType> fieldTypes = new HashMap<Integer, FieldType>();
+    private final Map<Integer, FIXFieldType> fieldTypes = new HashMap<Integer, FIXFieldType>();
 
     private final Map<Integer, Set<String>> fieldValues = new HashMap<Integer, Set<String>>();
 
@@ -241,7 +245,7 @@ public class DataDictionary {
      * @param field the tag
      * @return the field type
      */
-    public FieldType getFieldTypeEnum(int field) {
+    public FIXFieldType getFieldType(int field) {
 
         return fieldTypes.get(field);
     }
@@ -350,22 +354,22 @@ public class DataDictionary {
         return fields != null && fields.contains(field);
     }
 
-    private void addFieldType(int field, FieldType fieldType) {
+    private void addFieldType(int field, FIXFieldType fieldType) {
 
         fieldTypes.put(field, fieldType);
     }
 
-    /**
-     * Get the field type for a field.
-     *
-     * @param field a tag
-     * @return the field type
-     * @see #getFieldTypeEnum
-     */
-    public int getFieldType(int field) {
-
-        return getFieldTypeEnum(field).getOrdinal();
-    }
+    //    /**
+    //     * Get the field type for a field.
+    //     *
+    //     * @param field a tag
+    //     * @return the field type
+    //     * @see #getFieldTypeEnum
+    //     */
+    //    public int getFieldType(int field) {
+    //
+    //        return getFieldTypeEnum(field).getOrdinal();
+    //    }
 
     /**
      * Get the field tag given a field name.
@@ -521,19 +525,35 @@ public class DataDictionary {
     }
 
     /**
+     * @since 2.0
+     */
+    public DataDictionary getGroupDictionary(String msg, int field) {
+
+        GroupInfo info = groups.get(new IntStringPair(field, msg));
+
+        if (info == null) {
+
+            return null;
+        }
+
+        return info.getDataDictionary();
+    }
+
+    /**
      * Predicate for determining if a field is a FIX raw data field.
      *
      * @param field the tag
      * @return true if field is a raw data field, false otherwise
      */
+    @Override
     public boolean isDataField(int field) {
 
-        return fieldTypes.get(field) == FieldType.Data;
+        return getFieldType(field) == FIXFieldType.DATA;
     }
 
     private boolean isMultipleValueStringField(int field) {
 
-        return fieldTypes.get(field) == FieldType.MultipleValueString;
+        return getFieldType(field) == FIXFieldType.MULTIPLESTRINGVALUE;
     }
 
     /**
@@ -723,13 +743,10 @@ public class DataDictionary {
         return dd != null && dd.hasVersion;
     }
 
-    private void iterate(FieldMap map, String msgType, DataDictionary dd) throws IncorrectTagValue,
-            IncorrectDataFormat {
+    private void iterate(FIXFieldGraph map, String msgType, DataDictionary dd)
+            throws IncorrectTagValue, IncorrectDataFormat {
 
-        final Iterator<FIXField<?>> iterator = map.iterator();
-
-        while (iterator.hasNext()) {
-            final StringField field = (StringField) iterator.next();
+        for (FIXField<?> field : map) {
 
             checkHasValue(field);
 
@@ -743,16 +760,24 @@ public class DataDictionary {
                 if (map instanceof Message) {
                     checkIsInMessage(field, msgType);
                 }
-                dd.checkGroupCount(field, map, msgType);
+
+                if (field instanceof FIXGroupField<?>) {
+                    FIXGroupField<?> groupField = (FIXGroupField<?>) field;
+                    dd.checkGroupCount(groupField);
+                    for (FIXGroup group : groupField.getGroups()) {
+                        iterate(group, msgType, dd.getGroup(msgType, group.getFieldTag())
+                                .getDataDictionary());
+                    }
+                }
             }
         }
 
-        for (final List<Group> groups : map.getGroups().values()) {
-            for (final Group group : groups) {
-                iterate(group, msgType, dd.getGroup(msgType, group.getFieldTag())
-                        .getDataDictionary());
-            }
-        }
+        //        for (final List<Group> groups : map.getGroups().values()) {
+        //            for (final Group group : groups) {
+        //                iterate(group, msgType, dd.getGroup(msgType, group.getFieldTag())
+        //                        .getDataDictionary());
+        //            }
+        //        }
     }
 
     // / Check if message type is defined in spec.
@@ -779,85 +804,84 @@ public class DataDictionary {
         }
     }
 
-    private void checkValidFormat(StringField field) throws IncorrectDataFormat {
+    private void checkValidFormat(FIXField<?> field) throws IncorrectDataFormat {
 
         try {
-            final FieldType fieldType = getFieldTypeEnum(field.getTag());
-            if (fieldType == FieldType.String) {
-                // String
-            } else if (fieldType == FieldType.Char) {
-                if (beginString.compareTo(FixVersions.BEGINSTRING_FIX41) > 0) {
-                    CharConverter.convert(field.getValue());
-                } else {
-                    // String, for older FIX versions
-                }
-            } else if (fieldType == FieldType.Price) {
-                DoubleConverter.convert(field.getValue());
-            } else if (fieldType == FieldType.Int) {
-                IntConverter.convert(field.getValue());
-            } else if (fieldType == FieldType.Amt) {
-                DoubleConverter.convert(field.getValue());
-            } else if (fieldType == FieldType.Qty) {
-                DoubleConverter.convert(field.getValue());
-            } else if (fieldType == FieldType.Qty) {
-                // String
-            } else if (fieldType == FieldType.MultipleValueString) {
-                // String
-            } else if (fieldType == FieldType.Exchange) {
-                // String
-            } else if (fieldType == FieldType.Boolean) {
-                BooleanConverter.convert(field.getValue());
-            } else if (fieldType == FieldType.LocalMktDate) {
-                // String
-            } else if (fieldType == FieldType.Data) {
-                // String
-            } else if (fieldType == FieldType.Float) {
-                DoubleConverter.convert(field.getValue());
-            } else if (fieldType == FieldType.PriceOffset) {
-                DoubleConverter.convert(field.getValue());
-            } else if (fieldType == FieldType.MonthYear) {
-                // String
-            } else if (fieldType == FieldType.DayOfMonth) {
-                // String
-            } else if (fieldType == FieldType.UtcDate) {
-                UtcDateOnlyConverter.convert(field.getValue());
-            } else if (fieldType == FieldType.UtcTimeOnly) {
-                UtcTimeOnlyConverter.convert(field.getValue());
-            } else if (fieldType == FieldType.UtcTimeStamp || fieldType == FieldType.Time) {
-                UtcTimestampConverter.convert(field.getValue());
-            } else if (fieldType == FieldType.NumInGroup) {
-                IntConverter.convert(field.getValue());
-            } else if (fieldType == FieldType.Percentage) {
-                DoubleConverter.convert(field.getValue());
-            } else if (fieldType == FieldType.SeqNum) {
-                IntConverter.convert(field.getValue());
-            } else if (fieldType == FieldType.Length) {
-                IntConverter.convert(field.getValue());
-            } else if (fieldType == FieldType.Country) {
-                // String
+
+            FIXFieldType fieldType = getFieldType(field.getTag());
+
+            if (fieldType == null) {
+                return;
             }
+
+            switch (fieldType) {
+            case CHAR:
+                if (beginString.compareTo(FixVersions.BEGINSTRING_FIX41) > 0) {
+                    CharConverter.convert(field.getCharacters().toString());
+                }
+                break;
+
+            case BOOLEAN:
+                BooleanConverter.convert(field.getCharacters().toString());
+                break;
+
+            case FLOAT:
+            case PRICE:
+            case PRICEOFFSET:
+            case AMT:
+            case QTY:
+            case PERCENTAGE:
+                DoubleConverter.convert(field.getCharacters().toString());
+                break;
+
+            case INT:
+            case NUMINGROUP:
+            case SEQNUM:
+            case LENGTH:
+                IntConverter.convert(field.getCharacters().toString());
+                break;
+
+            case UTCDATE:
+                UtcDateOnlyConverter.convert(field.getCharacters().toString());
+                break;
+
+            case UTCTIMEONLY:
+                UtcTimeOnlyConverter.convert(field.getCharacters().toString());
+                break;
+
+            case UTCTIMESTAMP:
+            case TIME:
+                UtcTimestampConverter.convert(field.getCharacters().toString());
+                break;
+
+            default:
+                // all others are valid as strings
+                break;
+            }
+
         } catch (final FieldConvertError e) {
-            throw new IncorrectDataFormat(field.getTag(), field.getValue());
+
+            throw new IncorrectDataFormat(field.getTag(), field.getCharacters().toString());
         }
     }
 
-    private void checkValue(StringField field) throws IncorrectTagValue {
+    private void checkValue(FIXField<?> field) throws IncorrectTagValue {
 
         final int tag = field.getTag();
         if (!hasFieldValue(tag)) {
             return;
         }
 
-        final String value = field.getValue();
+        final String value = field.getCharacters().toString();
         if (!isFieldValue(tag, value)) {
             throw new IncorrectTagValue(tag);
         }
     }
 
     // / Check if a field has a value.
-    private void checkHasValue(StringField field) {
+    private void checkHasValue(FIXField<?> field) {
 
-        if (checkFieldsHaveValues && field.getValue().length() == 0) {
+        if (checkFieldsHaveValues && field.getCharacters().length() == 0) {
             throw new FieldException(SessionRejectReasonText.TAG_SPECIFIED_WITHOUT_A_VALUE,
                     field.getTag());
         }
@@ -873,15 +897,13 @@ public class DataDictionary {
     }
 
     // / Check if group count matches number of groups in
-    private void checkGroupCount(StringField field, FieldMap fieldMap, String msgType) {
+    private void checkGroupCount(FIXGroupField<?> field) {
 
-        final int fieldNum = field.getTag();
-        if (isGroup(msgType, fieldNum)) {
-            if (fieldMap.getGroupCount(fieldNum) != Integer.parseInt(field.getValue())) {
-                throw new FieldException(
-                        SessionRejectReasonText.INCORRECT_NUMINGROUP_COUNT_FOR_REPEATING_GROUP,
-                        fieldNum);
-            }
+        if (field.getGroups().size() != field.getValue()) {
+
+            throw new FieldException(
+                    SessionRejectReasonText.INCORRECT_NUMINGROUP_COUNT_FOR_REPEATING_GROUP,
+                    field.getTag());
         }
     }
 
@@ -897,7 +919,7 @@ public class DataDictionary {
         checkHasRequired(msgType, body, bodyOnly);
     }
 
-    private void checkHasRequired(String msgType, FieldMap fields, boolean bodyOnly) {
+    private void checkHasRequired(String msgType, FIXFieldGraph graph, boolean bodyOnly) {
 
         final Set<Integer> requiredFieldsForMessage = requiredFields.get(msgType);
         if (requiredFieldsForMessage == null || requiredFieldsForMessage.size() == 0) {
@@ -905,23 +927,34 @@ public class DataDictionary {
         }
 
         for (int field : requiredFieldsForMessage) {
-            if (!fields.isSetField(field)) {
+            if (!graph.isFieldSet(field)) {
                 throw new FieldException(SessionRejectReasonText.REQUIRED_TAG_MISSING, field);
             }
         }
 
-        final Map<Integer, List<Group>> groups = fields.getGroups();
-        if (groups.size() > 0) {
-            for (Map.Entry<Integer, List<Group>> entry : groups.entrySet()) {
-                final GroupInfo p = getGroup(msgType, entry.getKey());
-                if (p != null) {
-                    for (Group groupInstance : entry.getValue()) {
-                        p.getDataDictionary().checkHasRequired(groupInstance, groupInstance,
-                                groupInstance, msgType, bodyOnly);
+        for (FIXField<?> field : graph) {
+            if (field instanceof FIXGroupField<?>) {
+                FIXGroupField<?> groupField = (FIXGroupField<?>) field;
+                DataDictionary groupDictionary = getGroupDictionary(msgType, groupField.getTag());
+                for (FIXGroup group : groupField.getGroups()) {
+                    if (groupDictionary != null) {
+                        groupDictionary.checkHasRequired(msgType, group, bodyOnly);
                     }
                 }
             }
         }
+        //        final Map<Integer, List<Group>> groups = fields.getGroups();
+        //        if (groups.size() > 0) {
+        //            for (Map.Entry<Integer, List<Group>> entry : groups.entrySet()) {
+        //                final GroupInfo p = getGroup(msgType, entry.getKey());
+        //                if (p != null) {
+        //                    for (Group groupInstance : entry.getValue()) {
+        //                        p.getDataDictionary().checkHasRequired(groupInstance, groupInstance,
+        //                                groupInstance, msgType, bodyOnly);
+        //                    }
+        //                }
+        //            }
+        //        }
     }
 
     private void read(String location) throws ConfigError {
@@ -998,10 +1031,10 @@ public class DataDictionary {
 
             int num = fieldNode.getNumber();
 
-            String type = fieldNode.getType().value();
+            FIXFieldType type = fieldNode.getType();
 
             addField(num);
-            addFieldType(num, FieldType.fromName(getVersion(), type));
+            addFieldType(num, type);
             addFieldName(num, fieldNode.getName());
 
             for (FieldDefinition.Value valueNode : fieldNode.getValue()) {
@@ -1241,6 +1274,28 @@ public class DataDictionary {
     }
 
     /**
+     * {@inheritDoc}
+     *
+     * @since 2.0
+     */
+    @Override
+    public FIXField<?> produceField(MessageBuilder builder, String msgType, int tag,
+            CharSequence message, int start, int end) {
+
+        FIXField<?> field = builder.create(tag, message.subSequence(start, end));
+
+        if (isGroup(msgType, tag) && !(field instanceof FIXGroupField<?>)) {
+            // builder doesn't know this should be a group field
+            // but we do so lets substitute
+            GroupInfo info = groups.get(new IntStringPair(tag, msgType));
+
+            return new GroupField<FIXGroup>(tag, info.getDelimiterField(), message, start, end);
+        }
+
+        return field;
+    }
+
+    /**
      * Data dictionary-related exception.
      */
     public static class Exception extends RuntimeException {
@@ -1292,7 +1347,8 @@ public class DataDictionary {
         @Override
         public int hashCode() {
 
-            return stringValue.hashCode() + intValue;
+            // TODO : need a proper hash stored as an instance variable
+            return stringValue == null ? 0 : stringValue.hashCode() + intValue;
         }
 
         /**

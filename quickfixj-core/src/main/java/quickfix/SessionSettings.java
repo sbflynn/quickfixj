@@ -42,6 +42,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.quickfixj.FIXBeginString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,9 +70,9 @@ import quickfix.field.converter.BooleanConverter;
 public class SessionSettings {
     private static final Logger log = LoggerFactory.getLogger(SessionSettings.class);
 
-    private static final SessionID DEFAULT_SESSION_ID = new SessionID("DEFAULT", "", "");
-    private static final String SESSION_SECTION_NAME = "session";
+    private static final SessionID DEFAULT_SESSION_ID = new SessionID(null, "", "");
     private static final String DEFAULT_SECTION_NAME = "default";
+    private static final String SESSION_SECTION_NAME = "session";
     public static final String BEGINSTRING = "BeginString";
     public static final String SENDERCOMPID = "SenderCompID";
     public static final String SENDERSUBID = "SenderSubID";
@@ -167,14 +168,15 @@ public class SessionSettings {
         if (p == null) {
             throw new ConfigError("Session not found");
         }
+
         if (includeDefaults) {
             final Properties mergedProperties = new Properties();
             mergedProperties.putAll(sections.get(DEFAULT_SESSION_ID));
             mergedProperties.putAll(p);
             return mergedProperties;
-        } else {
-            return p;
         }
+
+        return p;
     }
 
     /**
@@ -388,8 +390,8 @@ public class SessionSettings {
 
     private void storeSection(String currentSectionId, Properties currentSection) {
         if (currentSectionId != null && currentSectionId.equals(SESSION_SECTION_NAME)) {
-            final SessionID sessionId = new SessionID(currentSection.getProperty(BEGINSTRING),
-                    currentSection.getProperty(SENDERCOMPID),
+            final SessionID sessionId = new SessionID(FIXBeginString.parse(currentSection
+                    .getProperty(BEGINSTRING)), currentSection.getProperty(SENDERCOMPID),
                     currentSection.getProperty(SENDERSUBID),
                     currentSection.getProperty(SENDERLOCID),
                     currentSection.getProperty(TARGETCOMPID),
@@ -643,7 +645,7 @@ public class SessionSettings {
         return new Dictionary(null, getSessionProperties(sessionID));
     }
 
-    public void set(SessionID sessionID, Dictionary dictionary) throws ConfigError {
+    public void set(SessionID sessionID, Dictionary dictionary) {
         final Properties p = getOrCreateSessionProperties(sessionID);
         p.clear();
         p.putAll(dictionary.toMap());
@@ -653,7 +655,7 @@ public class SessionSettings {
         return new Dictionary(null, getDefaultProperties());
     }
 
-    public void set(Dictionary dictionary) throws ConfigError {
+    public void set(Dictionary dictionary) {
         getDefaultProperties().putAll(dictionary.toMap());
     }
 

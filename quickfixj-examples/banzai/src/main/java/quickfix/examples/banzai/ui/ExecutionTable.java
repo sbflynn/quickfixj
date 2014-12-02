@@ -29,10 +29,17 @@ import javax.swing.table.TableCellRenderer;
 import quickfix.examples.banzai.ExecutionTableModel;
 
 public class ExecutionTable extends JTable {
+
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
+
     public ExecutionTable(ExecutionTableModel executionTableModel) {
         super(executionTableModel);
     }
 
+    @Override
     public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
         //Execution execution = (Execution) ((ExecutionTableModel) dataModel).getExecution(row);
 

@@ -78,6 +78,18 @@ public class GenerateMojo extends AbstractMojo {
     private boolean orderedFields;
 
     /**
+     * Enable orderedFields.
+     */
+    @Parameter(defaultValue = "false")
+    private boolean generateHeaderFields;
+
+    /**
+     * Enable orderedFields.
+     */
+    @Parameter(defaultValue = "false")
+    private boolean generateTrailerFields;
+
+    /**
      * The package for the generated source.
      */
     @Parameter
@@ -86,8 +98,14 @@ public class GenerateMojo extends AbstractMojo {
     /**
      * The base field class to use.
      */
-    @Parameter(defaultValue = "quickfix.field")
-    private String fieldPackage = "quickfix.field";
+    @Parameter
+    private String fieldPackage;
+
+    /**
+     * The base field class to use.
+     */
+    @Parameter
+    private String componentPackage;
 
     /**
      * The Maven project to act upon.
@@ -107,6 +125,11 @@ public class GenerateMojo extends AbstractMojo {
      */
     @Override
     public void execute() throws MojoExecutionException {
+
+        if ("pom".equals(project.getPackaging())) {
+            getLog().info("Skipping pom execution");
+            return;
+        }
 
         if (!outputDirectory.exists()) {
             FileUtils.mkdir(outputDirectory.getAbsolutePath());
@@ -135,15 +158,19 @@ public class GenerateMojo extends AbstractMojo {
 
             task.setName(dictFile.getName());
             task.setTransformDirectory(schemaDirectory);
-            task.setMessagePackage(packaging);
+            task.setPackaging(packaging);
             task.setOutputBaseDirectory(outputDirectory);
             task.setFieldPackage(fieldPackage);
+            task.setComponentPackage(componentPackage);
             task.setOverwrite(true);
             task.setOrderedFields(orderedFields);
             task.setDecimalGenerated(decimal);
-            task.setValidate(validate);
+            task.setValidate(isValidate());
+            task.setGenerateHeaderFields(isGenerateHeaderFields());
+            task.setGenerateTrailerFields(isGenerateTrailerFields());
 
             generator.generate(task);
+
         } catch (Exception e) {
             throw new MojoExecutionException(
                     "QuickFIX code generator execution failed", e);
@@ -294,5 +321,49 @@ public class GenerateMojo extends AbstractMojo {
     public void setValidate(boolean validate) {
 
         this.validate = validate;
+    }
+
+    /**
+     * Get the generateHeaderFields property.
+     *
+     * @return Returns the generateHeaderFields.
+     * @since 2.0
+     */
+    public boolean isGenerateHeaderFields() {
+
+        return generateHeaderFields;
+    }
+
+    /**
+     * Set the generateHeaderFields property.
+     *
+     * @param generateHeaderFields The generateHeaderFields to set.
+     * @since 2.0
+     */
+    public void setGenerateHeaderFields(boolean generateHeaderFields) {
+
+        this.generateHeaderFields = generateHeaderFields;
+    }
+
+    /**
+     * Get the generateTrailerFields property.
+     *
+     * @return Returns the generateTrailerFields.
+     * @since 2.0
+     */
+    public boolean isGenerateTrailerFields() {
+
+        return generateTrailerFields;
+    }
+
+    /**
+     * Set the generateTrailerFields property.
+     *
+     * @param generateTrailerFields The generateTrailerFields to set.
+     * @since 2.0
+     */
+    public void setGenerateTrailerFields(boolean generateTrailerFields) {
+
+        this.generateTrailerFields = generateTrailerFields;
     }
 }

@@ -22,7 +22,12 @@ package quickfix;
 /**
  * An exception for field conversion problems. (The "error" naming is from the C++ JNI API.)
  */
-public class FieldConvertError extends Exception {
+public class FieldConvertError extends RuntimeException {
+
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
 
     public FieldConvertError(String s) {
         super(s);

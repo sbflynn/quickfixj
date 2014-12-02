@@ -1,4 +1,7 @@
 <fix major="5" minor="0" xmlns="http://quickfixj.org/xml/dictionary">
+	<provides>
+		<application application="FIX.5.0SP2" />
+	</provides>
 	<header />
 	<trailer />
 	<messages>

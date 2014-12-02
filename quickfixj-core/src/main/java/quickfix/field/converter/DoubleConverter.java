@@ -90,7 +90,7 @@ public class DoubleConverter {
      * @return the parsed double
      * @throws FieldConvertError if the String is not a valid double pattern.
      */
-    public static double convert(String value) throws FieldConvertError {
+    public static double convert(String value) {
         try {
             Matcher matcher = decimalPattern.matcher(value);
             if (!matcher.matches()) {

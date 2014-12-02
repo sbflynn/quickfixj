@@ -23,7 +23,7 @@ public final class JmxSupport {
     private JmxSupport() {
     }
 
-    public static IOException toIOException(Exception e) throws IOException {
+    public static IOException toIOException(Exception e) {
         IOException ioe = new IOException(e.getMessage());
         ioe.setStackTrace(e.getStackTrace());
         return ioe;

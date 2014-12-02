@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema xmlns="http://www.w3.org/2001/XMLSchema" targetNamespace="http://quickfixj.org/xml/dictionary"
 	xmlns:tns="http://quickfixj.org/xml/dictionary" elementFormDefault="qualified"
+	xmlns:jaxb="http://java.sun.com/xml/ns/jaxb" jaxb:version="1.0"
 >
 
 	<element name="fix" type="tns:data.dictionary.config">
@@ -50,6 +51,28 @@
 		</unique>
 	</element>
 
+	<element name="provides">
+		<complexType>
+			<sequence>
+				<element name="transport" minOccurs="0">
+					<complexType>
+						<sequence>
+							<element name="supports" minOccurs="0" maxOccurs="unbounded"
+								type="tns:enum.application" />
+						</sequence>
+						<attribute name="beginString" use="required" type="tns:enum.beginString" />
+					</complexType>
+				</element>
+				<element name="application" minOccurs="0">
+					<complexType>
+						<attribute name="application" use="required" type="tns:enum.application" />
+					</complexType>
+				</element>
+			</sequence>
+		</complexType>
+
+	</element>
+
 	<group name="particles">
 		<choice>
 			<element name="field" type="tns:field.reference" />
@@ -69,6 +92,7 @@
 
 	<complexType name="data.dictionary.config">
 		<sequence>
+			<element ref="tns:provides" minOccurs="0" />
 			<element ref="tns:header" />
 			<element ref="tns:trailer" />
 			<element name="messages">
@@ -205,6 +229,32 @@
 		</restriction>
 	</simpleType>
 
+	<simpleType name="enum.beginString">
+		<restriction base="string">
+			<enumeration value="FIX.4.0" />
+			<enumeration value="FIX.4.1" />
+			<enumeration value="FIX.4.2" />
+			<enumeration value="FIX.4.3" />
+			<enumeration value="FIX.4.4" />
+			<enumeration value="FIXT.1.1" />
+		</restriction>
+	</simpleType>
+
+	<simpleType name="enum.application">
+		<restriction base="string">
+			<enumeration value="FIX.2.7" />
+			<enumeration value="FIX.3.0" />
+			<enumeration value="FIX.4.0" />
+			<enumeration value="FIX.4.1" />
+			<enumeration value="FIX.4.2" />
+			<enumeration value="FIX.4.3" />
+			<enumeration value="FIX.4.4" />
+			<enumeration value="FIX.5.0" />
+			<enumeration value="FIX.5.0SP1" />
+			<enumeration value="FIX.5.0SP2" />
+		</restriction>
+	</simpleType>
+
 	<simpleType name="enum.fieldType">
 		<restriction base="string">
 
@@ -317,5 +367,19 @@
 
 		</restriction>
 	</simpleType>
+	<annotation>
+		<documentation>fieldType is backed using org.quickfixj.FIXFieldType enum
+		</documentation>
+		<appinfo>
+			<jaxb:globalBindings>
+				<jaxb:javaType name="org.quickfixj.FIXFieldType" xmlType="tns:enum.fieldType"
+					parseMethod="org.quickfixj.FIXFieldType.parse" printMethod="org.quickfixj.FIXFieldType.print" />
+				<jaxb:javaType name="org.quickfixj.FIXBeginString" xmlType="tns:enum.beginString"
+					parseMethod="org.quickfixj.FIXBeginString.parse" printMethod="org.quickfixj.FIXBeginString.print" />
+				<jaxb:javaType name="org.quickfixj.FIXApplication" xmlType="tns:enum.application"
+					parseMethod="org.quickfixj.FIXApplication.parse" printMethod="org.quickfixj.FIXApplication.print" />
+			</jaxb:globalBindings>
+		</appinfo>
+	</annotation>
 
 </schema>

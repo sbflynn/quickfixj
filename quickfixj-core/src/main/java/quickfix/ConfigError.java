@@ -25,6 +25,11 @@ package quickfix;
  */
 public class ConfigError extends Exception {
 
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
+
     public ConfigError() {
         super();
     }

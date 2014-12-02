@@ -33,13 +33,17 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.quickfixj.FIXApplication;
+import org.quickfixj.FIXBeginString;
+import org.quickfixj.FIXField;
+import org.quickfixj.FIXFieldGraph;
+import org.quickfixj.MessageBuilder;
+import org.quickfixj.MessageBuilderFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import quickfix.Message.Header;
 import quickfix.SessionState.ResendRange;
-import quickfix.field.IntField;
-import quickfix.field.StringField;
 
 /**
  * The Session is the primary FIX abstraction for message communication. It
@@ -324,7 +328,7 @@ public class Session implements Closeable {
 
     private final SessionSchedule sessionSchedule;
 
-    private final MessageFactory messageFactory;
+    private final MessageBuilderFactory messageFactory;
 
     // @GuardedBy(this)
     private final SessionState state;
@@ -396,9 +400,9 @@ public class Session implements Closeable {
     private final SessionStateListener stateListener = (SessionStateListener) stateListeners
             .getMulticaster();
 
-    private final AtomicReference<StringField> targetDefaultApplVerID = new AtomicReference<StringField>();
+    private final AtomicReference<FIXApplication> targetDefaultApplVerID = new AtomicReference<FIXApplication>();
 
-    private final StringField senderDefaultApplVerID;
+    private final FIXApplication senderDefaultApplVerID;
 
     private boolean validateSequenceNumbers = true;
 
@@ -419,7 +423,7 @@ public class Session implements Closeable {
 
     Session(Application application, MessageStoreFactory messageStoreFactory, SessionID sessionID,
             DataDictionaryProvider dataDictionaryProvider, SessionSchedule sessionSchedule,
-            LogFactory logFactory, MessageFactory messageFactory, int heartbeatInterval) {
+            LogFactory logFactory, MessageBuilderFactory messageFactory, int heartbeatInterval) {
 
         this(application, messageStoreFactory, sessionID, dataDictionaryProvider, sessionSchedule,
                 logFactory, messageFactory, heartbeatInterval, true, DEFAULT_MAX_LATENCY, true,
@@ -431,13 +435,13 @@ public class Session implements Closeable {
 
     Session(Application application, MessageStoreFactory messageStoreFactory, SessionID sessionID,
             DataDictionaryProvider dataDictionaryProvider, SessionSchedule sessionSchedule,
-            LogFactory logFactory, MessageFactory messageFactory, int heartbeatInterval,
+            LogFactory logFactory, MessageBuilderFactory messageFactory, int heartbeatInterval,
             boolean checkLatency, int maxLatency, boolean millisecondsInTimeStamp,
             boolean resetOnLogon, boolean resetOnLogout, boolean resetOnDisconnect,
             boolean refreshMessageStoreAtLogon, boolean checkCompID,
             boolean redundantResentRequestsAllowed, boolean persistMessages,
             boolean useClosedRangeForResend, double testRequestDelayMultiplier,
-            StringField senderDefaultApplVerID, boolean validateSequenceNumbers,
+            FIXApplication senderDefaultApplVerID, boolean validateSequenceNumbers,
             int[] logonIntervals, boolean resetOnError, boolean disconnectOnError,
             boolean disableHeartBeatCheck, boolean rejectInvalidMessage,
             boolean rejectMessageOnUnhandledException, boolean requiresOrigSendingTime,
@@ -510,7 +514,7 @@ public class Session implements Closeable {
         getLog().onEvent("Created session: " + sessionID);
     }
 
-    public MessageFactory getMessageFactory() {
+    public MessageBuilderFactory getMessageFactory() {
 
         return messageFactory;
     }
@@ -640,8 +644,8 @@ public class Session implements Closeable {
 
         try {
             return sendToTarget(message,
-                    new SessionID(message.getHeader().getString(FixTags.BEGIN_STRING),
-                            senderCompID, targetCompID, qualifier));
+                    new SessionID(MessageUtils.getBeginString(message.getHeader()), senderCompID,
+                            targetCompID, qualifier));
         } catch (final SessionNotFound e) {
             throw e;
         } catch (final Exception e) {
@@ -711,10 +715,40 @@ public class Session implements Closeable {
         this.enabled = enabled;
     }
 
+    private Message createAdminMessage(FIXBeginString beginString, String msgType) {
+
+        MessageBuilder builder = messageFactory.getMessageBuilder(beginString, msgType);
+        Message message = builder.create();
+        Message.Header header = message.getHeader();
+
+        state.setLastSentTime(SystemTime.currentTimeMillis());
+        header.setField(builder.create(FixTags.BEGIN_STRING, sessionID.getBeginString().getValue()));
+        header.setField(builder.create(FixTags.SENDER_COMP_ID, sessionID.getSenderCompID()));
+        header.setField(builder.create(FixTags.TARGET_COMP_ID, sessionID.getTargetCompID()));
+        optionallySetID(builder, header, FixTags.SENDER_SUB_ID, sessionID.getSenderSubID());
+        optionallySetID(builder, header, FixTags.SENDER_LOCATION_ID,
+                sessionID.getSenderLocationID());
+        optionallySetID(builder, header, FixTags.TARGET_SUB_ID, sessionID.getTargetSubID());
+        optionallySetID(builder, header, FixTags.TARGET_LOCATION_ID,
+                sessionID.getTargetLocationID());
+        header.setInt(FixTags.MSG_SEQ_NUM, getExpectedSenderNum());
+        insertSendingTime(header);
+
+        return message;
+    }
+
+    private void optionallySetID(MessageBuilder builder, FIXFieldGraph header, int field,
+            String value) {
+
+        if (!value.equals(SessionID.NOT_SET)) {
+            header.setField(builder.create(field, value));
+        }
+    }
+
     private void initializeHeader(Message.Header header) {
 
         state.setLastSentTime(SystemTime.currentTimeMillis());
-        header.setString(FixTags.BEGIN_STRING, sessionID.getBeginString());
+        header.setString(FixTags.BEGIN_STRING, sessionID.getBeginString().getValue());
         header.setString(FixTags.SENDER_COMP_ID, sessionID.getSenderCompID());
         optionallySetID(header, FixTags.SENDER_SUB_ID, sessionID.getSenderSubID());
         optionallySetID(header, FixTags.SENDER_LOCATION_ID, sessionID.getSenderLocationID());
@@ -740,7 +774,7 @@ public class Session implements Closeable {
     private boolean includeMillis() {
 
         return millisecondsInTimeStamp
-                && sessionID.getBeginString().compareTo(FixVersions.BEGINSTRING_FIX42) >= 0;
+                && sessionID.getBeginString().ordinal() >= FIXBeginString.FIX42.ordinal();
     }
 
     /**
@@ -828,7 +862,7 @@ public class Session implements Closeable {
 
     private boolean isResetNeeded() {
 
-        return sessionID.getBeginString().compareTo(FixVersions.BEGINSTRING_FIX41) >= 0
+        return sessionID.getBeginString().ordinal() >= FIXBeginString.FIX41.ordinal()
                 && (resetOnLogon || resetOnLogout || resetOnDisconnect)
                 && getExpectedSenderNum() == 1 && getExpectedTargetNum() == 1;
     }
@@ -940,28 +974,29 @@ public class Session implements Closeable {
         final String msgType = header.getString(FixTags.MSG_TYPE);
 
         // QFJ-650
-        if (!header.isSetField(FixTags.MSG_SEQ_NUM)) {
+        if (!header.isFieldSet(FixTags.MSG_SEQ_NUM)) {
             generateLogout("Received message without MsgSeqNum");
             disconnect("Received message without MsgSeqNum: " + message, true);
             return;
         }
 
-        final String sessionBeginString = sessionID.getBeginString();
+        final FIXBeginString sessionBeginString = sessionID.getBeginString();
         try {
-            final String beginString = header.getString(FixTags.BEGIN_STRING);
+            final FIXBeginString beginString = MessageUtils.getBeginString(header);
             if (!beginString.equals(sessionBeginString)) {
-                throw new UnsupportedVersion("Message version '" + beginString
-                        + "' does not match the session version '" + sessionBeginString + "'");
+                throw new UnsupportedVersion("Message version '" + beginString.getValue()
+                        + "' does not match the session version '" + sessionBeginString.getValue()
+                        + "'");
             }
 
             if (msgType.equals(FixMessageTypes.LOGON)) {
                 if (sessionID.isFIXT()) {
-                    targetDefaultApplVerID.set(new StringField(FixTags.APPL_VER_ID, message
+                    targetDefaultApplVerID.set(FIXApplication.parseId(message
                             .getString(FixTags.DEFAULT_APPL_VER_ID)));
                 }
 
                 // QFJ-648
-                if (message.isSetField(FixTags.HEART_BT_INT)) {
+                if (message.isFieldSet(FixTags.HEART_BT_INT)) {
                     if (message.getInt(FixTags.HEART_BT_INT) < 0) {
                         throw new RejectLogon("HeartBtInt must not be negative");
                     }
@@ -969,13 +1004,13 @@ public class Session implements Closeable {
             }
 
             if (validateIncomingMessage && dataDictionaryProvider != null) {
+
                 final DataDictionary sessionDataDictionary = dataDictionaryProvider
                         .getSessionDataDictionary(beginString);
 
-                final StringField applVerID = header.isSetField(FixTags.APPL_VER_ID)
-                        ? new StringField(FixTags.APPL_VER_ID,
-                                header.getString(FixTags.APPL_VER_ID)) : targetDefaultApplVerID
-                                .get();
+                final FIXApplication applVerID = header.isFieldSet(FixTags.APPL_VER_ID)
+                        ? FIXApplication.parseId(header.getString(FixTags.APPL_VER_ID))
+                        : targetDefaultApplVerID.get();
 
                 final DataDictionary applicationDataDictionary = MessageUtils
                         .isAdminMessage(msgType) ? dataDictionaryProvider
@@ -989,33 +1024,34 @@ public class Session implements Closeable {
                 } catch (final IncorrectTagValue e) {
                     if (rejectInvalidMessage) {
                         throw e;
-                    } else {
-                        getLog().onErrorEvent("Warn: incoming message with " + e + ": " + message);
                     }
+                    getLog().onErrorEvent("Warn: incoming message with " + e + ": " + message);
+
                 } catch (final FieldException e) {
-                    if (message.isSetField(e.getField())) {
+                    if (message.isFieldSet(e.getField())) {
                         if (rejectInvalidMessage) {
                             throw e;
-                        } else {
-                            getLog().onErrorEvent(
-                                    "Warn: incoming message with incorrect field: "
-                                            + message.getField(e.getField()) + ": " + message);
                         }
+
+                        getLog().onErrorEvent(
+                                "Warn: incoming message with incorrect field: "
+                                        + message.getField(e.getField()) + ": " + message);
+
                     } else {
                         if (rejectInvalidMessage) {
                             throw e;
-                        } else {
-                            getLog().onErrorEvent(
-                                    "Warn: incoming message with missing field: " + e.getField()
-                                            + ": " + e.getMessage() + ": " + message);
                         }
+
+                        getLog().onErrorEvent(
+                                "Warn: incoming message with missing field: " + e.getField() + ": "
+                                        + e.getMessage() + ": " + message);
                     }
                 } catch (final FieldNotFound e) {
                     if (rejectInvalidMessage) {
                         throw e;
-                    } else {
-                        getLog().onErrorEvent("Warn: incoming " + e + ": " + message);
                     }
+
+                    getLog().onErrorEvent("Warn: incoming " + e + ": " + message);
                 }
             }
 
@@ -1050,7 +1086,7 @@ public class Session implements Closeable {
             if (resetOrDisconnectIfRequired(message)) {
                 return;
             }
-            if (sessionBeginString.compareTo(FixVersions.BEGINSTRING_FIX42) >= 0 && message.isApp()) {
+            if (sessionBeginString.gte(FIXBeginString.FIX42) && message.isApp()) {
                 generateBusinessReject(message,
                         BusinessRejectReasonText.CONDITIONALLY_REQUIRED_FIELD_MISSING, e.field);
             } else {
@@ -1082,7 +1118,7 @@ public class Session implements Closeable {
             if (e.isLogoutBeforeDisconnect()) {
                 if (e.getSessionStatus() > -1) {
                     generateLogout(e.getMessage(),
-                            new IntField(FixTags.SESSION_STATUS, e.getSessionStatus()));
+                            new StringField(FixTags.SESSION_STATUS, e.getSessionStatus()));
                 } else {
                     generateLogout(e.getMessage());
                 }
@@ -1094,7 +1130,7 @@ public class Session implements Closeable {
             if (resetOrDisconnectIfRequired(message)) {
                 return;
             }
-            if (sessionBeginString.compareTo(FixVersions.BEGINSTRING_FIX42) >= 0) {
+            if (sessionBeginString.gte(FIXBeginString.FIX42)) {
                 generateBusinessReject(message, BusinessRejectReasonText.UNSUPPORTED_MESSAGE_TYPE,
                         0);
             } else {
@@ -1130,7 +1166,7 @@ public class Session implements Closeable {
                     return;
                 }
                 if (!(MessageUtils.isAdminMessage(msgType))
-                        && (sessionBeginString.compareTo(FixVersions.BEGINSTRING_FIX42) >= 0)) {
+                        && sessionBeginString.gte(FIXBeginString.FIX42)) {
                     generateBusinessReject(message,
                             BusinessRejectReasonText.APPLICATION_NOT_AVAILABLE, 0);
                 } else {
@@ -1254,10 +1290,10 @@ public class Session implements Closeable {
             throws FieldNotFound, IOException, InvalidMessage {
 
         // Adjust the ending sequence number for older versions of FIX
-        final String beginString = sessionID.getBeginString();
+        final FIXBeginString beginString = sessionID.getBeginString();
         final int expectedSenderNum = getExpectedSenderNum();
-        if (beginString.compareTo(FixVersions.BEGINSTRING_FIX42) >= 0 && endSeqNo == 0
-                || beginString.compareTo(FixVersions.BEGINSTRING_FIX42) <= 0 && endSeqNo == 999999
+        if (beginString.gte(FIXBeginString.FIX42) && endSeqNo == 0
+                || beginString.lte(FIXBeginString.FIX42) && endSeqNo == 999999
                 || endSeqNo >= expectedSenderNum) {
             endSeqNo = expectedSenderNum - 1;
         }
@@ -1304,7 +1340,7 @@ public class Session implements Closeable {
     private void generateSequenceReset(Message receivedMessage, int beginSeqNo, int endSeqNo)
             throws FieldNotFound {
 
-        final Message sequenceReset = messageFactory.create(sessionID.getBeginString(),
+        final Message sequenceReset = createAdminMessage(sessionID.getBeginString(),
                 FixMessageTypes.SEQUENCE_RESET);
         final int newSeqNo = endSeqNo;
         final Header header = sequenceReset.getHeader();
@@ -1328,7 +1364,7 @@ public class Session implements Closeable {
         getLog().onEvent("Sent SequenceReset TO: " + newSeqNo);
     }
 
-    private boolean resendApproved(Message message) throws FieldNotFound {
+    private boolean resendApproved(Message message) {
 
         try {
             application.toApp(message, sessionID);
@@ -1367,7 +1403,7 @@ public class Session implements Closeable {
         String msg;
         if (!state.isLogoutSent()) {
             msg = "Received logout request";
-            if (logout.isSetField(FixTags.TEXT)) {
+            if (logout.isFieldSet(FixTags.TEXT)) {
                 msg += ": " + logout.getString(FixTags.TEXT);
             }
             getLog().onEvent(msg);
@@ -1406,7 +1442,7 @@ public class Session implements Closeable {
         generateLogout(null, reason, null);
     }
 
-    private void generateLogout(String reason, IntField sessionStatus) {
+    private void generateLogout(String reason, FIXField<?> sessionStatus) {
 
         generateLogout(null, reason, sessionStatus);
     }
@@ -1418,16 +1454,16 @@ public class Session implements Closeable {
      *        logout to be sent
      * @param text
      */
-    private void generateLogout(Message otherLogout, String text, IntField sessionStatus) {
+    private void generateLogout(Message otherLogout, String text, FIXField<?> sessionStatus) {
 
-        final Message logout = messageFactory.create(sessionID.getBeginString(),
+        final Message logout = createAdminMessage(sessionID.getBeginString(),
                 FixMessageTypes.LOGOUT);
         initializeHeader(logout.getHeader());
         if (text != null && !"".equals(text)) {
             logout.setString(FixTags.TEXT, text);
         }
         if (sessionStatus != null) {
-            logout.setInt(FixTags.SESSION_STATUS, sessionStatus.getValue());
+            logout.setField(FixTags.SESSION_STATUS, sessionStatus);
         }
         if (otherLogout != null && enableLastMsgSeqNumProcessed) {
             try {
@@ -1446,7 +1482,7 @@ public class Session implements Closeable {
             FieldNotFound, IncorrectDataFormat, IncorrectTagValue, UnsupportedMessageType {
 
         boolean isGapFill = false;
-        if (sequenceReset.isSetField(FixTags.GAP_FILL_FLAG)) {
+        if (sequenceReset.isFieldSet(FixTags.GAP_FILL_FLAG)) {
             isGapFill = sequenceReset.getBoolean(FixTags.GAP_FILL_FLAG) && validateSequenceNumbers;
         }
 
@@ -1454,7 +1490,7 @@ public class Session implements Closeable {
             return;
         }
 
-        if (validateSequenceNumbers && sequenceReset.isSetField(FixTags.NEW_SEQ_NO)) {
+        if (validateSequenceNumbers && sequenceReset.isFieldSet(FixTags.NEW_SEQ_NO)) {
             final int newSequence = sequenceReset.getInt(FixTags.NEW_SEQ_NO);
 
             getLog().onEvent(
@@ -1473,8 +1509,8 @@ public class Session implements Closeable {
                         // Alternatively, we could also wait for the next
                         // incoming message
                         // which would trigger another resend.
-                        final String beginString = sequenceReset.getHeader().getString(
-                                FixTags.BEGIN_STRING);
+                        final FIXBeginString beginString = MessageUtils
+                                .getBeginString(sequenceReset.getHeader());
                         sendResendRequest(beginString, range.getEndSeqNo() + 1, newSequence + 1,
                                 range.getEndSeqNo());
                     }
@@ -1500,8 +1536,8 @@ public class Session implements Closeable {
 
     private void generateReject(Message message, String str) throws FieldNotFound, IOException {
 
-        final String beginString = sessionID.getBeginString();
-        final Message reject = messageFactory.create(beginString, FixMessageTypes.REJECT);
+        final FIXBeginString beginString = sessionID.getBeginString();
+        final Message reject = createAdminMessage(beginString, FixMessageTypes.REJECT);
         final Header header = message.getHeader();
 
         reject.reverseRoute(header);
@@ -1509,7 +1545,7 @@ public class Session implements Closeable {
 
         final String msgType = header.getString(FixTags.MSG_TYPE);
         final String msgSeqNum = header.getString(FixTags.MSG_SEQ_NUM);
-        if (beginString.compareTo(FixVersions.BEGINSTRING_FIX42) >= 0) {
+        if (beginString.gte(FIXBeginString.FIX42)) {
             reject.setString(FixTags.REF_MSG_TYPE, msgType);
         }
         reject.setString(FixTags.REF_SEQ_NUM, msgSeqNum);
@@ -1530,7 +1566,7 @@ public class Session implements Closeable {
     private boolean isPossibleDuplicate(Message message) throws FieldNotFound {
 
         final Header header = message.getHeader();
-        return header.isSetField(FixTags.POSS_DUP_FLAG) && header.getBoolean(FixTags.POSS_DUP_FLAG);
+        return header.isFieldSet(FixTags.POSS_DUP_FLAG) && header.getBoolean(FixTags.POSS_DUP_FLAG);
     }
 
     private void generateReject(Message message, int err, int field) throws IOException,
@@ -1543,40 +1579,40 @@ public class Session implements Closeable {
             throw new SessionException(errorMessage);
         }
 
-        final String beginString = sessionID.getBeginString();
-        final Message reject = messageFactory.create(beginString, FixMessageTypes.REJECT);
+        final FIXBeginString beginString = sessionID.getBeginString();
+        final Message reject = createAdminMessage(beginString, FixMessageTypes.REJECT);
         final Header header = message.getHeader();
 
         reject.reverseRoute(header);
         initializeHeader(reject.getHeader());
 
         String msgType = "";
-        if (header.isSetField(FixTags.MSG_TYPE)) {
+        if (header.isFieldSet(FixTags.MSG_TYPE)) {
             msgType = header.getString(FixTags.MSG_TYPE);
         }
 
         int msgSeqNum = 0;
-        if (header.isSetField(FixTags.MSG_SEQ_NUM)) {
+        if (header.isFieldSet(FixTags.MSG_SEQ_NUM)) {
             msgSeqNum = header.getInt(FixTags.MSG_SEQ_NUM);
             reject.setInt(FixTags.REF_SEQ_NUM, msgSeqNum);
         }
 
-        if (beginString.compareTo(FixVersions.BEGINSTRING_FIX42) >= 0) {
+        if (beginString.gte(FIXBeginString.FIX42)) {
             if (!msgType.equals("")) {
                 reject.setString(FixTags.REF_MSG_TYPE, msgType);
             }
-            if (beginString.compareTo(FixVersions.BEGINSTRING_FIX44) > 0) {
+            if (beginString.gt(FIXBeginString.FIX44)) {
                 reject.setInt(FixTags.SESSION_REJECT_REASON, err);
-            } else if (beginString.compareTo(FixVersions.BEGINSTRING_FIX44) == 0) {
+            } else if (beginString == FIXBeginString.FIX44) {
                 if (err == SessionRejectReasonText.OTHER
                         || err <= SessionRejectReasonText.NON_DATA_VALUE_INCLUDES_FIELD_DELIMITER) {
                     reject.setInt(FixTags.SESSION_REJECT_REASON, err);
                 }
-            } else if (beginString.compareTo(FixVersions.BEGINSTRING_FIX43) == 0) {
+            } else if (beginString == FIXBeginString.FIX43) {
                 if (err <= SessionRejectReasonText.NON_DATA_VALUE_INCLUDES_FIELD_DELIMITER) {
                     reject.setInt(FixTags.SESSION_REJECT_REASON, err);
                 }
-            } else if (beginString.compareTo(FixVersions.BEGINSTRING_FIX42) == 0) {
+            } else if (beginString == FIXBeginString.FIX42) {
                 if (err <= SessionRejectReasonText.INVALID_MSGTYPE) {
                     reject.setInt(FixTags.SESSION_REJECT_REASON, err);
                 }
@@ -1635,7 +1671,7 @@ public class Session implements Closeable {
             isRejectMessage = false;
         }
         if (isRejectMessage
-                && sessionID.getBeginString().compareTo(FixVersions.BEGINSTRING_FIX42) >= 0) {
+                && sessionID.getBeginString().ordinal() >= FIXApplication.FIX42.ordinal()) {
             reject.setInt(FixTags.REF_TAG_ID, field);
             reject.setString(FixTags.TEXT, reason);
         } else {
@@ -1647,8 +1683,10 @@ public class Session implements Closeable {
     private void generateBusinessReject(Message message, int err, int field) throws FieldNotFound,
             IOException {
 
-        final Message reject = messageFactory.create(sessionID.getBeginString(),
-                FixMessageTypes.BUSINESS_MESSAGE_REJECT);
+        MessageBuilder builder = messageFactory.getMessageBuilder(sessionID.getBeginString(),
+                getSenderDefaultApplicationVersionID(), FixMessageTypes.BUSINESS_MESSAGE_REJECT);
+
+        final Message reject = builder.create();
         final Header header = message.getHeader();
         reject.reverseRoute(header);
         initializeHeader(reject.getHeader());
@@ -1683,10 +1721,10 @@ public class Session implements Closeable {
 
     private void generateHeartbeat(Message testRequest) throws FieldNotFound {
 
-        final Message heartbeat = messageFactory.create(sessionID.getBeginString(),
+        final Message heartbeat = createAdminMessage(sessionID.getBeginString(),
                 FixMessageTypes.HEARTBEAT);
         initializeHeader(heartbeat.getHeader());
-        if (testRequest.isSetField(FixTags.TEST_REQ_ID)) {
+        if (testRequest.isFieldSet(FixTags.TEST_REQ_ID)) {
             heartbeat.setString(FixTags.TEST_REQ_ID, testRequest.getString(FixTags.TEST_REQ_ID));
         }
         if (enableLastMsgSeqNumProcessed) {
@@ -1766,7 +1804,7 @@ public class Session implements Closeable {
                 }
                 if (msgSeqNum < range.getEndSeqNo() && range.isChunkedResendRequest()
                         && msgSeqNum >= range.getCurrentEndSeqNo()) {
-                    final String beginString = header.getString(FixTags.BEGIN_STRING);
+                    final FIXBeginString beginString = MessageUtils.getBeginString(header);
                     sendResendRequest(beginString, range.getEndSeqNo() + 1, msgSeqNum + 1,
                             range.getEndSeqNo());
                 }
@@ -1900,9 +1938,9 @@ public class Session implements Closeable {
                         reset(); // only reset if seq nums are != 1
                     }
                     return; // since we are outside of session time window
-                } else {
-                    resetIfSessionNotCurrent(sessionID, now);
                 }
+
+                resetIfSessionNotCurrent(sessionID, now);
             }
         }
 
@@ -1980,7 +2018,7 @@ public class Session implements Closeable {
 
     public void generateHeartbeat() {
 
-        final Message heartbeat = messageFactory.create(sessionID.getBeginString(),
+        final Message heartbeat = createAdminMessage(sessionID.getBeginString(),
                 FixMessageTypes.HEARTBEAT);
         initializeHeader(heartbeat.getHeader());
         sendRaw(heartbeat, 0);
@@ -1989,7 +2027,7 @@ public class Session implements Closeable {
     public void generateTestRequest(String id) {
 
         state.incrementTestRequestCounter();
-        final Message testRequest = messageFactory.create(sessionID.getBeginString(),
+        final Message testRequest = createAdminMessage(sessionID.getBeginString(),
                 FixMessageTypes.TEST_REQUEST);
         initializeHeader(testRequest.getHeader());
         testRequest.setString(FixTags.TEST_REQ_ID, id);
@@ -1998,12 +2036,11 @@ public class Session implements Closeable {
 
     private boolean generateLogon() throws IOException {
 
-        final Message logon = messageFactory.create(sessionID.getBeginString(),
-                FixMessageTypes.LOGON);
+        final Message logon = createAdminMessage(sessionID.getBeginString(), FixMessageTypes.LOGON);
         logon.setInt(FixTags.ENCRYPT_METHOD, 0);
         logon.setInt(FixTags.HEART_BT_INT, state.getHeartBeatInterval());
         if (sessionID.isFIXT()) {
-            logon.setField(FixTags.DEFAULT_APPL_VER_ID, senderDefaultApplVerID);
+            logon.setInt(FixTags.DEFAULT_APPL_VER_ID, senderDefaultApplVerID.getId());
         }
         if (isStateRefreshNeeded(FixMessageTypes.LOGON)) {
             getLog().onEvent("Refreshing message/state store at logon");
@@ -2113,7 +2150,7 @@ public class Session implements Closeable {
             stateListener.onRefresh();
         }
 
-        if (logon.isSetField(FixTags.RESET_SEQ_NUM_FLAG)) {
+        if (logon.isFieldSet(FixTags.RESET_SEQ_NUM_FLAG)) {
             state.setResetReceived(logon.getBoolean(FixTags.RESET_SEQ_NUM_FLAG));
         } else if (state.isResetSent() && logon.getHeader().getInt(FixTags.MSG_SEQ_NUM) == 1) { // QFJ-383
             getLog().onEvent(
@@ -2158,7 +2195,7 @@ public class Session implements Closeable {
          */
         final boolean isLogonInNormalSequence = !(isTargetTooHigh(sequence) && !resetOnLogon);
         // if we have a tag 789 sent to us...
-        if (logon.isSetField(FixTags.NEXT_EXPECTED_MSG_SEQ_NUM) && enableNextExpectedMsgSeqNum) {
+        if (logon.isFieldSet(FixTags.NEXT_EXPECTED_MSG_SEQ_NUM) && enableNextExpectedMsgSeqNum) {
 
             final int targetWantsNextSeqNumToBe = logon.getInt(FixTags.NEXT_EXPECTED_MSG_SEQ_NUM);
             final int actualNextNum = state.getMessageStore().getNextSenderMsgSeqNum();
@@ -2223,7 +2260,7 @@ public class Session implements Closeable {
         }
 
         // Do we have a 789
-        if (logon.isSetField(FixTags.NEXT_EXPECTED_MSG_SEQ_NUM) && enableNextExpectedMsgSeqNum) {
+        if (logon.isFieldSet(FixTags.NEXT_EXPECTED_MSG_SEQ_NUM) && enableNextExpectedMsgSeqNum) {
             final int targetWantsNextSeqNumToBe = logon.getInt(FixTags.NEXT_EXPECTED_MSG_SEQ_NUM);
             final int actualNextNum = nextSenderMsgNumAtLogonReceived;
 
@@ -2268,7 +2305,7 @@ public class Session implements Closeable {
     }
 
     private void resendMessages(Message receivedMessage, int beginSeqNo, int endSeqNo)
-            throws IOException, InvalidMessage, FieldNotFound {
+            throws IOException, FieldNotFound {
 
         final ArrayList<String> messages = new ArrayList<String>();
         try {
@@ -2277,7 +2314,7 @@ public class Session implements Closeable {
             if (forceResendWhenCorruptedStore) {
                 log.error("Cannot read messages from stores, resend HeartBeats", e);
                 for (int i = beginSeqNo; i < endSeqNo; i++) {
-                    final Message heartbeat = messageFactory.create(sessionID.getBeginString(),
+                    final Message heartbeat = createAdminMessage(sessionID.getBeginString(),
                             FixMessageTypes.HEARTBEAT);
                     initializeHeader(heartbeat.getHeader());
                     heartbeat.getHeader().setInt(FixTags.MSG_SEQ_NUM, i);
@@ -2415,11 +2452,12 @@ public class Session implements Closeable {
         }
     }
 
-    private void doTargetTooHigh(Message msg) throws FieldNotFound, IOException, InvalidMessage {
+    private void doTargetTooHigh(Message msg) throws FieldNotFound {
 
         final Message.Header header = msg.getHeader();
-        final String beginString = header.getString(FixTags.BEGIN_STRING);
+        final FIXBeginString beginString = MessageUtils.getBeginString(header);
         final int msgSeqNum = header.getInt(FixTags.MSG_SEQ_NUM);
+
         getLog().onEvent(
                 "MsgSeqNum too high, expecting " + getExpectedTargetNum() + " but received "
                         + msgSeqNum + ": " + msg);
@@ -2439,14 +2477,15 @@ public class Session implements Closeable {
         generateResendRequest(beginString, msgSeqNum);
     }
 
-    private void generateResendRequest(String beginString, int msgSeqNum) {
+    private void generateResendRequest(FIXBeginString beginString, int msgSeqNum) {
 
         final int beginSeqNo = getExpectedTargetNum();
         final int endSeqNo = msgSeqNum - 1;
         sendResendRequest(beginString, msgSeqNum, beginSeqNo, endSeqNo);
     }
 
-    private void sendResendRequest(String beginString, int msgSeqNum, int beginSeqNo, int endSeqNo) {
+    private void sendResendRequest(FIXBeginString beginString, int msgSeqNum, int beginSeqNo,
+            int endSeqNo) {
 
         int lastEndSeqNoSent = resendRequestChunkSize == 0 ? endSeqNo : beginSeqNo
                 + resendRequestChunkSize - 1;
@@ -2454,16 +2493,16 @@ public class Session implements Closeable {
             lastEndSeqNoSent = endSeqNo;
         }
         if (lastEndSeqNoSent == endSeqNo && !useClosedRangeForResend) {
-            if (beginString.compareTo("FIX.4.2") >= 0) {
+            if (beginString.gte(FIXBeginString.FIX42)) {
                 endSeqNo = 0;
-            } else if (beginString.compareTo("FIX.4.1") <= 0) {
+            } else if (beginString.lte(FIXBeginString.FIX41)) {
                 endSeqNo = 999999;
             }
         } else {
             endSeqNo = lastEndSeqNoSent;
         }
 
-        final Message resendRequest = messageFactory.create(beginString,
+        final Message resendRequest = createAdminMessage(beginString,
                 FixMessageTypes.RESEND_REQUEST);
         resendRequest.setInt(FixTags.BEGIN_SEQ_NO, beginSeqNo);
         resendRequest.setInt(FixTags.END_SEQ_NO, endSeqNo);
@@ -2481,7 +2520,7 @@ public class Session implements Closeable {
         final String msgType = header.getString(FixTags.MSG_TYPE);
 
         if (!msgType.equals(FixMessageTypes.SEQUENCE_RESET)) {
-            if (header.isSetField(FixTags.ORIG_SENDING_TIME)) {
+            if (header.isFieldSet(FixTags.ORIG_SENDING_TIME)) {
                 final Date origSendingTime = header.getUtcTimeStamp(FixTags.ORIG_SENDING_TIME);
                 final Date sendingTime = header.getUtcTimeStamp(FixTags.SENDING_TIME);
                 if (origSendingTime.compareTo(sendingTime) > 0) {
@@ -2517,15 +2556,14 @@ public class Session implements Closeable {
      */
     private void generateLogon(Message otherLogon, int expectedTargetNum) throws FieldNotFound {
 
-        final Message logon = messageFactory.create(sessionID.getBeginString(),
-                FixMessageTypes.LOGON);
+        final Message logon = createAdminMessage(sessionID.getBeginString(), FixMessageTypes.LOGON);
         logon.setInt(FixTags.ENCRYPT_METHOD, 0);
         if (state.isResetReceived()) {
             logon.setBoolean(FixTags.RESET_SEQ_NUM_FLAG, true);
         }
         logon.setInt(FixTags.HEART_BT_INT, otherLogon.getInt(FixTags.HEART_BT_INT));
         if (sessionID.isFIXT()) {
-            logon.setField(senderDefaultApplVerID);
+            logon.setInt(FixTags.DEFAULT_APPL_VER_ID, senderDefaultApplVerID.getId());
         }
         if (enableLastMsgSeqNumProcessed) {
             logon.getHeader().setInt(FixTags.LAST_MSG_SEQ_NUM_PROCESSED,
@@ -2570,7 +2608,7 @@ public class Session implements Closeable {
             }
 
             if (enableLastMsgSeqNumProcessed) {
-                if (!header.isSetField(FixTags.LAST_MSG_SEQ_NUM_PROCESSED)) {
+                if (!header.isFieldSet(FixTags.LAST_MSG_SEQ_NUM_PROCESSED)) {
                     header.setInt(FixTags.LAST_MSG_SEQ_NUM_PROCESSED, getExpectedTargetNum() - 1);
                 }
             }
@@ -2587,7 +2625,7 @@ public class Session implements Closeable {
                 if (msgType.equals(FixMessageTypes.LOGON)) {
                     if (!state.isResetReceived()) {
                         boolean resetSeqNumFlag = false;
-                        if (message.isSetField(FixTags.RESET_SEQ_NUM_FLAG)) {
+                        if (message.isFieldSet(FixTags.RESET_SEQ_NUM_FLAG)) {
                             resetSeqNumFlag = message.getBoolean(FixTags.RESET_SEQ_NUM_FLAG);
                         }
                         if (resetSeqNumFlag) {
@@ -2716,9 +2754,9 @@ public class Session implements Closeable {
             // the application
             // data dictionary.
             return dataDictionaryProvider.getSessionDataDictionary(sessionID.getBeginString());
-        } else {
-            throw new SessionException("No default data dictionary for FIXT 1.1 and newer");
         }
+
+        throw new SessionException("No default data dictionary for FIXT 1.1 and newer");
     }
 
     public DataDictionaryProvider getDataDictionaryProvider() {
@@ -2910,16 +2948,16 @@ public class Session implements Closeable {
      * @return the default application version ID for messages sent from this
      *         session
      */
-    public StringField getSenderDefaultApplicationVersionID() {
+    public FIXApplication getSenderDefaultApplicationVersionID() {
 
-        return new StringField(FixTags.APPL_VER_ID, senderDefaultApplVerID.getValue());
+        return senderDefaultApplVerID;
     }
 
     /**
      * @return the default application version ID for messages received by this
      *         session
      */
-    public StringField getTargetDefaultApplicationVersionID() {
+    public FIXApplication getTargetDefaultApplicationVersionID() {
 
         return targetDefaultApplVerID.get();
     }
@@ -2931,7 +2969,7 @@ public class Session implements Closeable {
      *
      * @param applVerID
      */
-    public void setTargetDefaultApplicationVersionID(StringField applVerID) {
+    public void setTargetDefaultApplicationVersionID(FIXApplication applVerID) {
 
         targetDefaultApplVerID.set(applVerID);
     }
@@ -3013,6 +3051,7 @@ public class Session implements Closeable {
      * Closes session resources. This is for internal use and should typically
      * not be called by an user application.
      */
+    @Override
     public void close() throws IOException {
 
         closeIfCloseable(getLog());

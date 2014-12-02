@@ -55,7 +55,7 @@ public class Dictionary {
         return data.size();
     }
 
-    public String getString(String key) throws ConfigError, FieldConvertError {
+    public String getString(String key) throws ConfigError {
         try {
             return data.get(key).toString();
         } catch (NullPointerException e) {
@@ -63,7 +63,7 @@ public class Dictionary {
         }
     }
 
-    public String getString(String key, boolean capitalize) throws ConfigError, FieldConvertError {
+    public String getString(String key, boolean capitalize) throws ConfigError {
         String string = getString(key);
         return capitalize ? string.toUpperCase() : string;
     }
@@ -98,7 +98,7 @@ public class Dictionary {
         }
     }
 
-    public int getDay(String key) throws ConfigError, FieldConvertError {
+    public int getDay(String key) throws ConfigError {
         Object datum = data.get(key);
         if (datum == null) {
             throw new ConfigError("No value for key.");

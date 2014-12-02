@@ -45,7 +45,7 @@ public class BooleanConverter {
      * @return true if "Y" and false if "N"
      * @throws FieldConvertError raised for any value other than "Y" or "N".
      */
-    public static boolean convert(String value) throws FieldConvertError {
+    public static boolean convert(String value) {
         if (YES.equals(value)) {
             return true;
         } else if (NO.equals(value)) {

@@ -1,4 +1,16 @@
 <fix type="FIXT" major="1" minor="1" xmlns="http://quickfixj.org/xml/dictionary">
+	<provides>
+		<transport beginString="FIXT.1.1">
+			<supports>FIX.4.0</supports>
+			<supports>FIX.4.1</supports>
+			<supports>FIX.4.2</supports>
+			<supports>FIX.4.3</supports>
+			<supports>FIX.4.4</supports>
+			<supports>FIX.5.0</supports>
+			<supports>FIX.5.0SP1</supports>
+			<supports>FIX.5.0SP2</supports>
+		</transport>
+	</provides>
 	<header>
 		<field name="BeginString" required="Y" />
 		<field name="BodyLength" required="Y" />

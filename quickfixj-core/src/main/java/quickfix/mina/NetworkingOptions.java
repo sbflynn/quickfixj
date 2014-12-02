@@ -19,7 +19,6 @@
 
 package quickfix.mina;
 
-import java.net.SocketException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -131,7 +130,7 @@ public class NetworkingOptions {
         return value;
     }
 
-    public void apply(IoSession session) throws SocketException {
+    public void apply(IoSession session) {
         IoSessionConfig sessionConfig = session.getConfig();
         if (sessionConfig instanceof SocketSessionConfig) {
             SocketSessionConfig socketSessionConfig = (SocketSessionConfig) sessionConfig;

@@ -21,6 +21,11 @@ package quickfix;
 
 public class FieldException extends RuntimeException {
 
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
+
     private final int field;
 
     private final int sessionRejectReason;

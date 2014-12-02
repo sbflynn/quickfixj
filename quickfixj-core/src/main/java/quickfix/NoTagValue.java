@@ -23,6 +23,11 @@ package quickfix;
  * An exception thrown when a tag does not have a value.
  */
 public class NoTagValue extends RuntimeException {
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
+
     public int field;
 
     public NoTagValue(String message, Throwable cause) {

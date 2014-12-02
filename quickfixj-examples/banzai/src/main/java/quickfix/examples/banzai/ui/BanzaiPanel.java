@@ -44,14 +44,18 @@ import quickfix.examples.banzai.OrderTableModel;
  */
 public class BanzaiPanel extends JPanel implements Observer, ActionListener {
 
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
+
     private OrderEntryPanel orderEntryPanel;
     private OrderPanel orderPanel;
     private CancelReplacePanel cancelReplacePanel;
     private OrderTableModel orderTableModel;
 
-    public BanzaiPanel(OrderTableModel orderTableModel,
-                ExecutionTableModel executionTableModel,
-                BanzaiApplication application) {
+    public BanzaiPanel(OrderTableModel orderTableModel, ExecutionTableModel executionTableModel,
+            BanzaiApplication application) {
         setName("BanzaiPanel");
         this.orderTableModel = orderTableModel;
 
@@ -87,16 +91,19 @@ public class BanzaiPanel extends JPanel implements Observer, ActionListener {
         application.addOrderObserver(this);
     }
 
+    @Override
     public void update(Observable o, Object arg) {
         cancelReplacePanel.update();
     }
 
+    @Override
     public void actionPerformed(ActionEvent e) {
         ListSelectionModel selection = orderPanel.orderTable().getSelectionModel();
         selection.clearSelection();
     }
 
     private class OrderSelection implements ListSelectionListener {
+        @Override
         public void valueChanged(ListSelectionEvent e) {
             ListSelectionModel selection = orderPanel.orderTable().getSelectionModel();
             if (selection.isSelectionEmpty()) {

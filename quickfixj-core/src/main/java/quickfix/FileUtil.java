@@ -34,7 +34,7 @@ public class FileUtil {
     }
 
     public static String sessionIdFileName(SessionID sessionID) {
-        return replaceIllegalCharactersInFileName(sessionID.getBeginString() + "-"
+        return replaceIllegalCharactersInFileName(sessionID.getBeginString().getValue() + "-"
                 + sessionID.getSenderCompID() + optionalField("_", sessionID.getSenderSubID())
                 + optionalField("_", sessionID.getSenderLocationID()) + "-"
                 + sessionID.getTargetCompID() + optionalField("_", sessionID.getTargetSubID())
@@ -98,9 +98,8 @@ public class FileUtil {
      * @return input stream if found, or null otherwise.
      */
     public static InputStream open(Class<?> clazz, String name) {
-        return open(clazz, name, Location.FILESYSTEM,
-                Location.CONTEXT_RESOURCE, Location.CLASS_RESOURCE,
-                Location.CLASSLOADER_RESOURCE, Location.URL);
+        return open(clazz, name, Location.FILESYSTEM, Location.CONTEXT_RESOURCE,
+                Location.CLASS_RESOURCE, Location.CLASSLOADER_RESOURCE, Location.URL);
     }
 
     /**

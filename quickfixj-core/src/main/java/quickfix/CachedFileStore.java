@@ -166,6 +166,7 @@ public class CachedFileStore implements MessageStore {
      * (non-Javadoc)
      * @see quickfix.MessageStore#getCreationTime()
      */
+    @Override
     public Date getCreationTime() throws IOException {
         return cache.getCreationTime();
     }
@@ -241,7 +242,7 @@ public class CachedFileStore implements MessageStore {
         deleteFile(sessionFileName);
     }
 
-    private void deleteFile(String fileName) throws IOException {
+    private void deleteFile(String fileName) {
         final File file = new File(fileName);
         if (file.exists() && !file.delete()) {
             log.error("File delete failed: " + fileName);
@@ -252,6 +253,7 @@ public class CachedFileStore implements MessageStore {
      * (non-Javadoc)
      * @see quickfix.MessageStore#getNextSenderMsgSeqNum()
      */
+    @Override
     public int getNextSenderMsgSeqNum() throws IOException {
         return cache.getNextSenderMsgSeqNum();
     }
@@ -260,6 +262,7 @@ public class CachedFileStore implements MessageStore {
      * (non-Javadoc)
      * @see quickfix.MessageStore#getNextTargetMsgSeqNum()
      */
+    @Override
     public int getNextTargetMsgSeqNum() throws IOException {
         return cache.getNextTargetMsgSeqNum();
     }
@@ -268,6 +271,7 @@ public class CachedFileStore implements MessageStore {
      * (non-Javadoc)
      * @see quickfix.MessageStore#setNextSenderMsgSeqNum(int)
      */
+    @Override
     public void setNextSenderMsgSeqNum(int next) throws IOException {
         cache.setNextSenderMsgSeqNum(next);
         storeSequenceNumbers();
@@ -277,6 +281,7 @@ public class CachedFileStore implements MessageStore {
      * (non-Javadoc)
      * @see quickfix.MessageStore#setNextTargetMsgSeqNum(int)
      */
+    @Override
     public void setNextTargetMsgSeqNum(int next) throws IOException {
         cache.setNextTargetMsgSeqNum(next);
         storeSequenceNumbers();
@@ -286,6 +291,7 @@ public class CachedFileStore implements MessageStore {
      * (non-Javadoc)
      * @see quickfix.MessageStore#incrNextSenderMsgSeqNum()
      */
+    @Override
     public void incrNextSenderMsgSeqNum() throws IOException {
         cache.incrNextSenderMsgSeqNum();
         storeSequenceNumbers();
@@ -295,6 +301,7 @@ public class CachedFileStore implements MessageStore {
      * (non-Javadoc)
      * @see quickfix.MessageStore#incrNextTargetMsgSeqNum()
      */
+    @Override
     public void incrNextTargetMsgSeqNum() throws IOException {
         cache.incrNextTargetMsgSeqNum();
         storeSequenceNumbers();
@@ -304,18 +311,11 @@ public class CachedFileStore implements MessageStore {
      * (non-Javadoc)
      * @see quickfix.MessageStore#get(int, int, java.util.Collection)
      */
+    @Override
     public void get(int startSequence, int endSequence, Collection<String> messages)
             throws IOException {
         final Collection<String> readedMsg = getMessage(startSequence, endSequence);
         messages.addAll(readedMsg);
-    }
-
-    /**
-     * This method is here for JNI API consistency but it's not implemented. Use get(int, int, Collection) with the same
-     * start and end sequence.
-     */
-    public boolean get(int sequence, String message) {
-        throw new UnsupportedOperationException("not supported");
     }
 
     private String read(long offset, long size) throws IOException {
@@ -349,6 +349,7 @@ public class CachedFileStore implements MessageStore {
      * (non-Javadoc)
      * @see quickfix.MessageStore#set(int, java.lang.String)
      */
+    @Override
     public boolean set(int sequence, String message) throws IOException {
         final long offset = messageFileWriter.getFilePointer();
         final int size = message.length();
@@ -390,6 +391,7 @@ public class CachedFileStore implements MessageStore {
      * (non-Javadoc)
      * @see quickfix.RefreshableMessageStore#refresh()
      */
+    @Override
     public void refresh() throws IOException {
         initialize(false);
     }
@@ -398,6 +400,7 @@ public class CachedFileStore implements MessageStore {
      * (non-Javadoc)
      * @see quickfix.MessageStore#reset()
      */
+    @Override
     public void reset() throws IOException {
         initialize(true);
     }
@@ -418,23 +421,28 @@ public class CachedFileStore implements MessageStore {
             maxSize = _maxSize;
         }
 
+        @Override
         public void clear() {
             cacheIndex.clear();
             currentSize = 0;
         }
 
+        @Override
         public boolean containsKey(Object key) {
             return cacheIndex.containsKey(key);
         }
 
+        @Override
         public boolean containsValue(Object value) {
             return cacheIndex.containsValue(value);
         }
 
+        @Override
         public Set<java.util.Map.Entry<Long, long[]>> entrySet() {
             return cacheIndex.entrySet();
         }
 
+        @Override
         public long[] get(Object key) {
             final long[] v = cacheIndex.get(key);
             if (v != null) {
@@ -443,14 +451,17 @@ public class CachedFileStore implements MessageStore {
             return seekMessageIndex((Long) key);
         }
 
+        @Override
         public boolean isEmpty() {
             return cacheIndex.isEmpty();
         }
 
+        @Override
         public Set<Long> keySet() {
             return cacheIndex.keySet();
         }
 
+        @Override
         public long[] put(Long key, long[] value) {
             cacheIndex.put(key, value);
             currentSize++;
@@ -463,18 +474,22 @@ public class CachedFileStore implements MessageStore {
             return value;
         }
 
+        @Override
         public void putAll(Map<? extends Long, ? extends long[]> t) {
             throw new UnsupportedOperationException("not supported");
         }
 
+        @Override
         public long[] remove(Object key) {
             throw new UnsupportedOperationException("not supported");
         }
 
+        @Override
         public int size() {
             return cacheIndex.size();
         }
 
+        @Override
         public Collection<long[]> values() {
             return cacheIndex.values();
         }

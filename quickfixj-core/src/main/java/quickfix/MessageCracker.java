@@ -42,6 +42,11 @@ public class MessageCracker {
     }
 
     public class RedundantHandlerException extends RuntimeException {
+        /**
+         * The serialVersionUID property.
+         */
+        private static final long serialVersionUID = 1L;
+
         private final Class<?> messageClass;
         private final Method originalMethod;
         private final Method redundantMethod;
@@ -158,8 +163,8 @@ public class MessageCracker {
     /**
      * Fallback method that is called if no invokers are found.
      */
-    protected void onMessage(quickfix.Message message, SessionID sessionID) throws FieldNotFound,
-            UnsupportedMessageType, IncorrectTagValue {
+    protected void onMessage(quickfix.Message message, SessionID sessionID)
+            throws UnsupportedMessageType {
         throw new UnsupportedMessageType();
     }
 }

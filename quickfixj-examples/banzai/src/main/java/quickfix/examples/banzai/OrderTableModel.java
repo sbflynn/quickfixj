@@ -25,6 +25,11 @@ import javax.swing.table.AbstractTableModel;
 
 public class OrderTableModel extends AbstractTableModel {
 
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
+
     private final static int SYMBOL = 0;
     private final static int QUANTITY = 1;
     private final static int OPEN = 2;
@@ -47,12 +52,11 @@ public class OrderTableModel extends AbstractTableModel {
         idToRow = new HashMap<String, Integer>();
         idToOrder = new HashMap<String, Order>();
 
-        headers = new String[]
-                  {"Symbol", "Quantity", "Open", "Executed",
-                   "Side", "Type", "Limit", "Stop", "AvgPx",
-                   "Target"};
+        headers = new String[] { "Symbol", "Quantity", "Open", "Executed", "Side", "Type", "Limit",
+                "Stop", "AvgPx", "Target" };
     }
 
+    @Override
     public boolean isCellEditable(int rowIndex, int columnIndex) {
         return false;
     }
@@ -107,24 +111,27 @@ public class OrderTableModel extends AbstractTableModel {
         return rowToOrder.get(Integer.valueOf(row));
     }
 
-    public void setValueAt(Object value, int rowIndex, int columnIndex) { }
-
+    @Override
     public Class<String> getColumnClass(int columnIndex) {
         return String.class;
     }
 
+    @Override
     public int getRowCount() {
         return rowToOrder.size();
     }
 
+    @Override
     public int getColumnCount() {
         return headers.length;
     }
 
+    @Override
     public String getColumnName(int columnIndex) {
         return headers[columnIndex];
     }
 
+    @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
         Order order = rowToOrder.get(Integer.valueOf(rowIndex));
         switch (columnIndex) {
@@ -148,7 +155,8 @@ public class OrderTableModel extends AbstractTableModel {
             return order.getAvgPx();
         case TARGET:
             return order.getSessionID().getTargetCompID();
+        default:
+            return "";
         }
-        return "";
     }
 }

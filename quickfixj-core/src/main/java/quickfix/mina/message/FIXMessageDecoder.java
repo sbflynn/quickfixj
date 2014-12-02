@@ -29,8 +29,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.mina.core.buffer.IoBuffer;
-import org.apache.mina.core.session.IoSession;
 import org.apache.mina.core.filterchain.IoFilter;
+import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.ProtocolCodecException;
 import org.apache.mina.filter.codec.ProtocolDecoderOutput;
 import org.apache.mina.filter.codec.demux.MessageDecoder;
@@ -83,6 +83,7 @@ public class FIXMessageDecoder implements MessageDecoder {
             _length = length;
         }
 
+        @Override
         public String toString() {
             return _offset + "," + _length;
         }
@@ -110,13 +111,18 @@ public class FIXMessageDecoder implements MessageDecoder {
         resetState();
     }
 
+    @Override
     public MessageDecoderResult decodable(IoSession session, IoBuffer in) {
         BufPos bufPos = indexOf(in, in.position(), HEADER_PATTERN);
         int headerOffset = bufPos._offset;
-        return headerOffset != -1 ? MessageDecoderResult.OK :
-            (in.remaining() > MAX_UNDECODED_DATA_LENGTH ? MessageDecoderResult.NOT_OK : MessageDecoderResult.NEED_DATA);
+        return headerOffset != -1
+                ? MessageDecoderResult.OK
+                : (in.remaining() > MAX_UNDECODED_DATA_LENGTH
+                        ? MessageDecoderResult.NOT_OK
+                        : MessageDecoderResult.NEED_DATA);
     }
 
+    @Override
     public MessageDecoderResult decode(IoSession session, IoBuffer in, ProtocolDecoderOutput out)
             throws ProtocolCodecException {
         int messageCount = 0;
@@ -180,8 +186,9 @@ public class FIXMessageDecoder implements MessageDecoder {
                     } else {
                         if (hasRemaining(in)) {
                             String messageString = getMessageStringForError(in);
-                            handleError(in, in.position() + 1, "Length format error in message (last character:" + ch + "): " + messageString,
-                                    false);
+                            handleError(in, in.position() + 1,
+                                    "Length format error in message (last character:" + ch + "): "
+                                            + messageString, false);
                             continue;
                         } else {
                             break;
@@ -292,8 +299,8 @@ public class FIXMessageDecoder implements MessageDecoder {
         return new String(data, charsetEncoding);
     }
 
-    private void handleError(IoBuffer buffer, int recoveryPosition, String text,
-            boolean disconnect) throws ProtocolCodecException {
+    private void handleError(IoBuffer buffer, int recoveryPosition, String text, boolean disconnect)
+            throws ProtocolCodecException {
         buffer.position(recoveryPosition);
         position = recoveryPosition;
         state = SEEKING_HEADER;
@@ -358,6 +365,7 @@ public class FIXMessageDecoder implements MessageDecoder {
         return bufferOffset - initOffset;
     }
 
+    @Override
     public void finishDecode(IoSession arg0, ProtocolDecoderOutput arg1) throws Exception {
         // empty
     }
@@ -385,6 +393,7 @@ public class FIXMessageDecoder implements MessageDecoder {
     public List<String> extractMessages(File file) throws IOException, ProtocolCodecException {
         final List<String> messages = new ArrayList<String>();
         extractMessages(file, new MessageListener() {
+            @Override
             public void onMessage(String message) {
                 messages.add(message);
             }
@@ -413,10 +422,12 @@ public class FIXMessageDecoder implements MessageDecoder {
 
         decode(null, IoBuffer.wrap(memoryMappedBuffer), new ProtocolDecoderOutput() {
 
+            @Override
             public void write(Object message) {
                 listener.onMessage((String) message);
             }
 
+            @Override
             public void flush(IoFilter.NextFilter nextFilter, IoSession ioSession) {
                 // ignored
             }

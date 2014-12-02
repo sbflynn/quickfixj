@@ -64,6 +64,7 @@ public class FileStoreFactory implements MessageStoreFactory {
      *
      * @param sessionID session ID for the message store.
      */
+    @Override
     public MessageStore create(SessionID sessionID) {
         try {
             boolean syncWrites = false;
@@ -72,12 +73,14 @@ public class FileStoreFactory implements MessageStoreFactory {
             }
             int maxCachedMsgs = 10000;
             if (settings.isSetting(sessionID, SETTING_FILE_STORE_MAX_CACHED_MSGS)) {
-                long maxCachedMsgsSetting = settings.getLong(sessionID, SETTING_FILE_STORE_MAX_CACHED_MSGS);
-                if (maxCachedMsgsSetting >= 0 && maxCachedMsgsSetting <= (long) Integer.MAX_VALUE) {
+                long maxCachedMsgsSetting = settings.getLong(sessionID,
+                        SETTING_FILE_STORE_MAX_CACHED_MSGS);
+                if (maxCachedMsgsSetting >= 0 && maxCachedMsgsSetting <= Integer.MAX_VALUE) {
                     maxCachedMsgs = (int) maxCachedMsgsSetting;
                 }
             }
-            return new FileStore(settings.getString(sessionID, FileStoreFactory.SETTING_FILE_STORE_PATH), sessionID, syncWrites, maxCachedMsgs);
+            return new FileStore(settings.getString(sessionID,
+                    FileStoreFactory.SETTING_FILE_STORE_PATH), sessionID, syncWrites, maxCachedMsgs);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

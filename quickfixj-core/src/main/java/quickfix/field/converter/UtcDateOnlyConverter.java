@@ -60,7 +60,7 @@ public class UtcDateOnlyConverter extends AbstractDateTimeConverter {
      * @return the parsed Date
      * @throws FieldConvertError raised for an invalid date string.
      */
-    public static Date convert(String value) throws FieldConvertError {
+    public static Date convert(String value) {
         Date d = null;
         String type = "date";
         assertLength(value, 8, type);

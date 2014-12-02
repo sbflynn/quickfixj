@@ -21,7 +21,7 @@ package quickfix;
 
 import java.util.HashMap;
 
-class SessionRejectReasonText {
+public class SessionRejectReasonText {
 
     public static final int INVALID_TAG_NUMBER = 0;
 
@@ -67,20 +67,15 @@ class SessionRejectReasonText {
         rejectReasonText.put(TAG_NOT_DEFINED_FOR_THIS_MESSAGE_TYPE,
                 "Tag not defined for this message type");
         rejectReasonText.put(UNDEFINED_TAG, "Undefined Tag");
-        rejectReasonText.put(TAG_SPECIFIED_WITHOUT_A_VALUE,
-                "Tag specified without a value");
-        rejectReasonText.put(VALUE_IS_INCORRECT,
-                "Value is incorrect (out of range) for this tag");
-        rejectReasonText.put(INCORRECT_DATA_FORMAT_FOR_VALUE,
-                "Incorrect data format for value");
+        rejectReasonText.put(TAG_SPECIFIED_WITHOUT_A_VALUE, "Tag specified without a value");
+        rejectReasonText.put(VALUE_IS_INCORRECT, "Value is incorrect (out of range) for this tag");
+        rejectReasonText.put(INCORRECT_DATA_FORMAT_FOR_VALUE, "Incorrect data format for value");
         rejectReasonText.put(DECRYPTION_PROBLEM, "Decryption problem");
         rejectReasonText.put(SIGNATURE_PROBLEM, "Signature problem");
         rejectReasonText.put(COMPID_PROBLEM, "CompID problem");
-        rejectReasonText.put(SENDINGTIME_ACCURACY_PROBLEM,
-                "SendingTime accuracy problem");
+        rejectReasonText.put(SENDINGTIME_ACCURACY_PROBLEM, "SendingTime accuracy problem");
         rejectReasonText.put(INVALID_MSGTYPE, "Invalid MsgType");
-        rejectReasonText.put(TAG_APPEARS_MORE_THAN_ONCE,
-                "Tag appears more than once");
+        rejectReasonText.put(TAG_APPEARS_MORE_THAN_ONCE, "Tag appears more than once");
         rejectReasonText.put(TAG_SPECIFIED_OUT_OF_REQUIRED_ORDER,
                 "Tag specified out of required order");
         rejectReasonText.put(INCORRECT_NUMINGROUP_COUNT_FOR_REPEATING_GROUP,

@@ -4,9 +4,12 @@
  * This software is the proprietary information of JF Technology (UK) Ltd.
  * Use is subject to license terms.
  *
- * Created on 19 Nov 2014 by stephen.flynn@jftechnology.com.
+ * Created on 28 Nov 2014 by stephen.flynn@jftechnology.com.
  */
 package org.quickfixj;
+
+import java.io.IOException;
+import java.io.Serializable;
 
 /**
  * FIXField - provides...
@@ -14,7 +17,7 @@ package org.quickfixj;
  * @author stephen.flynn@jftechnology.com
  * @since 2.0
  */
-public interface FIXField<T> {
+public interface FIXField<T extends Serializable> {
 
     /**
      * Gets the field's tag.
@@ -30,7 +33,7 @@ public interface FIXField<T> {
      * @return an object representing the field's value
      * @since 2.0
      */
-    T getObject();
+    T getValue();
 
     /**
      * Get the field's character value.
@@ -50,4 +53,12 @@ public interface FIXField<T> {
      * @since 2.0
      */
     int getChecksum();
+
+    /**
+     * Write the tag/value pair to the {@link Appendable} target in nn=xxx format (NB : no ending SOH character). 
+     * @throws IOException 
+     * @since 2.0
+     */
+    Appendable serialize(Appendable appendable) throws IOException;
+
 }

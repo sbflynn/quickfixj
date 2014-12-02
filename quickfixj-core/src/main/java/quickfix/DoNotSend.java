@@ -25,6 +25,11 @@ package quickfix;
  */
 public class DoNotSend extends Exception {
 
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
+
     public DoNotSend() {
         super();
     }

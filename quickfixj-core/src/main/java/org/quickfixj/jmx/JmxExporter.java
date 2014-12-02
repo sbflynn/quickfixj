@@ -110,6 +110,7 @@ public class JmxExporter {
      * @deprecated use register instead
      * @param connector
      */
+    @Deprecated
     public void export(Connector connector) {
         register(connector);
     }

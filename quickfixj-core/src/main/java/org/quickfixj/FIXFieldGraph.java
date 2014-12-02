@@ -4,7 +4,7 @@
  * This software is the proprietary information of JF Technology (UK) Ltd.
  * Use is subject to license terms.
  *
- * Created on 19 Nov 2014 by stephen.flynn@jftechnology.com.
+ * Created on 28 Nov 2014 by stephen.flynn@jftechnology.com.
  */
 package org.quickfixj;
 
@@ -14,7 +14,15 @@ package org.quickfixj;
  * @author stephen.flynn@jftechnology.com
  * @since 2.0
  */
-public interface FIXFieldGraph {
+public interface FIXFieldGraph extends Iterable<FIXField<?>> {
 
     FIXField<?> getField(int tag);
+
+    void setField(FIXField<?> field);
+
+    /**
+     * @param tag
+     * @since 2.0
+     */
+    boolean isFieldSet(int tag);
 }

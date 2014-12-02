@@ -25,6 +25,11 @@ package quickfix;
  */
 public class RuntimeError extends RuntimeException {
 
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
+
     public RuntimeError() {
         super();
     }

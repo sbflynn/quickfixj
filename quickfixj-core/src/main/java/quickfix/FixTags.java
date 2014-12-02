@@ -9,7 +9,7 @@
 package quickfix;
 
 /**
- * Tags - provides...
+ * Tags - holds admin body message tags required by the engine.
  *
  * @author stephen.flynn@jftechnology.com
  * @since 2.0
@@ -24,11 +24,11 @@ public interface FixTags {
 
     static final int CHECK_SUM = 10;
 
-    static final int END_SEQ_NO = 16;
-
     static final int MSG_SEQ_NUM = 34;
 
     static final int MSG_TYPE = 35;
+
+    static final int END_SEQ_NO = 16;
 
     static final int NEW_SEQ_NO = 36;
 
@@ -52,7 +52,9 @@ public interface FixTags {
 
     static final int SIGNATURE_LENGTH = 93;
 
-    static final int SECURE_DATA_LEN = 90;
+    static final int SECURE_DATA_LENGTH = 90;
+
+    static final int SECURE_DATA = 91;
 
     static final int POSS_RESEND = 97;
 
@@ -68,21 +70,21 @@ public interface FixTags {
 
     static final int ORIG_SENDING_TIME = 122;
 
-    static final int GAP_FILL_FLAG = 123;
-
     static final int DELIVER_TO_COMP_ID = 128;
 
     static final int DELIVER_TO_SUB_ID = 129;
 
-    static final int RESET_SEQ_NUM_FLAG = 141;
-
     static final int SENDER_LOCATION_ID = 142;
-
-    static final int TARGET_LOCATION_ID = 143;
 
     static final int ON_BEHALF_OF_LOCATION_ID = 144;
 
+    static final int TARGET_LOCATION_ID = 143;
+
     static final int DELIVER_TO_LOCATION_ID = 145;
+
+    static final int GAP_FILL_FLAG = 123;
+
+    static final int RESET_SEQ_NUM_FLAG = 141;
 
     static final int XML_DATA_LENGTH = 212;
 
@@ -90,15 +92,13 @@ public interface FixTags {
 
     static final int MESSAGE_ENCODING = 347;
 
-    static final int LAST_MSG_SEQ_NUM_PROCESSED = 369;
-
-    static final int ON_BEHALF_OF_SENDING_TIME = 370;
-
     static final int REF_TAG_ID = 371;
 
     static final int REF_MSG_TYPE = 372;
 
     static final int SESSION_REJECT_REASON = 373;
+
+    static final int LAST_MSG_SEQ_NUM_PROCESSED = 369;
 
     static final int BUSINESS_REJECT_REASON = 380;
 

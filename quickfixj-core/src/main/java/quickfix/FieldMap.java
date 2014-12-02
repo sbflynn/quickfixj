@@ -21,28 +21,20 @@ package quickfix;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.TreeMap;
 
+import org.quickfixj.FIXComponent;
 import org.quickfixj.FIXField;
+import org.quickfixj.FIXFieldGraph;
+import org.quickfixj.FIXGroup;
+import org.quickfixj.FIXGroupField;
+import org.quickfixj.field.BytesField;
 
-import quickfix.field.BooleanField;
-import quickfix.field.BytesField;
-import quickfix.field.CharField;
-import quickfix.field.DecimalField;
-import quickfix.field.DoubleField;
-import quickfix.field.Field;
-import quickfix.field.IntField;
-import quickfix.field.StringField;
-import quickfix.field.UtcDateOnlyField;
-import quickfix.field.UtcTimeOnlyField;
-import quickfix.field.UtcTimeStampField;
 import quickfix.field.converter.BooleanConverter;
 import quickfix.field.converter.CharConverter;
 import quickfix.field.converter.DecimalConverter;
@@ -55,15 +47,15 @@ import quickfix.field.converter.UtcTimestampConverter;
 /**
  * Field container used by messages, groups, and composites.
  */
-public abstract class FieldMap implements Serializable {
+public abstract class FieldMap implements FIXFieldGraph, Serializable {
 
     static final long serialVersionUID = -3193357271891865972L;
 
     private final int[] fieldOrder;
 
-    private final TreeMap<Integer, FIXField<?>> fields;
+    private final NavigableMap<Integer, FIXField<?>> fields;
 
-    private final TreeMap<Integer, List<Group>> groups = new TreeMap<Integer, List<Group>>();
+    //  private final TreeMap<Integer, List<Group>> groups = new TreeMap<Integer, List<Group>>();
 
     protected FieldMap(int[] fieldOrder) {
 
@@ -87,7 +79,7 @@ public abstract class FieldMap implements Serializable {
     public void clear() {
 
         fields.clear();
-        groups.clear();
+        //  groups.clear();
     }
 
     public boolean isEmpty() {
@@ -152,26 +144,26 @@ public abstract class FieldMap implements Serializable {
         component.copyFrom(this);
     }
 
-    public void setGroups(FieldMap fieldMap) {
-
-        groups.clear();
-        groups.putAll(fieldMap.groups);
-    }
-
-    protected void setGroups(int key, List<Group> groupList) {
-
-        groups.put(key, groupList);
-    }
+    //    public void setGroups(FieldMap fieldMap) {
+    //
+    //        groups.clear();
+    //        groups.putAll(fieldMap.groups);
+    //    }
+    //
+    //    protected void setGroups(int key, List<Group> groupList) {
+    //
+    //        groups.put(key, groupList);
+    //    }
 
     public void setString(int field, String value) {
 
         setField(new StringField(field, value));
     }
 
-    public void setBytes(int field, byte[] value) {
-
-        setField(field, new BytesField(field, value));
-    }
+    //    public void setBytes(int field, byte[] value) {
+    //
+    //        setField(field, new BytesField(field, value));
+    //    }
 
     public void setBoolean(int field, boolean value) {
 
@@ -233,16 +225,43 @@ public abstract class FieldMap implements Serializable {
         setField(new StringField(field, UtcDateOnlyConverter.convert(value)));
     }
 
-    StringField getField(int field) throws FieldNotFound {
+    @Override
+    public FIXField<?> getField(int field) {
 
-        final StringField f = (StringField) fields.get(field);
+        FIXField<?> f = fields.get(field);
+
         if (f == null) {
             throw new FieldNotFound(field);
         }
         return f;
     }
 
-    FIXField<?> getField(int field, FIXField<?> defaultValue) {
+    protected <T extends FIXField> T getField(int field, Class<T> fieldType) {
+
+        FIXField<?> f = fields.get(field);
+
+        if (f == null) {
+            throw new FieldNotFound(field);
+        }
+
+        if (fieldType.isInstance(f)) {
+            return fieldType.cast(f);
+        }
+
+        try {
+
+            // fall back to reflection only in the case that the stored field type doesn't match the required 
+            // type. This should never happen if data dictionaries are set up correctly
+            return fieldType.getConstructor(CharSequence.class).newInstance(f.getCharacters());
+
+        } catch (Exception e) {
+            throw new FieldConvertError(String.format(
+                    "Stored field of type %s cannot be converted to required field of type %s",
+                    f.getClass(), fieldType));
+        }
+    }
+
+    private FIXField<?> getFieldOrDefault(int field, FIXField<?> defaultValue) {
 
         final FIXField<?> f = fields.get(field);
         if (f == null) {
@@ -251,9 +270,18 @@ public abstract class FieldMap implements Serializable {
         return f;
     }
 
+    @Override
+    public void setField(FIXField<?> field) {
+
+        if (field.getValue() == null) {
+            throw new NullPointerException("Null field values are not allowed.");
+        }
+        fields.put(field.getTag(), field);
+    }
+
     public String getString(int field) throws FieldNotFound {
 
-        return getField(field).getObject();
+        return getField(field).getCharacters().toString();
     }
 
     public boolean getBoolean(int field) throws FieldNotFound {
@@ -277,7 +305,7 @@ public abstract class FieldMap implements Serializable {
     public int getInt(int field) throws FieldNotFound {
 
         try {
-            return IntConverter.convert(getString(field));
+            return IntConverter.convert(getField(field).getCharacters().toString());
         } catch (final FieldConvertError e) {
             throw newIncorrectDataException(e, field);
         }
@@ -333,60 +361,52 @@ public abstract class FieldMap implements Serializable {
         fields.put(key, field);
     }
 
-    public void setField(StringField field) {
+    //        public void setField(BooleanField field) {
+    //    
+    //            setBoolean(field.getTag(), field.getValue());
+    //        }
+    //    
+    //        public void setField(CharField field) {
+    //    
+    //            setChar(field.getTag(), field.getValue());
+    //        }
+    //    
+    //        public void setField(IntField field) {
+    //    
+    //            setInt(field.getTag(), field.getValue());
+    //        }
+    //    
+    //        public void setField(DoubleField field) {
+    //    
+    //            setDouble(field.getTag(), field.getValue());
+    //        }
+    //    
+    //        public void setField(DecimalField field) {
+    //    
+    //            setDecimal(field.getTag(), field.getValue());
+    //        }
+    //    
+    //        public void setField(UtcTimeStampField field) {
+    //    
+    //            setUtcTimeStamp(field.getTag(), field.getValue(), field.showMilliseconds());
+    //        }
+    //    
+    //        public void setField(UtcTimeOnlyField field) {
+    //    
+    //            setUtcTimeOnly(field.getTag(), field.getValue(), field.showMilliseconds());
+    //        }
+    //    
+    //        public void setField(UtcDateOnlyField field) {
+    //    
+    //            setUtcDateOnly(field.getTag(), field.getValue());
+    //        }
+    //    
+    //        public void setField(BytesField field) {
+    //    
+    //            setBytes(field.getTag(), field.getObject());
+    //        }
 
-        if (field.getValue() == null) {
-            throw new NullPointerException("Null field values are not allowed.");
-        }
-        fields.put(field.getTag(), field);
-    }
-
-    public void setField(BooleanField field) {
-
-        setBoolean(field.getTag(), field.getValue());
-    }
-
-    public void setField(CharField field) {
-
-        setChar(field.getTag(), field.getValue());
-    }
-
-    public void setField(IntField field) {
-
-        setInt(field.getTag(), field.getValue());
-    }
-
-    public void setField(DoubleField field) {
-
-        setDouble(field.getTag(), field.getValue());
-    }
-
-    public void setField(DecimalField field) {
-
-        setDecimal(field.getTag(), field.getValue());
-    }
-
-    public void setField(UtcTimeStampField field) {
-
-        setUtcTimeStamp(field.getTag(), field.getValue(), field.showMilliseconds());
-    }
-
-    public void setField(UtcTimeOnlyField field) {
-
-        setUtcTimeOnly(field.getTag(), field.getValue(), field.showMilliseconds());
-    }
-
-    public void setField(UtcDateOnlyField field) {
-
-        setUtcDateOnly(field.getTag(), field.getValue());
-    }
-
-    public void setField(BytesField field) {
-
-        setBytes(field.getTag(), field.getObject());
-    }
-
-    static <T, F extends Field<T>> F updateValue(F field, T value) {
+    static <T extends Serializable, F extends Field<T>> F updateValue(F field, T value) {
 
         field.setObject(value);
         return field;
@@ -405,65 +425,27 @@ public abstract class FieldMap implements Serializable {
         }
     }
 
-    public StringField getField(StringField field) throws FieldNotFound {
-
-        return updateValue(field, getString(field.getTag()));
-    }
-
-    public BooleanField getField(BooleanField field) throws FieldNotFound {
-
-        return updateValue(field, getBoolean(field.getTag()));
-    }
-
-    public CharField getField(CharField field) throws FieldNotFound {
-
-        return updateValue(field, getChar(field.getTag()));
-    }
-
-    public IntField getField(IntField field) throws FieldNotFound {
-
-        return updateValue(field, getInt(field.getTag()));
-    }
-
-    public DoubleField getField(DoubleField field) throws FieldNotFound {
-
-        return updateValue(field, getDouble(field.getTag()));
-    }
-
-    public DecimalField getField(DecimalField field) throws FieldNotFound {
-
-        return updateValue(field, getDecimal(field.getTag()));
-    }
-
-    public UtcTimeStampField getField(UtcTimeStampField field) throws FieldNotFound {
-
-        return updateValue(field, getUtcTimeStamp(field.getTag()));
-    }
-
-    public UtcTimeOnlyField getField(UtcTimeOnlyField field) throws FieldNotFound {
-
-        return updateValue(field, getUtcTimeOnly(field.getTag()));
-    }
-
-    public UtcDateOnlyField getField(UtcDateOnlyField field) throws FieldNotFound {
-
-        return updateValue(field, getUtcDateOnly(field.getTag()));
-    }
-
     private FieldException newIncorrectDataException(FieldConvertError e, int tag) {
 
         return new FieldException(SessionRejectReasonText.INCORRECT_DATA_FORMAT_FOR_VALUE,
                 e.getMessage(), tag);
     }
 
+    @Deprecated
     public boolean isSetField(int field) {
+
+        return fields.containsKey(field);
+    }
+
+    @Override
+    public boolean isFieldSet(int field) {
 
         return fields.containsKey(field);
     }
 
     public boolean isSetField(FIXField<?> field) {
 
-        return isSetField(field.getTag());
+        return isFieldSet(field.getTag());
     }
 
     public void removeField(int field) {
@@ -471,6 +453,7 @@ public abstract class FieldMap implements Serializable {
         fields.remove(field);
     }
 
+    @Override
     public Iterator<FIXField<?>> iterator() {
 
         return fields.values().iterator();
@@ -480,21 +463,21 @@ public abstract class FieldMap implements Serializable {
 
         fields.clear();
         fields.putAll(source.fields);
-        for (Entry<Integer, List<Group>> entry : source.groups.entrySet()) {
-            final List<Group> clones = new ArrayList<Group>();
-            for (final Group group : entry.getValue()) {
-                final Group clone = new Group(group.getFieldTag(), group.delim(),
-                        group.getFieldOrder());
-                clone.initializeFrom(group);
-                clones.add(clone);
-            }
-            groups.put(entry.getKey(), clones);
-        }
+        //        for (Entry<Integer, List<Group>> entry : source.groups.entrySet()) {
+        //            final List<Group> clones = new ArrayList<Group>();
+        //            for (final Group group : entry.getValue()) {
+        //                final Group clone = new Group(group.getFieldTag(), group.delim(),
+        //                        group.getFieldOrder());
+        //                clone.initializeFrom(group);
+        //                clones.add(clone);
+        //            }
+        //            groups.put(entry.getKey(), clones);
+        //        }
     }
 
-    private boolean isGroupField(int field) {
+    private boolean isGroupField(FIXField<?> field) {
 
-        return groups.containsKey(field);
+        return (field instanceof FIXGroupField);
     }
 
     private static void appendField(StringBuilder buffer, FIXField<?> field) {
@@ -505,6 +488,15 @@ public abstract class FieldMap implements Serializable {
             buffer.append('=');
             buffer.append(field.getCharacters());
             buffer.append('\001');
+
+            if (field instanceof FIXGroupField<?>) {
+                FIXGroupField<?> groupField = (FIXGroupField<?>) field;
+                for (FIXGroup group : groupField.getGroups()) {
+                    for (FIXField<?> groupSubfield : group) {
+                        appendField(buffer, groupSubfield);
+                    }
+                }
+            }
         }
     }
 
@@ -512,7 +504,7 @@ public abstract class FieldMap implements Serializable {
 
         if (preFields != null) {
             for (int preField : preFields) {
-                appendField(buffer, getField(preField, null));
+                appendField(buffer, getFieldOrDefault(preField, null));
             }
         }
 
@@ -520,86 +512,105 @@ public abstract class FieldMap implements Serializable {
 
             final int tag = field.getTag();
             if (!isOrderedField(tag, preFields) && !isOrderedField(tag, postFields)
-                    && !isGroupField(tag)) {
+                    && !isGroupField(field)) {
                 appendField(buffer, field);
-            } else if (isGroupField(tag) && isOrderedField(tag, fieldOrder)
-                    && getGroupCount(tag) > 0) {
+            } else if (isGroupField(field) && getGroupCount(tag) > 0) {
                 appendField(buffer, field);
-                for (Group group : getGroups(tag)) {
-                    group.calculateString(buffer, preFields, postFields);
-                }
-            }
-        }
-
-        for (final Entry<Integer, List<Group>> entry : groups.entrySet()) {
-            final Integer groupCountTag = entry.getKey();
-            if (!isOrderedField(groupCountTag, fieldOrder)) {
-                final List<Group> groups = entry.getValue();
-                int groupCount = groups.size();
-                if (groupCount > 0) {
-                    final IntField countField = new IntField(groupCountTag.intValue(), groupCount);
-                    appendField(buffer, countField);
-                    for (Group group : groups) {
-                        group.calculateString(buffer, preFields, postFields);
-                    }
-                }
             }
         }
 
         if (postFields != null) {
             for (int postField : postFields) {
-                appendField(buffer, getField(postField, null));
+                appendField(buffer, getFieldOrDefault(postField, null));
             }
         }
     }
 
     int calculateLength() {
 
+        return calculateLength(this);
+    }
+
+    int calculateLength(FIXFieldGraph graph) {
+
         int result = 0;
-        for (final FIXField<?> field : fields.values()) {
+
+        for (final FIXField<?> field : graph) {
+
             int tag = field.getTag();
             if (tag != FixTags.BEGIN_STRING && tag != FixTags.BODY_LENGTH
-                    && tag != FixTags.CHECK_SUM && !isGroupField(tag)) {
+                    && tag != FixTags.CHECK_SUM) {
                 result += field.getLength();
             }
-        }
 
-        for (Entry<Integer, List<Group>> entry : groups.entrySet()) {
-            final List<Group> groupList = entry.getValue();
-            if (!groupList.isEmpty()) {
-                final IntField groupField = new IntField(entry.getKey());
-                groupField.setValue(groupList.size());
-                result += groupField.getLength();
-                for (final Group group : groupList) {
-                    result += group.calculateLength();
+            if (field instanceof FIXGroupField<?>) {
+                FIXGroupField<?> groupField = (FIXGroupField<?>) field;
+                for (FIXGroup group : groupField.getGroups()) {
+                    result += calculateLength(group);
                 }
             }
         }
+
         return result;
     }
 
     int calculateChecksum() {
 
+        return calculateChecksum(this);
+    }
+
+    int calculateChecksum(FIXFieldGraph graph) {
+
         int result = 0;
-        for (final FIXField<?> field : fields.values()) {
-            if (field.getTag() != FixTags.CHECK_SUM && !isGroupField(field.getTag())) {
+
+        for (final FIXField<?> field : graph) {
+            if (field.getTag() != FixTags.CHECK_SUM) {
                 result += field.getChecksum();
             }
-        }
 
-        for (Entry<Integer, List<Group>> entry : groups.entrySet()) {
-            final List<Group> groupList = entry.getValue();
-            if (!groupList.isEmpty()) {
-                final IntField groupField = new IntField(entry.getKey());
-                groupField.setValue(groupList.size());
-                result += groupField.getChecksum();
-                for (final Group group : groupList) {
-                    result += group.calculateChecksum();
+            if (field instanceof FIXGroupField<?>) {
+                FIXGroupField<?> groupField = (FIXGroupField<?>) field;
+                for (FIXGroup group : groupField.getGroups()) {
+                    result += calculateChecksum(group);
                 }
             }
         }
 
         return result & 0xFF;
+    }
+
+    //    /**
+    //     * Returns the number of groups associated with the specified count tag.
+    //     *
+    //     * @param tag the count tag number
+    //     * @return the number of times the group repeats
+    //     */
+    //    public int getGroupCount(int tag) {
+    //
+    //        return getGroups(tag).size();
+    //    }
+
+    //    public Iterator<Integer> groupKeyIterator() {
+    //
+    //        return groups.keySet().iterator();
+    //    }
+    //
+    //    Map<Integer, List<Group>> getGroups() {
+    //
+    //        return groups;
+    //    }
+
+    private <T extends FIXGroup> FIXGroupField<T> getGroupField(int fieldTag, boolean create) {
+
+        FIXGroupField<T> field = (FIXGroupField<T>) fields.get(fieldTag);
+
+        if (field == null && create) {
+
+            field = new GroupField<T>(fieldTag, -1, -1);
+            fields.put(fieldTag, field);
+        }
+
+        return field;
     }
 
     /**
@@ -608,106 +619,133 @@ public abstract class FieldMap implements Serializable {
      * @param tag the count tag number
      * @return the number of times the group repeats
      */
-    public int getGroupCount(int tag) {
+    public int getGroupCount(int fieldTag) {
 
-        return getGroups(tag).size();
+        FIXGroupField<?> field = getGroupField(fieldTag, false);
+
+        if (field == null) {
+
+            return 0;
+        }
+
+        return field.getGroups().size();
     }
 
-    public Iterator<Integer> groupKeyIterator() {
+    /**
+     * @param component
+     * @param fields
+     * @since 2.0
+     */
+    public void copyValues(FIXComponent component, Collection<Integer> tags) {
 
-        return groups.keySet().iterator();
+        if (component != null) {
+
+            for (Integer tag : tags) {
+                if (component.isFieldSet(tag)) {
+                    setField(component.getField(tag));
+                }
+            }
+        }
     }
 
-    Map<Integer, List<Group>> getGroups() {
+    public <T extends FIXGroup> void addGroup(T group) {
 
-        return groups;
+        FIXGroupField<T> field = getGroupField(group.getFieldTag(), true);
+
+        field.getGroups().add(group);
+        // addGroupRef(new Group(group));
     }
 
-    public void addGroup(Group group) {
-
-        addGroupRef(new Group(group));
-    }
-
-    public void addGroupRef(Group group) {
-
-        int countTag = group.getFieldTag();
-        List<Group> currentGroups = getGroups(countTag);
-        currentGroups.add(group);
-        setGroupCount(countTag, currentGroups.size());
-    }
+    //    public void addGroupRef(Group group) {
+    //
+    //        int countTag = group.getFieldTag();
+    //        List<Group> currentGroups = getGroups(countTag);
+    //        currentGroups.add(group);
+    //        setGroupCount(countTag, currentGroups.size());
+    //    }
 
     protected void setGroupCount(int countTag, int groupSize) {
 
-        try {
-            StringField count;
-            if (groupSize == 1) {
-                count = new StringField(countTag, "1");
-                setField(countTag, count);
-            } else {
-                count = getField(countTag);
-            }
-            count.setValue(Integer.toString(groupSize));
-        } catch (final FieldNotFound e) {
-            // Shouldn't happen
-            throw new RuntimeError(e);
-        }
+        // setField(countTag, new StringField(countTag, Integer.toString(groupSize)));
     }
 
-    public List<Group> getGroups(int field) {
+    //    public List<Group> getGroups(int field) {
+    //
+    //        List<Group> groupList = groups.get(field);
+    //        if (groupList == null) {
+    //            groupList = new ArrayList<Group>();
+    //            groups.put(field, groupList);
+    //        }
+    //        return groupList;
+    //    }
 
-        List<Group> groupList = groups.get(field);
-        if (groupList == null) {
-            groupList = new ArrayList<Group>();
-            groups.put(field, groupList);
+    public <T extends FIXGroup> T getRepeatingGroup(int fieldTag, int index) throws FieldNotFound {
+
+        FIXGroupField<T> field = getGroupField(fieldTag, false);
+
+        if (field == null || index > field.getGroups().size()) {
+            throw new FieldNotFound(fieldTag + ", index=" + index);
         }
-        return groupList;
+        final T grp = field.getGroups().get(index - 1);
+        //        group.setFields(grp);
+        //        group.setGroups(grp);
+        return grp;
     }
 
-    public Group getGroup(int num, Group group) throws FieldNotFound {
+    public <T extends FIXGroup> T getGroup(int num, T group) throws FieldNotFound {
 
-        final List<Group> groupList = getGroups(group.getFieldTag());
-        if (num > groupList.size()) {
+        FIXGroupField<T> field = getGroupField(group.getFieldTag(), false);
+
+        if (field == null || num > field.getGroups().size()) {
             throw new FieldNotFound(group.getFieldTag() + ", index=" + num);
         }
-        final Group grp = groupList.get(num - 1);
-        group.setFields(grp);
-        group.setGroups(grp);
+        final T grp = field.getGroups().get(num - 1);
+        for (FIXField<?> grpField : grp) {
+            group.setField(grpField);
+        }
+
+        //        group.setGroups(grp);
         return group;
     }
 
-    public Group getGroup(int num, int groupTag) throws FieldNotFound {
+    //    public Group getGroup(int num, int groupTag) throws FieldNotFound {
+    //
+    //        List<Group> groupList = getGroups(groupTag);
+    //        if (num > groupList.size()) {
+    //            throw new FieldNotFound(groupTag + ", index=" + num);
+    //        }
+    //        return groupList.get(num - 1);
+    //    }
 
-        List<Group> groupList = getGroups(groupTag);
-        if (num > groupList.size()) {
-            throw new FieldNotFound(groupTag + ", index=" + num);
-        }
-        return groupList.get(num - 1);
-    }
-
-    public void replaceGroup(int num, Group group) {
+    public <T extends FIXGroup> void replaceGroup(int num, T group) {
 
         final int offset = num - 1;
-        final List<Group> groupList = getGroups(group.getFieldTag());
-        if (offset < 0 || offset >= groupList.size()) {
+        FIXGroupField<T> groupList = getGroupField(group.getFieldTag(), true);
+        if (offset < 0 || offset >= groupList.getGroups().size()) {
             return;
         }
-        groupList.set(offset, new Group(group));
+        groupList.getGroups().set(offset, group);
     }
 
     public void removeGroup(int field) {
 
-        getGroups(field).clear();
+        //  getGroups(field).clear();
         removeField(field);
     }
 
-    public void removeGroup(int num, int field) {
+    public void removeGroup(int num, int fieldTag) {
 
-        final List<Group> groupList = getGroups(field);
-        if (num <= groupList.size()) {
-            groupList.remove(num - 1);
-        }
-        if (groupList.size() > 0) {
-            setGroupCount(field, groupList.size());
+        FIXGroupField<?> groupField = getGroupField(fieldTag, false);
+
+        if (groupField != null) {
+
+            if (num <= groupField.getGroups().size()) {
+                groupField.getGroups().remove(num - 1);
+            }
+
+            if (groupField.getGroups().isEmpty()) {
+                removeGroup(fieldTag);
+            }
         }
     }
 
@@ -721,14 +759,14 @@ public abstract class FieldMap implements Serializable {
         removeGroup(group.getFieldTag());
     }
 
-    public boolean hasGroup(int field) {
+    public boolean hasGroup(int fieldTag) {
 
-        return groups.containsKey(field);
+        return getGroupCount(fieldTag) > 0;
     }
 
-    public boolean hasGroup(int num, int field) {
+    public boolean hasGroup(int num, int fieldTag) {
 
-        return hasGroup(field) && num <= getGroups(field).size();
+        return num <= getGroupCount(fieldTag);
     }
 
     public boolean hasGroup(int num, Group group) {

@@ -24,22 +24,26 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import quickfix.field.OrdType;
-import quickfix.field.Side;
+import quickfix.fix42.field.OrdType;
+import quickfix.fix42.field.Side;
+import quickfix.fix42.field.Symbol;
 
 public class Market {
 
     private List<Order> bidOrders = new ArrayList<Order>();
+
     private List<Order> askOrders = new ArrayList<Order>();
 
-    public boolean match(String symbol, List<Order> orders) {
+    public boolean match(Symbol symbol, List<Order> orders) {
+
         while (true) {
             if (bidOrders.size() == 0 || askOrders.size() == 0) {
                 return orders.size() != 0;
             }
             Order bidOrder = bidOrders.get(0);
             Order askOrder = askOrders.get(0);
-            if (bidOrder.getType() == OrdType.MARKET || askOrder.getType() == OrdType.MARKET
+            if (OrdType.MARKET.equals(bidOrder.getType())
+                    || OrdType.MARKET.equals(askOrder.getType())
                     || (bidOrder.getPrice() >= askOrder.getPrice())) {
                 match(bidOrder, askOrder);
                 if (!orders.contains(bidOrder)) {
@@ -61,18 +65,24 @@ public class Market {
     }
 
     private void match(Order bid, Order ask) {
-        double price = ask.getType() == OrdType.LIMIT ? ask.getPrice() : bid.getPrice();
-        long quantity = bid.getOpenQuantity() >= ask.getOpenQuantity() ? ask.getOpenQuantity() : bid.getOpenQuantity();
+
+        double price = OrdType.LIMIT.equals(ask.getType()) ? ask.getPrice()
+                : bid.getPrice();
+        long quantity = bid.getOpenQuantity() >= ask.getOpenQuantity() ? ask
+                .getOpenQuantity() : bid.getOpenQuantity();
 
         bid.execute(price, quantity);
         ask.execute(price, quantity);
     }
 
     public boolean insert(Order order) {
-        return order.getSide() == Side.BUY ? insert(order, true, bidOrders) : insert(order, false, askOrders);
+
+        return Side.BUY.equals(order.getSide()) ? insert(order, true, bidOrders)
+                : insert(order, false, askOrders);
     }
 
     private boolean insert(Order order, boolean descending, List<Order> orders) {
+
         if (orders.size() == 0) {
             orders.add(order);
         } else if (order.getType() == OrdType.MARKET) {
@@ -80,7 +90,8 @@ public class Market {
         } else {
             for (int i = 0; i < orders.size(); i++) {
                 Order o = orders.get(i);
-                if ((descending ? order.getPrice() > o.getPrice() : order.getPrice() < o.getPrice())
+                if ((descending ? order.getPrice() > o.getPrice() : order
+                        .getPrice() < o.getPrice())
                         && order.getEntryTime() < o.getEntryTime()) {
                     orders.add(i, order);
                 }
@@ -91,21 +102,26 @@ public class Market {
     }
 
     public void erase(Order order) {
+
         if (order.getSide() == Side.BUY) {
-            bidOrders.remove(find(bidOrders, order.getClientOrderId()));
+            bidOrders.remove(find(bidOrders, order.getClientOrderId()
+                    .getValue()));
         } else {
-            askOrders.remove(find(askOrders, order.getClientOrderId()));
+            askOrders.remove(find(askOrders, order.getClientOrderId()
+                    .getValue()));
         }
     }
 
-    public Order find(String symbol, char side, String id) {
-        return find(side == Side.BUY ? bidOrders : askOrders, id);
+    public Order find(Symbol symbol, Side side, String id) {
+
+        return find(Side.BUY.equals(side) ? bidOrders : askOrders, id);
     }
 
-    private Order find(List<Order> orders, String clientOrderId) {
+    private Order find(List<Order> orders, String id) {
+
         for (int i = 0; i < orders.size(); i++) {
             Order o = orders.get(i);
-            if (o.getClientOrderId().equals(clientOrderId)) {
+            if (o.getClientOrderId().equals(id)) {
                 return o;
             }
         }
@@ -113,19 +129,21 @@ public class Market {
     }
 
     public void display() {
+
         displaySide(bidOrders, "BIDS");
         displaySide(askOrders, "ASKS");
     }
 
     private void displaySide(List<Order> orders, String title) {
+
         DecimalFormat priceFormat = new DecimalFormat("#.00");
         DecimalFormat qtyFormat = new DecimalFormat("######");
         System.out.println(title + ":\n----");
         for (int i = 0; i < orders.size(); i++) {
             Order order = orders.get(i);
-            System.out.println("  $" + priceFormat.format(order.getPrice()) + " "
-                    + qtyFormat.format(order.getOpenQuantity()) + " " + order.getOwner() + " "
-                    + new Date(order.getEntryTime()));
+            System.out.println("  $" + priceFormat.format(order.getPrice())
+                    + " " + qtyFormat.format(order.getOpenQuantity()) + " "
+                    + order.getOwner() + " " + new Date(order.getEntryTime()));
         }
     }
 }

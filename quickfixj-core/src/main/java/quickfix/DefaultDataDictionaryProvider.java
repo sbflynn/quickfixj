@@ -24,14 +24,13 @@ import static quickfix.MessageUtils.toBeginString;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.quickfixj.FIXField;
+import org.quickfixj.FIXApplication;
+import org.quickfixj.FIXBeginString;
 import org.quickfixj.QFJException;
-
-import quickfix.field.StringField;
 
 public class DefaultDataDictionaryProvider implements DataDictionaryProvider {
 
-    private Map<String, DataDictionary> transportDictionaries = new ConcurrentHashMap<String, DataDictionary>();
+    private Map<FIXBeginString, DataDictionary> transportDictionaries = new ConcurrentHashMap<FIXBeginString, DataDictionary>();
 
     private Map<AppVersionKey, DataDictionary> applicationDictionaries = new ConcurrentHashMap<AppVersionKey, DataDictionary>();
 
@@ -48,11 +47,11 @@ public class DefaultDataDictionaryProvider implements DataDictionaryProvider {
     }
 
     @Override
-    public synchronized DataDictionary getSessionDataDictionary(String beginString) {
+    public synchronized DataDictionary getSessionDataDictionary(FIXBeginString beginString) {
 
         DataDictionary dd = transportDictionaries.get(beginString);
         if (dd == null && findDataDictionaries) {
-            String path = beginString.replace(".", "") + ".xml";
+            String path = beginString.getValue().replace(".", "") + ".xml";
             try {
                 dd = new DataDictionary(path);
                 transportDictionaries.put(beginString, dd);
@@ -64,13 +63,13 @@ public class DefaultDataDictionaryProvider implements DataDictionaryProvider {
     }
 
     @Override
-    public DataDictionary getApplicationDataDictionary(StringField applVerID) {
+    public DataDictionary getApplicationDataDictionary(FIXApplication applVerID) {
 
         AppVersionKey appVersionKey = new AppVersionKey(applVerID);
         DataDictionary dd = applicationDictionaries.get(appVersionKey);
         if (dd == null && findDataDictionaries) {
-            String beginString = toBeginString(applVerID);
-            String path = beginString.replace(".", "") + ".xml";
+            FIXBeginString beginString = toBeginString(applVerID);
+            String path = beginString.getValue().replace(".", "") + ".xml";
             try {
                 dd = new DataDictionary(path);
                 applicationDictionaries.put(appVersionKey, dd);
@@ -81,21 +80,21 @@ public class DefaultDataDictionaryProvider implements DataDictionaryProvider {
         return dd;
     }
 
-    public void addTransportDictionary(String beginString, DataDictionary dd) {
+    public void addTransportDictionary(FIXBeginString beginString, DataDictionary dd) {
 
         transportDictionaries.put(beginString, dd);
     }
 
-    public void addApplicationDictionary(StringField applVerID, DataDictionary dataDictionary) {
+    public void addApplicationDictionary(FIXApplication applVerID, DataDictionary dataDictionary) {
 
         applicationDictionaries.put(new AppVersionKey(applVerID), dataDictionary);
     }
 
     private static class AppVersionKey {
 
-        private final FIXField<?> applVerID;
+        private final FIXApplication applVerID;
 
-        public AppVersionKey(FIXField<?> applVerID) {
+        public AppVersionKey(FIXApplication applVerID) {
 
             this.applVerID = applVerID;
         }

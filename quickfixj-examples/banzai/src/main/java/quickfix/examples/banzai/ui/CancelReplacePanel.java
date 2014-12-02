@@ -19,19 +19,34 @@
 
 package quickfix.examples.banzai.ui;
 
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.*;
+import java.awt.Color;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
-import quickfix.examples.banzai.*;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+
+import quickfix.examples.banzai.BanzaiApplication;
+import quickfix.examples.banzai.DoubleNumberTextField;
+import quickfix.examples.banzai.IntegerNumberTextField;
+import quickfix.examples.banzai.Order;
 
 public class CancelReplacePanel extends JPanel {
+
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
+
     private JLabel quantityLabel = new JLabel("Quantity");
     private JLabel limitPriceLabel = new JLabel("Limit");
-    private IntegerNumberTextField quantityTextField =
-        new IntegerNumberTextField();
-    private DoubleNumberTextField limitPriceTextField =
-        new DoubleNumberTextField();
+    private IntegerNumberTextField quantityTextField = new IntegerNumberTextField();
+    private DoubleNumberTextField limitPriceTextField = new DoubleNumberTextField();
     private JButton cancelButton = new JButton("Cancel");
     private JButton replaceButton = new JButton("Replace");
     private Order order = null;
@@ -74,6 +89,7 @@ public class CancelReplacePanel extends JPanel {
         add(limitPriceTextField, ++x, y);
     }
 
+    @Override
     public void setEnabled(boolean enabled) {
         cancelButton.setEnabled(enabled);
         replaceButton.setEnabled(enabled);
@@ -96,8 +112,7 @@ public class CancelReplacePanel extends JPanel {
         if (order == null)
             return;
         this.order = order;
-        quantityTextField.setText
-        (Integer.toString(order.getOpen()));
+        quantityTextField.setText(Integer.toString(order.getOpen()));
 
         Double limit = order.getLimit();
         if (limit != null)
@@ -113,18 +128,18 @@ public class CancelReplacePanel extends JPanel {
     }
 
     private class CancelListener implements ActionListener {
+        @Override
         public void actionPerformed(ActionEvent e) {
             application.cancel(order);
         }
     }
 
     private class ReplaceListener implements ActionListener {
+        @Override
         public void actionPerformed(ActionEvent e) {
             Order newOrder = (Order) order.clone();
-            newOrder.setQuantity
-            (Integer.parseInt(quantityTextField.getText()));
-            newOrder.setLimit
-            (new Double(limitPriceTextField.getText()));
+            newOrder.setQuantity(Integer.parseInt(quantityTextField.getText()));
+            newOrder.setLimit(new Double(limitPriceTextField.getText()));
             newOrder.setRejected(false);
             newOrder.setCanceled(false);
             newOrder.setOpen(0);

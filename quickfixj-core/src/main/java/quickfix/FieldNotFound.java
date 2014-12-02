@@ -24,7 +24,12 @@ package quickfix;
  * this exception, be sure you accessing the field in the correct section
  * of the message (for example, a header field in message.getHeader()).
  */
-public class FieldNotFound extends Exception {
+public class FieldNotFound extends RuntimeException {
+
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
 
     public FieldNotFound(int field) {
         super("Field [" + field + "] was not found in message.");

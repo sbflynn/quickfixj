@@ -74,8 +74,8 @@ public final class SessionState {
     // The messageQueue should be accessed from a single thread
     private final Map<Integer, Message> messageQueue = new LinkedHashMap<Integer, Message>();
 
-    public SessionState(Object lock, Log log, int heartBeatInterval, boolean initiator, MessageStore messageStore,
-            double testRequestDelayMultiplier) {
+    public SessionState(Object lock, Log log, int heartBeatInterval, boolean initiator,
+            MessageStore messageStore, double testRequestDelayMultiplier) {
         this.lock = lock;
         this.initiator = initiator;
         this.messageStore = messageStore;
@@ -181,7 +181,8 @@ public final class SessionState {
 
     public boolean isLogonTimedOut() {
         synchronized (lock) {
-            return isLogonSent() && SystemTime.currentTimeMillis() - getLastReceivedTime() >= getLogonTimeoutMs();
+            return isLogonSent()
+                    && SystemTime.currentTimeMillis() - getLastReceivedTime() >= getLogonTimeoutMs();
         }
     }
 
@@ -250,7 +251,8 @@ public final class SessionState {
     }
 
     public boolean isLogoutTimedOut() {
-        return isLogoutSent() && ((SystemTime.currentTimeMillis() - getLastSentTime()) >= getLogoutTimeoutMs());
+        return isLogoutSent()
+                && ((SystemTime.currentTimeMillis() - getLastSentTime()) >= getLogoutTimeoutMs());
     }
 
     public MessageStore getMessageStore() {
@@ -503,19 +505,30 @@ public final class SessionState {
     }
 
     private final static class NullLog implements Log {
+
+        @Override
         public void onOutgoing(String message) {
+            // no-op
         }
 
+        @Override
         public void onIncoming(String message) {
+            // no-op
         }
 
+        @Override
         public void onEvent(String text) {
+            // no-op
         }
 
+        @Override
         public void onErrorEvent(String text) {
+            // no-op
         }
 
+        @Override
         public void clear() {
+            // no-op
         }
     }
 

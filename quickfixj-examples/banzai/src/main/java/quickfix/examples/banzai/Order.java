@@ -49,13 +49,16 @@ public class Order implements Cloneable {
         this.ID = ID;
     }
 
+    @Override
     public Object clone() {
         try {
             Order order = (Order) super.clone();
             order.setOriginalID(getID());
             order.setID(order.generateID());
             return order;
-        } catch (CloneNotSupportedException e) {}
+        } catch (CloneNotSupportedException e) {
+            // ignore
+    }
         return null;
     }
 

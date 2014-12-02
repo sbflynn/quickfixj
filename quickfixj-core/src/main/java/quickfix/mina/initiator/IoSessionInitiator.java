@@ -28,12 +28,12 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.mina.core.filterchain.IoFilterChainBuilder;
 import org.apache.mina.core.future.ConnectFuture;
 import org.apache.mina.core.service.IoConnector;
-import org.apache.mina.core.filterchain.IoFilterChainBuilder;
 import org.apache.mina.core.session.IoSession;
-import org.apache.mina.filter.ssl.SslFilter;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
+import org.apache.mina.filter.ssl.SslFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,22 +55,26 @@ public class IoSessionInitiator {
     private final ConnectTask reconnectTask;
 
     private Future<?> reconnectFuture;
-    protected final static Logger log = LoggerFactory.getLogger("display." + IoSessionInitiator.class.getName());
+    protected final static Logger log = LoggerFactory.getLogger("display."
+            + IoSessionInitiator.class.getName());
 
-    public IoSessionInitiator(Session fixSession, SocketAddress[] socketAddresses, SocketAddress localAddress,
-            int[] reconnectIntervalInSeconds, ScheduledExecutorService executor,
-            NetworkingOptions networkingOptions, EventHandlingStrategy eventHandlingStrategy,
+    public IoSessionInitiator(Session fixSession, SocketAddress[] socketAddresses,
+            SocketAddress localAddress, int[] reconnectIntervalInSeconds,
+            ScheduledExecutorService executor, NetworkingOptions networkingOptions,
+            EventHandlingStrategy eventHandlingStrategy,
             IoFilterChainBuilder userIoFilterChainBuilder, boolean sslEnabled, String keyStoreName,
-            String keyStorePassword, String[] enableProtocole, String[] cipherSuites) throws ConfigError {
+            String keyStorePassword, String[] enableProtocole, String[] cipherSuites)
+            throws ConfigError {
         this.executor = executor;
         final long[] reconnectIntervalInMillis = new long[reconnectIntervalInSeconds.length];
         for (int ii = 0; ii != reconnectIntervalInSeconds.length; ++ii) {
             reconnectIntervalInMillis[ii] = reconnectIntervalInSeconds[ii] * 1000L;
         }
         try {
-            reconnectTask = new ConnectTask(sslEnabled, socketAddresses, localAddress, userIoFilterChainBuilder,
-                    fixSession, reconnectIntervalInMillis, networkingOptions,
-                    eventHandlingStrategy, keyStoreName, keyStorePassword, enableProtocole, cipherSuites);
+            reconnectTask = new ConnectTask(sslEnabled, socketAddresses, localAddress,
+                    userIoFilterChainBuilder, fixSession, reconnectIntervalInMillis,
+                    networkingOptions, eventHandlingStrategy, keyStoreName, keyStorePassword,
+                    enableProtocole, cipherSuites);
         } catch (GeneralSecurityException e) {
             throw new ConfigError(e);
         }
@@ -97,10 +101,11 @@ public class IoSessionInitiator {
         private ConnectFuture connectFuture;
 
         public ConnectTask(boolean sslEnabled, SocketAddress[] socketAddresses,
-                SocketAddress localAddress, IoFilterChainBuilder userIoFilterChainBuilder, Session fixSession,
-                long[] reconnectIntervalInMillis, NetworkingOptions networkingOptions,
-                EventHandlingStrategy eventHandlingStrategy, String keyStoreName,
-                String keyStorePassword, String[] enableProtocole, String[] cipherSuites) throws ConfigError, GeneralSecurityException {
+                SocketAddress localAddress, IoFilterChainBuilder userIoFilterChainBuilder,
+                Session fixSession, long[] reconnectIntervalInMillis,
+                NetworkingOptions networkingOptions, EventHandlingStrategy eventHandlingStrategy,
+                String keyStoreName, String keyStorePassword, String[] enableProtocole,
+                String[] cipherSuites) throws ConfigError, GeneralSecurityException {
             this.socketAddresses = socketAddresses;
             this.localAddress = localAddress;
             this.fixSession = fixSession;
@@ -121,8 +126,7 @@ public class IoSessionInitiator {
                     new ProtocolCodecFilter(new FIXProtocolCodecFactory()));
 
             ioConnector.setFilterChainBuilder(ioFilterChainBuilder);
-            ioHandler = new InitiatorIoHandler(fixSession, networkingOptions,
-                    eventHandlingStrategy);
+            ioHandler = new InitiatorIoHandler(fixSession, networkingOptions, eventHandlingStrategy);
         }
 
         private void installSslFilter(CompositeIoFilterChainBuilder ioFilterChainBuilder)
@@ -137,6 +141,7 @@ public class IoSessionInitiator {
             ioFilterChainBuilder.addLast(SSLSupport.FILTER_NAME, sslFilter);
         }
 
+        @Override
         public synchronized void run() {
             if (connectFuture == null) {
                 if (shouldReconnect()) {
@@ -188,11 +193,13 @@ public class IoSessionInitiator {
             while (e.getCause() != null) {
                 e = e.getCause();
             }
-            final String nextRetryMsg = " (Next retry in " + computeNextRetryConnectDelay() + " milliseconds)";
+            final String nextRetryMsg = " (Next retry in " + computeNextRetryConnectDelay()
+                    + " milliseconds)";
             if (e instanceof IOException) {
                 fixSession.getLog().onErrorEvent(e.getClass().getName() + ": " + e + nextRetryMsg);
             } else {
-                LogUtil.logThrowable(fixSession.getLog(), "Exception during connection" + nextRetryMsg, e);
+                LogUtil.logThrowable(fixSession.getLog(), "Exception during connection"
+                        + nextRetryMsg, e);
             }
             connectFuture = null;
         }
@@ -204,8 +211,8 @@ public class IoSessionInitiator {
             if (socketAddress instanceof InetSocketAddress) {
                 InetSocketAddress inetAddr = (InetSocketAddress) socketAddress;
                 if (inetAddr.isUnresolved()) {
-                    socketAddress = new InetSocketAddress(inetAddr.getHostName(), inetAddr
-                            .getPort());
+                    socketAddress = new InetSocketAddress(inetAddr.getHostName(),
+                            inetAddr.getPort());
                     socketAddresses[nextSocketAddressIndex] = socketAddress;
                 }
             }
@@ -237,17 +244,20 @@ public class IoSessionInitiator {
 
         // TODO JMX Expose reconnect property
 
-        @SuppressWarnings("unused") // exposed via JMX
+        @SuppressWarnings("unused")
+        // exposed via JMX
         public synchronized int getConnectionFailureCount() {
             return connectionFailureCount;
         }
 
-        @SuppressWarnings("unused") // exposed via JMX
+        @SuppressWarnings("unused")
+        // exposed via JMX
         public synchronized long getLastReconnectAttemptTime() {
             return lastReconnectAttemptTime;
         }
 
-        @SuppressWarnings("unused") // exposed via JMX
+        @SuppressWarnings("unused")
+        // exposed via JMX
         public synchronized long getLastConnectTime() {
             return lastConnectTime;
         }

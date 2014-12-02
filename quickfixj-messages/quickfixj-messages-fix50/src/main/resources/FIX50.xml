@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <fix minor="0" major="5" xmlns="http://quickfixj.org/xml/dictionary">
+	<provides>
+		<application application="FIX.5.0" />
+	</provides>
 	<header />
 	<trailer />
 	<messages>

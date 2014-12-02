@@ -24,6 +24,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 
 import org.apache.mina.core.session.IoSession;
+import org.quickfixj.FIXApplication;
 
 import quickfix.FixMessageTypes;
 import quickfix.FixTags;
@@ -32,7 +33,6 @@ import quickfix.Message;
 import quickfix.MessageUtils;
 import quickfix.Session;
 import quickfix.SessionID;
-import quickfix.field.StringField;
 import quickfix.mina.AbstractIoHandler;
 import quickfix.mina.EventHandlingStrategy;
 import quickfix.mina.IoSessionResponder;
@@ -91,9 +91,9 @@ class AcceptorIoHandler extends AbstractIoHandler {
                             networkingOptions.getSynchronousWrites(), networkingOptions
                                     .getSynchronousWriteTimeout()));
                     if (sessionID.isFIXT()) { // QFJ-592
-                        if (message.isSetField(FixTags.DEFAULT_APPL_VER_ID)) {
-                            final StringField applVerID = new StringField(FixTags.APPL_VER_ID,
-                                    message.getString(FixTags.DEFAULT_APPL_VER_ID));
+                        if (message.isFieldSet(FixTags.DEFAULT_APPL_VER_ID)) {
+                            final FIXApplication applVerID = FIXApplication.parseId(message
+                                    .getString(FixTags.DEFAULT_APPL_VER_ID));
                             qfSession.setTargetDefaultApplicationVersionID(applVerID);
                             log.info("Setting DefaultApplVerID (" + FixTags.DEFAULT_APPL_VER_ID
                                     + "=" + applVerID.getValue() + ") from Logon");

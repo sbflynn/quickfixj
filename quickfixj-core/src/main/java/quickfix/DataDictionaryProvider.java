@@ -19,7 +19,8 @@
 
 package quickfix;
 
-import quickfix.field.StringField;
+import org.quickfixj.FIXApplication;
+import org.quickfixj.FIXBeginString;
 
 /**
  * Provide data dictionaries for specified session protocol or application
@@ -34,9 +35,8 @@ public interface DataDictionaryProvider {
      * @param beginString FIX.4.0 through FIXT.1.1
      * @return the data dictionary for the specified session protocol version or
      *         null if no such dictionary is available.
-     * @see FixVersions
      */
-    DataDictionary getSessionDataDictionary(String beginString);
+    DataDictionary getSessionDataDictionary(FIXBeginString beginString);
 
     /**
      * Retrieve the data dictionary for the specified application version.
@@ -46,5 +46,5 @@ public interface DataDictionaryProvider {
      * @return the data dictionary for the specified application version or null
      *         if no such dictionary is available.
      */
-    DataDictionary getApplicationDataDictionary(StringField applVerID);
+    DataDictionary getApplicationDataDictionary(FIXApplication applVerID);
 }

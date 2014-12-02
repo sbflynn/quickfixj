@@ -2,6 +2,11 @@ package quickfix;
 
 public class MessageParseError extends Exception {
 
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
+
     public MessageParseError() {
         super();
     }

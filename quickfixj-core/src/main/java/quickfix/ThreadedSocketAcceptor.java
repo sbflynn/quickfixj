@@ -19,6 +19,8 @@
 
 package quickfix;
 
+import org.quickfixj.MessageBuilderFactory;
+
 import quickfix.mina.EventHandlingStrategy;
 import quickfix.mina.ThreadPerSessionEventHandlingStrategy;
 import quickfix.mina.acceptor.AbstractSocketAcceptor;
@@ -30,35 +32,36 @@ public class ThreadedSocketAcceptor extends AbstractSocketAcceptor {
     private final ThreadPerSessionEventHandlingStrategy eventHandlingStrategy;
 
     public ThreadedSocketAcceptor(Application application, MessageStoreFactory messageStoreFactory,
-                                  SessionSettings settings, LogFactory logFactory, MessageFactory messageFactory,
-                                  int queueCapacity )
-                                  throws ConfigError {
+            SessionSettings settings, LogFactory logFactory, MessageBuilderFactory messageFactory,
+            int queueCapacity) throws ConfigError {
         super(application, messageStoreFactory, settings, logFactory, messageFactory);
         eventHandlingStrategy = new ThreadPerSessionEventHandlingStrategy(this, queueCapacity);
     }
 
     public ThreadedSocketAcceptor(Application application, MessageStoreFactory messageStoreFactory,
-            SessionSettings settings, LogFactory logFactory, MessageFactory messageFactory)
+            SessionSettings settings, LogFactory logFactory, MessageBuilderFactory messageFactory)
             throws ConfigError {
         super(application, messageStoreFactory, settings, logFactory, messageFactory);
-        eventHandlingStrategy = new ThreadPerSessionEventHandlingStrategy(this, DEFAULT_QUEUE_CAPACITY);
+        eventHandlingStrategy = new ThreadPerSessionEventHandlingStrategy(this,
+                DEFAULT_QUEUE_CAPACITY);
     }
 
     public ThreadedSocketAcceptor(Application application, MessageStoreFactory messageStoreFactory,
-                                  SessionSettings settings, MessageFactory messageFactory,
-                                  int queueCapacity ) throws ConfigError {
+            SessionSettings settings, MessageBuilderFactory messageFactory, int queueCapacity)
+            throws ConfigError {
         super(application, messageStoreFactory, settings, messageFactory);
         eventHandlingStrategy = new ThreadPerSessionEventHandlingStrategy(this, queueCapacity);
     }
 
     public ThreadedSocketAcceptor(Application application, MessageStoreFactory messageStoreFactory,
-            SessionSettings settings, MessageFactory messageFactory) throws ConfigError {
+            SessionSettings settings, MessageBuilderFactory messageFactory) throws ConfigError {
         super(application, messageStoreFactory, settings, messageFactory);
-        eventHandlingStrategy = new ThreadPerSessionEventHandlingStrategy(this, DEFAULT_QUEUE_CAPACITY);
+        eventHandlingStrategy = new ThreadPerSessionEventHandlingStrategy(this,
+                DEFAULT_QUEUE_CAPACITY);
     }
 
-    public ThreadedSocketAcceptor(SessionFactory sessionFactory, SessionSettings settings, int queueCapacity)
-            throws ConfigError {
+    public ThreadedSocketAcceptor(SessionFactory sessionFactory, SessionSettings settings,
+            int queueCapacity) throws ConfigError {
         super(settings, sessionFactory);
         eventHandlingStrategy = new ThreadPerSessionEventHandlingStrategy(this, queueCapacity);
     }
@@ -66,21 +69,25 @@ public class ThreadedSocketAcceptor extends AbstractSocketAcceptor {
     public ThreadedSocketAcceptor(SessionFactory sessionFactory, SessionSettings settings)
             throws ConfigError {
         super(settings, sessionFactory);
-        eventHandlingStrategy = new ThreadPerSessionEventHandlingStrategy(this, DEFAULT_QUEUE_CAPACITY);
+        eventHandlingStrategy = new ThreadPerSessionEventHandlingStrategy(this,
+                DEFAULT_QUEUE_CAPACITY);
     }
 
+    @Override
     public void start() throws ConfigError, RuntimeError {
         startAcceptingConnections();
     }
 
+    @Override
     public void stop() {
         stop(false);
     }
 
+    @Override
     public void stop(boolean forceDisconnect) {
         try {
             stopAcceptingConnections();
-        } catch (ConfigError e) {
+        } catch (Exception e) {
             log.error("Error when stopping acceptor.", e);
         }
         logoutAllSessions(forceDisconnect);
@@ -89,6 +96,7 @@ public class ThreadedSocketAcceptor extends AbstractSocketAcceptor {
         Session.unregisterSessions(getSessions());
     }
 
+    @Override
     public void block() throws ConfigError, RuntimeError {
         throw new UnsupportedOperationException("Blocking not supported: " + getClass());
     }

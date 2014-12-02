@@ -69,7 +69,7 @@ public class SessionJmxExporter {
     }
 
     private void addSessionIdProperties(SessionID sessionID, ObjectNameFactory nameFactory) {
-        nameFactory.addProperty("beginString", sessionID.getBeginString());
+        nameFactory.addProperty("beginString", sessionID.getBeginString().getValue());
         nameFactory.addProperty("senderCompID", sessionID.getSenderCompID());
         optionallyAddProperty(nameFactory, "senderSubID", sessionID.getSenderSubID());
         optionallyAddProperty(nameFactory, "senderLocationID", sessionID.getSenderLocationID());

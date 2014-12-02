@@ -30,6 +30,7 @@ import java.util.Set;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.buffer.SimpleBufferAllocator;
+import org.quickfixj.MessageBuilderFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +40,6 @@ import quickfix.DefaultSessionFactory;
 import quickfix.FieldConvertError;
 import quickfix.Initiator;
 import quickfix.LogFactory;
-import quickfix.MessageFactory;
 import quickfix.MessageStoreFactory;
 import quickfix.Session;
 import quickfix.SessionFactory;
@@ -62,7 +62,7 @@ public abstract class AbstractSocketInitiator extends SessionConnector implement
 
     protected AbstractSocketInitiator(Application application,
             MessageStoreFactory messageStoreFactory, SessionSettings settings,
-            LogFactory logFactory, MessageFactory messageFactory) throws ConfigError {
+            LogFactory logFactory, MessageBuilderFactory messageFactory) throws ConfigError {
         this(settings, new DefaultSessionFactory(application, messageStoreFactory, logFactory,
                 messageFactory));
     }
@@ -74,8 +74,7 @@ public abstract class AbstractSocketInitiator extends SessionConnector implement
         IoBuffer.setUseDirectBuffer(false);
     }
 
-    protected void createSessionInitiators()
-            throws ConfigError {
+    protected void createSessionInitiators() throws ConfigError {
         try {
             // QFJ698: clear() is needed on restart, otherwise the set gets filled up with
             // more and more initiators which are not equal because the local port differs
@@ -114,9 +113,10 @@ public abstract class AbstractSocketInitiator extends SessionConnector implement
                         : null;
 
                 final IoSessionInitiator ioSessionInitiator = new IoSessionInitiator(session,
-                        socketAddresses, localAddress, reconnectingIntervals, getScheduledExecutorService(),
-                        networkingOptions, getEventHandlingStrategy(), getIoFilterChainBuilder(),
-                        sslEnabled, keyStoreName, keyStorePassword, enableProtocole, cipherSuites);
+                        socketAddresses, localAddress, reconnectingIntervals,
+                        getScheduledExecutorService(), networkingOptions,
+                        getEventHandlingStrategy(), getIoFilterChainBuilder(), sslEnabled,
+                        keyStoreName, keyStorePassword, enableProtocole, cipherSuites);
 
                 initiators.add(ioSessionInitiator);
             }
@@ -133,7 +133,8 @@ public abstract class AbstractSocketInitiator extends SessionConnector implement
         if (settings.isSetting(sessionID, Initiator.SETTING_SOCKET_LOCAL_HOST)) {
             String host = settings.getString(sessionID, Initiator.SETTING_SOCKET_LOCAL_HOST);
             if ("localhost".equals(host)) {
-                throw new ConfigError(Initiator.SETTING_SOCKET_LOCAL_HOST + " cannot be \"localhost\"!");
+                throw new ConfigError(Initiator.SETTING_SOCKET_LOCAL_HOST
+                        + " cannot be \"localhost\"!");
             }
             int port = 0;
             if (settings.isSetting(sessionID, Initiator.SETTING_SOCKET_LOCAL_PORT)) {
@@ -208,7 +209,8 @@ public abstract class AbstractSocketInitiator extends SessionConnector implement
                 int transportType = ProtocolFactory.SOCKET;
                 if (settings.isSetting(sessionID, protocolKey)) {
                     try {
-                        transportType = ProtocolFactory.getTransportType(settings.getString(sessionID, protocolKey));
+                        transportType = ProtocolFactory.getTransportType(settings.getString(
+                                sessionID, protocolKey));
                     } catch (final IllegalArgumentException e) {
                         // Unknown transport type
                         throw new ConfigError(e);

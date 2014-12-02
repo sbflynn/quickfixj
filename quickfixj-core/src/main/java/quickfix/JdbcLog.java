@@ -19,8 +19,15 @@
 
 package quickfix;
 
-import static quickfix.JdbcSetting.*;
-import static quickfix.JdbcUtil.*;
+import static quickfix.JdbcSetting.SETTING_JDBC_LOG_HEARTBEATS;
+import static quickfix.JdbcSetting.SETTING_JDBC_SESSION_ID_DEFAULT_PROPERTY_VALUE;
+import static quickfix.JdbcSetting.SETTING_LOG_EVENT_TABLE;
+import static quickfix.JdbcSetting.SETTING_LOG_INCOMING_TABLE;
+import static quickfix.JdbcSetting.SETTING_LOG_OUTGOING_TABLE;
+import static quickfix.JdbcUtil.determineSessionIdSupport;
+import static quickfix.JdbcUtil.getIDColumns;
+import static quickfix.JdbcUtil.getIDPlaceholders;
+import static quickfix.JdbcUtil.getIDWhereClause;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -49,11 +56,9 @@ class JdbcLog extends AbstractLog {
     private final Map<String, String> deleteItemsSqlCache = new HashMap<String, String>();
 
     public JdbcLog(SessionSettings settings, SessionID sessionID, DataSource ds)
-            throws SQLException, ClassNotFoundException, ConfigError, FieldConvertError {
+            throws SQLException, ConfigError, FieldConvertError {
         this.sessionID = sessionID;
-        dataSource = ds == null
-                ? JdbcUtil.getDataSource(settings, sessionID)
-                : ds;
+        dataSource = ds == null ? JdbcUtil.getDataSource(settings, sessionID) : ds;
 
         if (settings.isSetting(SETTING_JDBC_LOG_HEARTBEATS)) {
             logHeartbeats = settings.getBool(SETTING_JDBC_LOG_HEARTBEATS);
@@ -124,14 +129,17 @@ class JdbcLog extends AbstractLog {
         return deleteItemsSqlCache.get(tableName);
     }
 
+    @Override
     public void onEvent(String value) {
         insert(eventTableName, value);
     }
 
+    @Override
     protected void logIncoming(String message) {
         insert(incomingMessagesTableName, message);
     }
 
+    @Override
     protected void logOutgoing(String message) {
         insert(outgoingMessagesTableName, message);
     }
@@ -173,6 +181,7 @@ class JdbcLog extends AbstractLog {
     /**
      * Deletes all rows from the log tables.
      */
+    @Override
     public void clear() {
         clearTable(eventTableName);
         clearTable(incomingMessagesTableName);
@@ -214,6 +223,7 @@ class JdbcLog extends AbstractLog {
                 extendedSessionIdSupported, defaultSessionIdPropertyValue);
     }
 
+    @Override
     public void onErrorEvent(String text) {
         onEvent(text);
     }

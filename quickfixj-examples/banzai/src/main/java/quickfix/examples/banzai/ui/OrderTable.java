@@ -19,16 +19,26 @@
 
 package quickfix.examples.banzai.ui;
 
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+
+import javax.swing.JTable;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableCellRenderer;
+
 import quickfix.examples.banzai.BanzaiApplication;
 import quickfix.examples.banzai.Order;
 import quickfix.examples.banzai.OrderTableModel;
 
-import javax.swing.table.*;
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.*;
-
 public class OrderTable extends JTable implements MouseListener {
+
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
+
     private transient BanzaiApplication application;
 
     public OrderTable(OrderTableModel orderTableModel, BanzaiApplication application) {
@@ -37,6 +47,7 @@ public class OrderTable extends JTable implements MouseListener {
         addMouseListener(this);
     }
 
+    @Override
     public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
         Order order = ((OrderTableModel) dataModel).getOrder(row);
 
@@ -62,6 +73,7 @@ public class OrderTable extends JTable implements MouseListener {
         return super.prepareRenderer(renderer, row, column);
     }
 
+    @Override
     public void mouseClicked(MouseEvent e) {
         if (e.getClickCount() != 2)
             return;
@@ -70,11 +82,23 @@ public class OrderTable extends JTable implements MouseListener {
         application.cancel(order);
     }
 
-    public void mouseEntered(MouseEvent e) {}
+    @Override
+    public void mouseEntered(MouseEvent e) {
+        //no-op
+    }
 
-    public void mouseExited(MouseEvent e) {}
+    @Override
+    public void mouseExited(MouseEvent e) {
+        //no-op
+    }
 
-    public void mousePressed(MouseEvent e) {}
+    @Override
+    public void mousePressed(MouseEvent e) {
+        //no-op
+    }
 
-    public void mouseReleased(MouseEvent e) {}
+    @Override
+    public void mouseReleased(MouseEvent e) {
+        //no-op
+    }
 }

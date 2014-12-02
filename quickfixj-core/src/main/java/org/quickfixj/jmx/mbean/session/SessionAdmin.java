@@ -37,8 +37,7 @@ import quickfix.Session;
 import quickfix.SessionID;
 import quickfix.SessionNotFound;
 import quickfix.SessionStateListener;
-import quickfix.field.IntField;
-import quickfix.field.StringField;
+import quickfix.StringField;
 import quickfix.field.converter.UtcTimestampConverter;
 
 public class SessionAdmin extends NotificationBroadcasterSupport implements SessionAdminMBean,
@@ -139,7 +138,7 @@ public class SessionAdmin extends NotificationBroadcasterSupport implements Sess
     @Override
     public String getBeginString() {
 
-        return session.getSessionID().getBeginString();
+        return session.getSessionID().getBeginString().getValue();
     }
 
     /*
@@ -161,9 +160,9 @@ public class SessionAdmin extends NotificationBroadcasterSupport implements Sess
         String remoteAddress = session.getRemoteAddress();
         if (remoteAddress != null) {
             return remoteAddress;
-        } else {
-            return "";
         }
+
+        return "";
     }
 
     /*
@@ -246,9 +245,8 @@ public class SessionAdmin extends NotificationBroadcasterSupport implements Sess
 
         logInvocation("resetSequence to: " + nextSeqNum);
         Message sequenceReset = new Message();
-        sequenceReset.getHeader().setField(
-                new StringField(FixTags.MSG_TYPE, FixMessageTypes.SEQUENCE_RESET));
-        sequenceReset.setField(new IntField(FixTags.NEW_SEQ_NO, nextSeqNum));
+        sequenceReset.getHeader().setString(FixTags.MSG_TYPE, FixMessageTypes.SEQUENCE_RESET);
+        sequenceReset.setField(new StringField(FixTags.NEW_SEQ_NO, nextSeqNum));
         doSend(sequenceReset, session.getSessionID());
     }
 
@@ -505,12 +503,12 @@ public class SessionAdmin extends NotificationBroadcasterSupport implements Sess
 
     @Override
     public void postRegister(Boolean registrationDone) {
-
+        // no-op
     }
 
     @Override
     public void preDeregister() throws Exception {
-
+        // no-op
     }
 
     @Override

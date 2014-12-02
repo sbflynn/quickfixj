@@ -19,6 +19,8 @@
 
 package quickfix;
 
+import org.quickfixj.MessageBuilderFactory;
+
 import quickfix.mina.EventHandlingStrategy;
 import quickfix.mina.SingleThreadedEventHandlingStrategy;
 import quickfix.mina.initiator.AbstractSocketInitiator;
@@ -33,7 +35,8 @@ public class SocketInitiator extends AbstractSocketInitiator {
     private final SingleThreadedEventHandlingStrategy eventHandlingStrategy;
 
     public SocketInitiator(Application application, MessageStoreFactory messageStoreFactory,
-            SessionSettings settings, MessageFactory messageFactory, int queueCapacity) throws ConfigError {
+            SessionSettings settings, MessageBuilderFactory messageFactory, int queueCapacity)
+            throws ConfigError {
         super(application, messageStoreFactory, settings, new ScreenLogFactory(settings),
                 messageFactory);
         if (settings == null) {
@@ -43,29 +46,30 @@ public class SocketInitiator extends AbstractSocketInitiator {
     }
 
     public SocketInitiator(Application application, MessageStoreFactory messageStoreFactory,
-            SessionSettings settings, MessageFactory messageFactory) throws ConfigError {
+            SessionSettings settings, MessageBuilderFactory messageFactory) throws ConfigError {
         super(application, messageStoreFactory, settings, new ScreenLogFactory(settings),
                 messageFactory);
         if (settings == null) {
             throw new ConfigError("no settings");
         }
-        eventHandlingStrategy = new SingleThreadedEventHandlingStrategy(this, DEFAULT_QUEUE_CAPACITY);
+        eventHandlingStrategy = new SingleThreadedEventHandlingStrategy(this,
+                DEFAULT_QUEUE_CAPACITY);
     }
 
     public SocketInitiator(Application application, MessageStoreFactory messageStoreFactory,
-            SessionSettings settings, LogFactory logFactory, MessageFactory messageFactory)
+            SessionSettings settings, LogFactory logFactory, MessageBuilderFactory messageFactory)
             throws ConfigError {
         super(application, messageStoreFactory, settings, logFactory, messageFactory);
         if (settings == null) {
             throw new ConfigError("no settings");
         }
-        eventHandlingStrategy = new SingleThreadedEventHandlingStrategy(this, DEFAULT_QUEUE_CAPACITY);
+        eventHandlingStrategy = new SingleThreadedEventHandlingStrategy(this,
+                DEFAULT_QUEUE_CAPACITY);
     }
 
     public SocketInitiator(Application application, MessageStoreFactory messageStoreFactory,
-            SessionSettings settings, LogFactory logFactory, MessageFactory messageFactory,
-            int queueCapacity)
-            throws ConfigError {
+            SessionSettings settings, LogFactory logFactory, MessageBuilderFactory messageFactory,
+            int queueCapacity) throws ConfigError {
         super(application, messageStoreFactory, settings, logFactory, messageFactory);
         if (settings == null) {
             throw new ConfigError("no settings");
@@ -74,25 +78,29 @@ public class SocketInitiator extends AbstractSocketInitiator {
     }
 
     public SocketInitiator(SessionFactory sessionFactory, SessionSettings settings,
-           int queueCapacity) throws ConfigError {
+            int queueCapacity) throws ConfigError {
         super(settings, sessionFactory);
         eventHandlingStrategy = new SingleThreadedEventHandlingStrategy(this, queueCapacity);
     }
 
+    @Override
     public void block() throws ConfigError, RuntimeError {
         initialize();
         eventHandlingStrategy.block();
     }
 
+    @Override
     public void start() throws ConfigError, RuntimeError {
         initialize();
         eventHandlingStrategy.blockInThread();
     }
 
+    @Override
     public void stop() {
         stop(false);
     }
 
+    @Override
     public void stop(boolean forceDisconnect) {
         try {
             eventHandlingStrategy.stopHandlingMessages();

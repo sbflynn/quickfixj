@@ -19,26 +19,44 @@
 
 package quickfix.examples.ordermatch;
 
-import quickfix.field.Side;
+import quickfix.fix42.field.ClOrdID;
+import quickfix.fix42.field.OrdType;
+import quickfix.fix42.field.Side;
+import quickfix.fix42.field.Symbol;
 
 public class Order {
+
     private long entryTime;
-    private String clientOrderId;
-    private String symbol;
+
+    private ClOrdID clientOrderId;
+
+    private Symbol symbol;
+
     private String owner;
+
     private String target;
-    private char side;
-    private char type;
+
+    private Side side;
+
+    private OrdType type;
+
     private double price;
+
     private long quantity;
+
     private long openQuantity;
+
     private long executedQuantity;
+
     private double avgExecutedPrice;
+
     private double lastExecutedPrice;
+
     private long lastExecutedQuantity;
 
-    public Order(String clientId, String symbol, String owner, String target, char side, char type,
-            double price, long quantity) {
+    public Order(ClOrdID clientId, Symbol symbol, String owner, String target,
+            Side side, OrdType type, double price, long quantity) {
+
         super();
         this.clientOrderId = clientId;
         this.symbol = symbol;
@@ -53,66 +71,82 @@ public class Order {
     }
 
     public double getAvgExecutedPrice() {
+
         return avgExecutedPrice;
     }
 
-    public String getClientOrderId() {
+    public ClOrdID getClientOrderId() {
+
         return clientOrderId;
     }
 
     public long getExecutedQuantity() {
+
         return executedQuantity;
     }
 
     public long getLastExecutedQuantity() {
+
         return lastExecutedQuantity;
     }
 
     public long getOpenQuantity() {
+
         return openQuantity;
     }
 
     public String getOwner() {
+
         return owner;
     }
 
     public double getPrice() {
+
         return price;
     }
 
     public long getQuantity() {
+
         return quantity;
     }
 
-    public char getSide() {
+    public Side getSide() {
+
         return side;
     }
 
-    public String getSymbol() {
+    public Symbol getSymbol() {
+
         return symbol;
     }
 
     public String getTarget() {
+
         return target;
     }
 
-    public char getType() {
+    public OrdType getType() {
+
         return type;
     }
 
     public boolean isFilled() {
+
         return quantity == executedQuantity;
     }
 
     public void cancel() {
+
         openQuantity = 0;
     }
 
     public boolean isClosed() {
+
         return openQuantity == 0;
     }
 
     public void execute(double price, long quantity) {
+
         avgExecutedPrice = ((quantity * price) + (avgExecutedPrice * executedQuantity))
                 / (quantity + executedQuantity);
 
@@ -122,15 +156,20 @@ public class Order {
         lastExecutedQuantity = quantity;
     }
 
+    @Override
     public String toString() {
-        return (side == Side.BUY ? "BUY" : "SELL") + " " + quantity + "@$" + price + " (" + openQuantity + ")";
+
+        return (side == Side.BUY ? "BUY" : "SELL") + " " + quantity + "@$"
+                + price + " (" + openQuantity + ")";
     }
 
     public long getEntryTime() {
+
         return entryTime;
     }
 
     public double getLastExecutedPrice() {
+
         return lastExecutedPrice;
     }
 }

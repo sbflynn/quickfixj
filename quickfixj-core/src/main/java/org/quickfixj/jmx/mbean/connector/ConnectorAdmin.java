@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import javax.management.MBeanRegistration;
@@ -87,6 +86,7 @@ abstract class ConnectorAdmin implements ConnectorAdminMBean, MBeanRegistration 
         this.connector = connector;
     }
 
+    @Override
     public String getRole() {
         return role;
     }
@@ -118,6 +118,7 @@ abstract class ConnectorAdmin implements ConnectorAdminMBean, MBeanRegistration 
         }
     }
 
+    @Override
     public TabularData getSessions() throws IOException {
         List<ConnectorSession> sessions = new ArrayList<ConnectorSession>();
         for (SessionID sessionID : connector.getSessions()) {
@@ -146,11 +147,13 @@ abstract class ConnectorAdmin implements ConnectorAdminMBean, MBeanRegistration 
         return sessions.toArray(new ObjectName[sessions.size()]);
     }
 
+    @Override
     public void stop(boolean force) {
         log.info("JMX operation: stop " + getRole() + " " + this);
         connector.stop(force);
     }
 
+    @Override
     public String getHostName() {
         try {
             return InetAddress.getLocalHost().getCanonicalHostName();
@@ -159,18 +162,22 @@ abstract class ConnectorAdmin implements ConnectorAdminMBean, MBeanRegistration 
         }
     }
 
+    @Override
     public void stop() {
         stop(false);
     }
 
+    @Override
     public ObjectName preRegister(MBeanServer server, ObjectName name) throws Exception {
         this.mbeanServer = server;
         return name;
     }
 
+    @Override
     public void postRegister(Boolean registrationDone) {
         if (connector instanceof SessionConnector) {
             ((SessionConnector) connector).addPropertyChangeListener(new PropertyChangeListener() {
+                @Override
                 public void propertyChange(PropertyChangeEvent evt) {
                     if (SessionConnector.SESSIONS_PROPERTY.equals(evt.getPropertyName())) {
                         registerSessions();
@@ -185,9 +192,8 @@ abstract class ConnectorAdmin implements ConnectorAdminMBean, MBeanRegistration 
         for (SessionID sessionID : connector.getSessions()) {
             if (sessionExporter.getSessionName(sessionID) == null) {
                 try {
-                    final ObjectName name = sessionExporter.register(
-                        jmxExporter, Session.lookupSession(sessionID),
-                        connectorName, settings);
+                    final ObjectName name = sessionExporter.register(jmxExporter,
+                            Session.lookupSession(sessionID), connectorName, settings);
                     sessionNames.add(name);
                 } catch (RuntimeException e) {
                     throw e;
@@ -198,9 +204,12 @@ abstract class ConnectorAdmin implements ConnectorAdminMBean, MBeanRegistration 
         }
     }
 
+    @Override
     public void preDeregister() throws Exception {
+        //no-op
     }
 
+    @Override
     public void postDeregister() {
         for (ObjectName sessionName : sessionNames) {
             try {

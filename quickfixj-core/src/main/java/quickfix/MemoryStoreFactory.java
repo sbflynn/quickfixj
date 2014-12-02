@@ -28,6 +28,7 @@ import java.io.IOException;
  */
 public class MemoryStoreFactory implements MessageStoreFactory {
 
+    @Override
     public MessageStore create(SessionID sessionID) {
         try {
             return new MemoryStore();

@@ -23,6 +23,11 @@ package quickfix;
  * Field has a badly formatted value. (From the C++ API documentation.)
  */
 public class IncorrectDataFormat extends Exception {
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
+
     public final int field;
     public final String data;
 

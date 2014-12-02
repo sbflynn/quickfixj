@@ -21,21 +21,20 @@ package quickfix.examples.banzai;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.util.Iterator;
 import java.util.concurrent.CountDownLatch;
 
 import javax.swing.JFrame;
 import javax.swing.UIManager;
 
+import org.quickfixj.MessageBuilderFactory;
 import org.quickfixj.jmx.JmxExporter;
+import org.quickfixj.spi.MessageBuilderServiceLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import quickfix.DefaultMessageFactory;
 import quickfix.FileStoreFactory;
 import quickfix.Initiator;
 import quickfix.LogFactory;
-import quickfix.MessageFactory;
 import quickfix.MessageStoreFactory;
 import quickfix.ScreenLogFactory;
 import quickfix.Session;
@@ -77,7 +76,8 @@ public class Banzai {
         BanzaiApplication application = new BanzaiApplication(orderTableModel, executionTableModel);
         MessageStoreFactory messageStoreFactory = new FileStoreFactory(settings);
         LogFactory logFactory = new ScreenLogFactory(true, true, true, logHeartbeats);
-        MessageFactory messageFactory = new DefaultMessageFactory();
+        MessageBuilderFactory messageFactory = MessageBuilderServiceLoader
+                .getMessageBuilderFactory();
 
         initiator = new SocketInitiator(application, messageStoreFactory, settings, logFactory,
                 messageFactory);

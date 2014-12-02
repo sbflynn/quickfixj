@@ -1,4 +1,10 @@
 <fix major="4" minor="0" xmlns="http://quickfixj.org/xml/dictionary">
+	<provides>
+		<transport beginString="FIX.4.0">
+			<supports>FIX.4.0</supports>
+		</transport>
+		<application application="FIX.4.0" />
+	</provides>
 	<header>
 		<field name="BeginString" required="Y" />
 		<field name="BodyLength" required="Y" />

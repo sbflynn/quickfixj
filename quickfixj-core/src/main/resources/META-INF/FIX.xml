@@ -1,0 +1,189 @@
+<fix type="FIXT" major="1" minor="1" xmlns="http://quickfixj.org/xml/dictionary">
+	<header>
+		<component name="HopGrp" required="N" />
+	</header>
+	<trailer />
+	<messages />
+	<components>
+		<component name="HopGrp">
+			<group name="NoHops" required="N">
+				<field name="HopCompID" required="N" />
+				<field name="HopSendingTime" required="N" />
+				<field name="HopRefID" required="N" />
+			</group>
+		</component>
+	</components>
+	<fields>
+		<field number="8" name="BeginString" type="STRING" />
+		<field number="9" name="BodyLength" type="LENGTH" />
+		<field number="10" name="CheckSum" type="STRING" />
+		<field number="34" name="MsgSeqNum" type="SEQNUM" />
+		<field number="35" name="MsgType" type="STRING">
+			<value enum="0" description="HEARTBEAT" />
+			<value enum="1" description="TEST_REQUEST" />
+			<value enum="2" description="RESEND_REQUEST" />
+			<value enum="3" description="REJECT" />
+			<value enum="4" description="SEQUENCE_RESET" />
+			<value enum="5" description="LOGOUT" />
+			<value enum="6" description="INDICATION_OF_INTEREST" />
+			<value enum="7" description="ADVERTISEMENT" />
+			<value enum="8" description="EXECUTION_REPORT" />
+			<value enum="9" description="ORDER_CANCEL_REJECT" />
+			<value enum="A" description="LOGON" />
+			<value enum="B" description="NEWS" />
+			<value enum="C" description="EMAIL" />
+			<value enum="D" description="ORDER_SINGLE" />
+			<value enum="E" description="ORDER_LIST" />
+			<value enum="F" description="ORDER_CANCEL_REQUEST" />
+			<value enum="G" description="ORDER_CANCEL_REPLACE_REQUEST" />
+			<value enum="H" description="ORDER_STATUS_REQUEST" />
+			<value enum="J" description="ALLOCATION_INSTRUCTION" />
+			<value enum="K" description="LIST_CANCEL_REQUEST" />
+			<value enum="L" description="LIST_EXECUTE" />
+			<value enum="M" description="LIST_STATUS_REQUEST" />
+			<value enum="N" description="LIST_STATUS" />
+			<value enum="P" description="ALLOCATION_INSTRUCTION_ACK" />
+			<value enum="Q" description="DONT_KNOW_TRADE" />
+			<value enum="R" description="QUOTE_REQUEST" />
+			<value enum="S" description="QUOTE" />
+			<value enum="T" description="SETTLEMENT_INSTRUCTIONS" />
+			<value enum="V" description="MARKET_DATA_REQUEST" />
+			<value enum="W" description="MARKET_DATA_SNAPSHOT_FULL_REFRESH" />
+			<value enum="X" description="MARKET_DATA_INCREMENTAL_REFRESH" />
+			<value enum="Y" description="MARKET_DATA_REQUEST_REJECT" />
+			<value enum="Z" description="QUOTE_CANCEL" />
+			<value enum="a" description="QUOTE_STATUS_REQUEST" />
+			<value enum="b" description="MASS_QUOTE_ACKNOWLEDGEMENT" />
+			<value enum="c" description="SECURITY_DEFINITION_REQUEST" />
+			<value enum="d" description="SECURITY_DEFINITION" />
+			<value enum="e" description="SECURITY_STATUS_REQUEST" />
+			<value enum="f" description="SECURITY_STATUS" />
+			<value enum="g" description="TRADING_SESSION_STATUS_REQUEST" />
+			<value enum="h" description="TRADING_SESSION_STATUS" />
+			<value enum="i" description="MASS_QUOTE" />
+			<value enum="j" description="BUSINESS_MESSAGE_REJECT" />
+			<value enum="k" description="BID_REQUEST" />
+			<value enum="l" description="BID_RESPONSE" />
+			<value enum="m" description="LIST_STRIKE_PRICE" />
+			<value enum="n" description="XML_MESSAGE" />
+			<value enum="o" description="REGISTRATION_INSTRUCTIONS" />
+			<value enum="p" description="REGISTRATION_INSTRUCTIONS_RESPONSE" />
+			<value enum="q" description="ORDER_MASS_CANCEL_REQUEST" />
+			<value enum="r" description="ORDER_MASS_CANCEL_REPORT" />
+			<value enum="s" description="NEW_ORDER_CROSS" />
+			<value enum="t" description="CROSS_ORDER_CANCEL_REPLACE_REQUEST" />
+			<value enum="u" description="CROSS_ORDER_CANCEL_REQUEST" />
+			<value enum="v" description="SECURITY_TYPE_REQUEST" />
+			<value enum="w" description="SECURITY_TYPES" />
+			<value enum="x" description="SECURITY_LIST_REQUEST" />
+			<value enum="y" description="SECURITY_LIST" />
+			<value enum="z" description="DERIVATIVE_SECURITY_LIST_REQUEST" />
+			<value enum="AA" description="DERIVATIVE_SECURITY_LIST" />
+			<value enum="AB" description="NEW_ORDER_MULTILEG" />
+			<value enum="AC" description="MULTILEG_ORDER_CANCEL_REPLACE" />
+			<value enum="AD" description="TRADE_CAPTURE_REPORT_REQUEST" />
+			<value enum="AE" description="TRADE_CAPTURE_REPORT" />
+			<value enum="AF" description="ORDER_MASS_STATUS_REQUEST" />
+			<value enum="AG" description="QUOTE_REQUEST_REJECT" />
+			<value enum="AH" description="RFQ_REQUEST" />
+			<value enum="AI" description="QUOTE_STATUS_REPORT" />
+			<value enum="AJ" description="QUOTE_RESPONSE" />
+			<value enum="AK" description="CONFIRMATION" />
+			<value enum="AL" description="POSITION_MAINTENANCE_REQUEST" />
+			<value enum="AM" description="POSITION_MAINTENANCE_REPORT" />
+			<value enum="AN" description="REQUEST_FOR_POSITIONS" />
+			<value enum="AO" description="REQUEST_FOR_POSITIONS_ACK" />
+			<value enum="AP" description="POSITION_REPORT" />
+			<value enum="AQ" description="TRADE_CAPTURE_REPORT_REQUEST_ACK" />
+			<value enum="AR" description="TRADE_CAPTURE_REPORT_ACK" />
+			<value enum="AS" description="ALLOCATION_REPORT" />
+			<value enum="AT" description="ALLOCATION_REPORT_ACK" />
+			<value enum="AU" description="CONFIRMATION_ACK" />
+			<value enum="AV" description="SETTLEMENT_INSTRUCTION_REQUEST" />
+			<value enum="AW" description="ASSIGNMENT_REPORT" />
+			<value enum="AX" description="COLLATERAL_REQUEST" />
+			<value enum="AY" description="COLLATERAL_ASSIGNMENT" />
+			<value enum="AZ" description="COLLATERAL_RESPONSE" />
+			<value enum="CA" description="ORDER_MASS_ACTION_REQUEST" />
+			<value enum="CB" description="USER_NOTIFICATION" />
+			<value enum="CC" description="STREAM_ASSIGNMENT_REQUEST" />
+			<value enum="CD" description="STREAM_ASSIGNMENT_REPORT" />
+			<value enum="CE" description="STREAM_ASSIGNMENT_REPORT_ACK" />
+			<value enum="BA" description="COLLATERAL_REPORT" />
+			<value enum="BB" description="COLLATERAL_INQUIRY" />
+			<value enum="BC" description="NETWORK_STATUS_REQUEST" />
+			<value enum="BD" description="NETWORK_STATUS_RESPONSE" />
+			<value enum="BE" description="USER_REQUEST" />
+			<value enum="BF" description="USER_RESPONSE" />
+			<value enum="BG" description="COLLATERAL_INQUIRY_ACK" />
+			<value enum="BH" description="CONFIRMATION_REQUEST" />
+			<value enum="BI" description="TRADING_SESSION_LIST_REQUEST" />
+			<value enum="BJ" description="TRADING_SESSION_LIST" />
+			<value enum="BK" description="SECURITY_LIST_UPDATE_REPORT" />
+			<value enum="BL" description="ADJUSTED_POSITION_REPORT" />
+			<value enum="BM" description="ALLOCATION_INSTRUCTION_ALERT" />
+			<value enum="BN" description="EXECUTION_ACKNOWLEDGEMENT" />
+			<value enum="BO" description="CONTRARY_INTENTION_REPORT" />
+			<value enum="BP" description="SECURITY_DEFINITION_UPDATE_REPORT" />
+			<value enum="BQ" description="SETTLEMENT_OBLIGATION_REPORT" />
+			<value enum="BR" description="DERIVATIVE_SECURITY_LIST_UPDATE_REPORT" />
+			<value enum="BS" description="TRADING_SESSION_LIST_UPDATER_EPORT" />
+			<value enum="BT" description="MARKET_DEFINITION_REQUEST" />
+			<value enum="BU" description="MARKET_DEFINITION" />
+			<value enum="BV" description="MARKET_DEFINITION_UPDATE_REPORT" />
+			<value enum="BW" description="APPLICATION_MESSAGE_REQUEST" />
+			<value enum="BX" description="APPLICATION_MESSAGE_REQUEST_ACK" />
+			<value enum="BY" description="APPLICATION_MESSAGE_REPORT" />
+			<value enum="BZ" description="ORDER_MASS_ACTION_REPORT" />
+		</field>
+		<field number="43" name="PossDupFlag" type="BOOLEAN">
+			<value enum="N" description="ORIGINAL_TRANSMISSION" />
+			<value enum="Y" description="POSSIBLE_DUPLICATE" />
+		</field>
+		<field number="49" name="SenderCompID" type="STRING" />
+		<field number="50" name="SenderSubID" type="STRING" />
+		<field number="52" name="SendingTime" type="UTCTIMESTAMP" />
+		<field number="56" name="TargetCompID" type="STRING" />
+		<field number="57" name="TargetSubID" type="STRING" />
+		<field number="89" name="Signature" type="DATA" />
+		<field number="90" name="SecureDataLen" type="LENGTH" />
+		<field number="91" name="SecureData" type="DATA" />
+		<field number="93" name="SignatureLength" type="LENGTH" />
+		<field number="97" name="PossResend" type="BOOLEAN">
+			<value enum="N" description="ORIGINAL_TRANSMISSION" />
+			<value enum="Y" description="POSSIBLE_RESEND" />
+		</field>
+		<field number="115" name="OnBehalfOfCompID" type="STRING" />
+		<field number="116" name="OnBehalfOfSubID" type="STRING" />
+		<field number="122" name="OrigSendingTime" type="UTCTIMESTAMP" />
+		<field number="128" name="DeliverToCompID" type="STRING" />
+		<field number="129" name="DeliverToSubID" type="STRING" />
+		<field number="142" name="SenderLocationID" type="STRING" />
+		<field number="143" name="TargetLocationID" type="STRING" />
+		<field number="144" name="OnBehalfOfLocationID" type="STRING" />
+		<field number="145" name="DeliverToLocationID" type="STRING" />
+		<field number="212" name="XmlDataLen" type="LENGTH" />
+		<field number="213" name="XmlData" type="DATA" />
+		<field number="347" name="MessageEncoding" type="STRING" />
+		<field number="369" name="LastMsgSeqNumProcessed" type="SEQNUM" />
+		<field number="370" name="OnBehalfOfSendingTime" type="UTCTIMESTAMP" />
+		<field number="627" name="NoHops" type="NUMINGROUP" />
+		<field number="628" name="HopCompID" type="STRING" />
+		<field number="629" name="HopSendingTime" type="UTCTIMESTAMP" />
+		<field number="630" name="HopRefID" type="SEQNUM" />
+		<field number="1128" name="ApplVerID" type="STRING">
+			<value enum="0" description="FIX27" />
+			<value enum="1" description="FIX30" />
+			<value enum="2" description="FIX40" />
+			<value enum="3" description="FIX41" />
+			<value enum="4" description="FIX42" />
+			<value enum="5" description="FIX43" />
+			<value enum="6" description="FIX44" />
+			<value enum="7" description="FIX50" />
+			<value enum="8" description="FIX50SP1" />
+			<value enum="9" description="FIX50SP2" />
+		</field>
+		<field number="1129" name="CstmApplVerID" type="STRING" />
+		<field number="1156" name="ApplExtID" type="INT" />
+	</fields>
+</fix>

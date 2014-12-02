@@ -19,10 +19,16 @@
 
 package quickfix;
 
-import static quickfix.JdbcSetting.*;
+import static quickfix.JdbcSetting.SETTING_JDBC_SESSION_ID_DEFAULT_PROPERTY_VALUE;
+import static quickfix.JdbcSetting.SETTING_JDBC_STORE_MESSAGES_TABLE_NAME;
+import static quickfix.JdbcSetting.SETTING_JDBC_STORE_SESSIONS_TABLE_NAME;
 
 import java.io.IOException;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
@@ -151,28 +157,34 @@ class JdbcStore implements MessageStore {
                 extendedSessionIdSupported, defaultSessionIdPropertyValue);
     }
 
+    @Override
     public Date getCreationTime() throws IOException {
         return cache.getCreationTime();
     }
 
+    @Override
     public int getNextSenderMsgSeqNum() throws IOException {
         return cache.getNextSenderMsgSeqNum();
     }
 
+    @Override
     public int getNextTargetMsgSeqNum() throws IOException {
         return cache.getNextTargetMsgSeqNum();
     }
 
+    @Override
     public void incrNextSenderMsgSeqNum() throws IOException {
         cache.incrNextSenderMsgSeqNum();
         setNextSenderMsgSeqNum(cache.getNextSenderMsgSeqNum());
     }
 
+    @Override
     public void incrNextTargetMsgSeqNum() throws IOException {
         cache.incrNextTargetMsgSeqNum();
         setNextTargetMsgSeqNum(cache.getNextTargetMsgSeqNum());
     }
 
+    @Override
     public void reset() throws IOException {
         cache.reset();
         Connection connection = null;
@@ -185,8 +197,9 @@ class JdbcStore implements MessageStore {
             deleteMessages.execute();
 
             updateTime = connection.prepareStatement(SQL_UPDATE_SESSION);
-            updateTime.setTimestamp(1, new Timestamp(Calendar.getInstance(
-                    TimeZone.getTimeZone("UTC")).getTimeInMillis()));
+            updateTime.setTimestamp(1,
+                    new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+                            .getTimeInMillis()));
             updateTime.setInt(2, getNextTargetMsgSeqNum());
             updateTime.setInt(3, getNextSenderMsgSeqNum());
             setSessionIdParameters(updateTime, 4);
@@ -200,6 +213,7 @@ class JdbcStore implements MessageStore {
         }
     }
 
+    @Override
     public void get(int startSequence, int endSequence, Collection<String> messages)
             throws IOException {
         Connection connection = null;
@@ -225,6 +239,7 @@ class JdbcStore implements MessageStore {
         }
     }
 
+    @Override
     public boolean set(int sequence, String message) throws IOException {
         Connection connection = null;
         PreparedStatement insert = null;
@@ -260,11 +275,13 @@ class JdbcStore implements MessageStore {
         return true;
     }
 
+    @Override
     public void setNextSenderMsgSeqNum(int next) throws IOException {
         cache.setNextSenderMsgSeqNum(next);
         storeSequenceNumbers();
     }
 
+    @Override
     public void setNextTargetMsgSeqNum(int next) throws IOException {
         cache.setNextTargetMsgSeqNum(next);
         storeSequenceNumbers();
@@ -288,6 +305,7 @@ class JdbcStore implements MessageStore {
         }
     }
 
+    @Override
     public void refresh() throws IOException {
         try {
             loadCache();

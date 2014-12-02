@@ -57,6 +57,7 @@ public class FIXMessageEncoder implements MessageEncoder<Object> {
         return TYPES;
     }
 
+    @Override
     public void encode(IoSession session, Object message, ProtocolEncoderOutput out)
             throws ProtocolCodecException {
         String fixMessageString;

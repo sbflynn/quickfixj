@@ -39,6 +39,11 @@ import quickfix.examples.banzai.OrderTableModel;
  */
 public class BanzaiFrame extends JFrame {
 
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
+
     public BanzaiFrame(OrderTableModel orderTableModel, ExecutionTableModel executionTableModel,
             final BanzaiApplication application) {
         super();
@@ -61,6 +66,7 @@ public class BanzaiFrame extends JFrame {
 
         JMenuItem logonItem = new JMenuItem("Logon");
         logonItem.addActionListener(new ActionListener() {
+            @Override
             public void actionPerformed(ActionEvent e) {
                 Banzai.get().logon();
             }
@@ -69,6 +75,7 @@ public class BanzaiFrame extends JFrame {
 
         JMenuItem logoffItem = new JMenuItem("Logoff");
         logoffItem.addActionListener(new ActionListener() {
+            @Override
             public void actionPerformed(ActionEvent e) {
                 Banzai.get().logout();
             }
@@ -81,6 +88,7 @@ public class BanzaiFrame extends JFrame {
         JMenuItem appAvailableItem = new JCheckBoxMenuItem("Available");
         appAvailableItem.setSelected(application.isAvailable());
         appAvailableItem.addActionListener(new ActionListener() {
+            @Override
             public void actionPerformed(ActionEvent e) {
                 application.setAvailable(((JCheckBoxMenuItem) e.getSource()).isSelected());
             }
@@ -90,6 +98,7 @@ public class BanzaiFrame extends JFrame {
         JMenuItem sendMissingFieldRejectItem = new JCheckBoxMenuItem("Send Missing Field Reject");
         sendMissingFieldRejectItem.setSelected(application.isMissingField());
         sendMissingFieldRejectItem.addActionListener(new ActionListener() {
+            @Override
             public void actionPerformed(ActionEvent e) {
                 application.setMissingField(((JCheckBoxMenuItem) e.getSource()).isSelected());
             }

@@ -19,18 +19,11 @@
 
 package quickfix;
 
-import static quickfix.FixVersions.BEGINSTRING_FIX40;
-import static quickfix.FixVersions.BEGINSTRING_FIX41;
-import static quickfix.FixVersions.BEGINSTRING_FIX42;
-import static quickfix.FixVersions.BEGINSTRING_FIX43;
-import static quickfix.FixVersions.BEGINSTRING_FIX44;
-import static quickfix.FixVersions.BEGINSTRING_FIXT11;
-import static quickfix.FixVersions.FIX50;
-import static quickfix.FixVersions.FIX50SP1;
-import static quickfix.FixVersions.FIX50SP2;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.quickfixj.FIXApplication;
+import org.quickfixj.FIXBeginString;
 
 /**
  * The default factory for creating FIX message instances.
@@ -49,15 +42,15 @@ public class DefaultMessageFactory implements MessageFactory {
     public DefaultMessageFactory() {
         // To loosen the coupling between this factory and generated code, the
         // message factories are discovered at run time using reflection
-        addFactory(BEGINSTRING_FIX40);
-        addFactory(BEGINSTRING_FIX41);
-        addFactory(BEGINSTRING_FIX42);
-        addFactory(BEGINSTRING_FIX43);
-        addFactory(BEGINSTRING_FIX44);
-        addFactory(BEGINSTRING_FIXT11);
-        addFactory(FIX50);
-        addFactory(FIX50SP1);
-        addFactory(FIX50SP2);
+        addFactory(FIXApplication.FIX40.getValue());
+        addFactory(FIXApplication.FIX41.getValue());
+        addFactory(FIXApplication.FIX42.getValue());
+        addFactory(FIXApplication.FIX43.getValue());
+        addFactory(FIXApplication.FIX44.getValue());
+        addFactory(FIXApplication.FIX50.getValue());
+        addFactory(FIXApplication.FIX50SP1.getValue());
+        addFactory(FIXApplication.FIX50SP2.getValue());
+        addFactory(FIXBeginString.FIXT11.getValue());
     }
 
     private void addFactory(String beginString) {
@@ -117,9 +110,10 @@ public class DefaultMessageFactory implements MessageFactory {
         }
     }
 
-    public Message create(String beginString, String msgType) {
+    @Override
+    public Message create(FIXBeginString beginString, String msgType) {
         MessageFactory messageFactory = messageFactories.get(beginString);
-        if (beginString.equals(BEGINSTRING_FIXT11)) {
+        if (beginString == FIXBeginString.FIXT11) {
             // The default message factory assumes that only FIX 5.0 will be
             // used with FIXT 1.1 sessions. A more flexible approach will require
             // an extension to the QF JNI API. Until then, you will need a custom
@@ -132,7 +126,7 @@ public class DefaultMessageFactory implements MessageFactory {
             // dictionary, then use a custom message factory and don't use the
             // static method used below.
             if (!MessageUtils.isAdminMessage(msgType)) {
-                messageFactory = messageFactories.get(FIX50);
+                messageFactory = messageFactories.get(FIXApplication.FIX50.getValue());
             }
         }
 
@@ -146,7 +140,9 @@ public class DefaultMessageFactory implements MessageFactory {
         return message;
     }
 
-    public Group create(String beginString, String msgType, int correspondingFieldID) {
+    @Deprecated
+    @Override
+    public Group create(FIXBeginString beginString, String msgType, int correspondingFieldID) {
         MessageFactory messageFactory = messageFactories.get(beginString);
         if (messageFactory != null) {
             return messageFactory.create(beginString, msgType, correspondingFieldID);

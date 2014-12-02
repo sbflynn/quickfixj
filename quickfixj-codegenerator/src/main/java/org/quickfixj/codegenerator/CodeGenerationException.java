@@ -23,7 +23,14 @@ package org.quickfixj.codegenerator;
  * Signals an error in the code generation software.
  */
 public class CodeGenerationException extends RuntimeException {
+
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
+
     public CodeGenerationException(Throwable cause) {
+
         super(cause);
     }
 }

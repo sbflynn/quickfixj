@@ -18,7 +18,6 @@
 package org.quickfixj.jmx.mbean.session;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -56,10 +55,12 @@ public class SessionSettingsAdmin implements DynamicMBean {
         this.settings = p;
     }
 
+    @Override
     public Object getAttribute(String attribute) {
         return settings.get(attribute);
     }
 
+    @Override
     public AttributeList getAttributes(String[] attributeNames) {
         AttributeList attributeList = new AttributeList();
         for (String attributeName : attributeNames) {
@@ -68,25 +69,31 @@ public class SessionSettingsAdmin implements DynamicMBean {
         return attributeList;
     }
 
+    @Override
     public MBeanInfo getMBeanInfo() {
         List<MBeanAttributeInfo> attributeInfos = new ArrayList<MBeanAttributeInfo>();
         for (Map.Entry<Object, Object> entry : settings.entrySet()) {
             String name = (String) entry.getKey();
-            attributeInfos.add(new MBeanAttributeInfo(name, "Setting for " + name, entry.getValue().getClass().getName(), true, false,
-                    false));
+            attributeInfos.add(new MBeanAttributeInfo(name, "Setting for " + name, entry.getValue()
+                    .getClass().getName(), true, false, false));
         }
-        return new MBeanInfo(SessionSettings.class.getName(), "Session Settings", attributeInfos
-                .toArray(new MBeanAttributeInfo[attributeInfos.size()]), null, null, null);
+        return new MBeanInfo(SessionSettings.class.getName(), "Session Settings",
+                attributeInfos.toArray(new MBeanAttributeInfo[attributeInfos.size()]), null, null,
+                null);
     }
 
-    public Object invoke(String method, Object[] arguments, String[] params) throws MBeanException, ReflectionException {
+    @Override
+    public Object invoke(String method, Object[] arguments, String[] params) throws MBeanException,
+            ReflectionException {
         return null;
     }
 
-    public void setAttribute(Attribute attribute) throws AttributeNotFoundException, InvalidAttributeValueException, MBeanException,
-            ReflectionException {
+    @Override
+    public void setAttribute(Attribute attribute) throws AttributeNotFoundException,
+            InvalidAttributeValueException, MBeanException, ReflectionException {
     }
 
+    @Override
     public AttributeList setAttributes(AttributeList attributes) {
         return null;
     }

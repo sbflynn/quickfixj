@@ -26,7 +26,10 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import quickfix.field.StringField;
+import org.quickfixj.FIXApplication;
+import org.quickfixj.FIXBeginString;
+import org.quickfixj.MessageBuilderFactory;
+import org.quickfixj.spi.MessageBuilderServiceLoader;
 
 /**
  * Factory for creating sessions. Used by the communications code (acceptors,
@@ -42,7 +45,7 @@ public class DefaultSessionFactory implements SessionFactory {
 
     private final LogFactory logFactory;
 
-    private final MessageFactory messageFactory;
+    private final MessageBuilderFactory messageFactory;
 
     public DefaultSessionFactory(Application application, MessageStoreFactory messageStoreFactory,
             LogFactory logFactory) {
@@ -50,11 +53,11 @@ public class DefaultSessionFactory implements SessionFactory {
         this.application = application;
         this.messageStoreFactory = messageStoreFactory;
         this.logFactory = logFactory;
-        this.messageFactory = new DefaultMessageFactory();
+        this.messageFactory = MessageBuilderServiceLoader.getMessageBuilderFactory();
     }
 
     public DefaultSessionFactory(Application application, MessageStoreFactory messageStoreFactory,
-            LogFactory logFactory, MessageFactory messageFactory) {
+            LogFactory logFactory, MessageBuilderFactory messageFactory) {
 
         this.application = application;
         this.messageStoreFactory = messageStoreFactory;
@@ -101,16 +104,15 @@ public class DefaultSessionFactory implements SessionFactory {
                 throw new ConfigError("AllowedRemoteAddresses cannot be used with initiator");
             }
 
-            StringField senderDefaultApplVerID = null;
+            FIXApplication senderDefaultApplVerID = null;
 
             if (sessionID.isFIXT()) {
                 if (!settings.isSetting(sessionID, Session.SETTING_DEFAULT_APPL_VER_ID)) {
                     throw new ConfigError(Session.SETTING_DEFAULT_APPL_VER_ID
                             + " is required for FIXT transport");
                 }
-                senderDefaultApplVerID = new StringField(FixTags.DEFAULT_APPL_VER_ID, toApplVerID(
-                        settings.getString(sessionID, Session.SETTING_DEFAULT_APPL_VER_ID))
-                        .getValue());
+                senderDefaultApplVerID = toApplVerID(settings.getString(sessionID,
+                        Session.SETTING_DEFAULT_APPL_VER_ID));
             }
 
             boolean useDataDictionary = true;
@@ -242,7 +244,7 @@ public class DefaultSessionFactory implements SessionFactory {
     }
 
     private DataDictionary createDataDictionary(SessionID sessionID, SessionSettings settings,
-            String settingsKey, String beginString) throws ConfigError, FieldConvertError {
+            String settingsKey, FIXBeginString beginString) throws ConfigError, FieldConvertError {
 
         final String path = getDictionaryPath(sessionID, settings, settingsKey, beginString);
         final DataDictionary dataDictionary = getDataDictionary(path);
@@ -295,7 +297,7 @@ public class DefaultSessionFactory implements SessionFactory {
             final String key = (String) keys.nextElement();
             if (key.startsWith(Session.SETTING_APP_DATA_DICTIONARY)) {
                 if (key.equals(Session.SETTING_APP_DATA_DICTIONARY)) {
-                    final StringField applVerID = toApplVerID(settings.getString(sessionID,
+                    final FIXApplication applVerID = toApplVerID(settings.getString(sessionID,
                             Session.SETTING_DEFAULT_APPL_VER_ID));
                     final DataDictionary dd = createDataDictionary(sessionID, settings,
                             Session.SETTING_APP_DATA_DICTIONARY, sessionID.getBeginString());
@@ -308,7 +310,8 @@ public class DefaultSessionFactory implements SessionFactory {
                                 + ": " + key);
                     }
 
-                    final String beginStringQualifier = key.substring(offset + 1);
+                    final FIXBeginString beginStringQualifier = FIXBeginString.parse(key
+                            .substring(offset + 1));
                     final DataDictionary dd = createDataDictionary(sessionID, settings, key,
                             beginStringQualifier);
                     dataDictionaryProvider.addApplicationDictionary(
@@ -318,23 +321,13 @@ public class DefaultSessionFactory implements SessionFactory {
         }
     }
 
-    private StringField toApplVerID(String value) {
+    private FIXApplication toApplVerID(String value) {
 
-        if (isApplVerIdEnum(value)) {
-            return new StringField(FixTags.APPL_VER_ID, value);
-        } else {
-            // value should be a beginString
-            return MessageUtils.toApplVerID(value);
-        }
-    }
-
-    private boolean isApplVerIdEnum(String value) {
-
-        return value.matches("[0-9]+");
+        return FIXApplication.parse(value);
     }
 
     private String getDictionaryPath(SessionID sessionID, SessionSettings settings,
-            String settingsKey, String beginString) throws ConfigError, FieldConvertError {
+            String settingsKey, FIXBeginString beginString) throws ConfigError, FieldConvertError {
 
         String path;
         if (settings.isSetting(sessionID, settingsKey)) {
@@ -345,9 +338,9 @@ public class DefaultSessionFactory implements SessionFactory {
         return path;
     }
 
-    private String toDictionaryPath(String beginString) {
+    private String toDictionaryPath(FIXBeginString beginString) {
 
-        return beginString.replaceAll("\\.", "") + ".xml";
+        return beginString.getValue().replaceAll("\\.", "") + ".xml";
     }
 
     private DataDictionary getDataDictionary(String path) throws ConfigError {

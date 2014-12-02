@@ -36,6 +36,7 @@ class CompositeLog implements Log {
         this.logs = logs;
     }
 
+    @Override
     public void clear() {
         for (Log log : logs) {
             try {
@@ -53,6 +54,7 @@ class CompositeLog implements Log {
         defaultLog.error(e.getMessage() + ", continuing", e);
     }
 
+    @Override
     public void onIncoming(String message) {
         for (Log log : logs) {
             try {
@@ -63,6 +65,7 @@ class CompositeLog implements Log {
         }
     }
 
+    @Override
     public void onOutgoing(String message) {
         for (Log log : logs) {
             try {
@@ -73,6 +76,7 @@ class CompositeLog implements Log {
         }
     }
 
+    @Override
     public void onEvent(String text) {
         for (Log log : logs) {
             try {
@@ -83,6 +87,7 @@ class CompositeLog implements Log {
         }
     }
 
+    @Override
     public void onErrorEvent(String text) {
         for (Log log : logs) {
             try {
@@ -97,5 +102,4 @@ class CompositeLog implements Log {
     void setRethrowExceptions(boolean flag) {
         rethrowException = flag;
     }
-
 }

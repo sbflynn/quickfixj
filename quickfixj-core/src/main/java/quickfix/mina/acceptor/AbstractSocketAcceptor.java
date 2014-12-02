@@ -30,10 +30,11 @@ import java.util.Map;
 import javax.net.ssl.SSLContext;
 
 import org.apache.mina.core.buffer.IoBuffer;
-import org.apache.mina.core.service.IoAcceptor;
 import org.apache.mina.core.buffer.SimpleBufferAllocator;
-import org.apache.mina.filter.ssl.SslFilter;
+import org.apache.mina.core.service.IoAcceptor;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
+import org.apache.mina.filter.ssl.SslFilter;
+import org.quickfixj.MessageBuilderFactory;
 
 import quickfix.Acceptor;
 import quickfix.Application;
@@ -41,7 +42,6 @@ import quickfix.ConfigError;
 import quickfix.DefaultSessionFactory;
 import quickfix.FieldConvertError;
 import quickfix.LogFactory;
-import quickfix.MessageFactory;
 import quickfix.MessageStoreFactory;
 import quickfix.RuntimeError;
 import quickfix.ScreenLogFactory;
@@ -77,14 +77,14 @@ public abstract class AbstractSocketAcceptor extends SessionConnector implements
 
     protected AbstractSocketAcceptor(Application application,
             MessageStoreFactory messageStoreFactory, SessionSettings settings,
-            MessageFactory messageFactory) throws ConfigError {
+            MessageBuilderFactory messageFactory) throws ConfigError {
         this(application, messageStoreFactory, settings, new ScreenLogFactory(settings),
                 messageFactory);
     }
 
     protected AbstractSocketAcceptor(Application application,
             MessageStoreFactory messageStoreFactory, SessionSettings settings,
-            LogFactory logFactory, MessageFactory messageFactory) throws ConfigError {
+            LogFactory logFactory, MessageBuilderFactory messageFactory) throws ConfigError {
         this(settings, new DefaultSessionFactory(application, messageStoreFactory, logFactory,
                 messageFactory));
     }
@@ -100,7 +100,8 @@ public abstract class AbstractSocketAcceptor extends SessionConnector implements
             for (AcceptorSocketDescriptor socketDescriptor : socketDescriptorForAddress.values()) {
                 address = socketDescriptor.getAddress();
                 IoAcceptor ioAcceptor = getIoAcceptor(socketDescriptor);
-                CompositeIoFilterChainBuilder ioFilterChainBuilder = new CompositeIoFilterChainBuilder(getIoFilterChainBuilder());
+                CompositeIoFilterChainBuilder ioFilterChainBuilder = new CompositeIoFilterChainBuilder(
+                        getIoFilterChainBuilder());
 
                 if (socketDescriptor.isUseSSL()) {
                     installSSL(socketDescriptor, ioFilterChainBuilder);
@@ -133,11 +134,14 @@ public abstract class AbstractSocketAcceptor extends SessionConnector implements
         ioFilterChainBuilder.addLast(SSLSupport.FILTER_NAME, sslFilter);
     }
 
-    private IoAcceptor getIoAcceptor(AcceptorSocketDescriptor socketDescriptor, boolean init) throws ConfigError {
+    private IoAcceptor getIoAcceptor(AcceptorSocketDescriptor socketDescriptor, boolean init)
+            throws ConfigError {
         int transportType = ProtocolFactory.getAddressTransportType(socketDescriptor.getAddress());
-        AcceptorSessionProvider sessionProvider = sessionProviders.get(socketDescriptor.getAddress());
+        AcceptorSessionProvider sessionProvider = sessionProviders.get(socketDescriptor
+                .getAddress());
         if (sessionProvider == null) {
-            sessionProvider = new DefaultAcceptorSessionProvider(socketDescriptor.getAcceptedSessions());
+            sessionProvider = new DefaultAcceptorSessionProvider(
+                    socketDescriptor.getAcceptedSessions());
             sessionProviders.put(socketDescriptor.getAddress(), sessionProvider);
         }
 
@@ -199,8 +203,7 @@ public abstract class AbstractSocketAcceptor extends SessionConnector implements
                 acceptHost, acceptPort);
 
         // Check for cached descriptor
-        AcceptorSocketDescriptor descriptor = socketDescriptorForAddress
-                .get(acceptorAddress);
+        AcceptorSocketDescriptor descriptor = socketDescriptorForAddress.get(acceptorAddress);
         if (descriptor != null) {
             if (descriptor.isUseSSL() && !useSSL
                     || !equals(descriptor.getKeyStoreName(), keyStoreName)
@@ -234,7 +237,8 @@ public abstract class AbstractSocketAcceptor extends SessionConnector implements
             }
 
             if (connectionType.equals(SessionFactory.ACCEPTOR_CONNECTION_TYPE)) {
-                AcceptorSocketDescriptor descriptor = getAcceptorSocketDescriptor(settings, sessionID);
+                AcceptorSocketDescriptor descriptor = getAcceptorSocketDescriptor(settings,
+                        sessionID);
                 if (!isTemplate) {
                     Session session = sessionFactory.create(sessionID, settings);
                     descriptor.acceptSession(session);
@@ -250,7 +254,7 @@ public abstract class AbstractSocketAcceptor extends SessionConnector implements
     }
 
     // XXX does this need to by synchronized?
-    protected void stopAcceptingConnections() throws ConfigError {
+    protected void stopAcceptingConnections() {
         Iterator<IoAcceptor> ioIt = ioAcceptors.values().iterator();
         while (ioIt.hasNext()) {
             IoAcceptor ioAcceptor = ioIt.next();
@@ -326,6 +330,7 @@ public abstract class AbstractSocketAcceptor extends SessionConnector implements
             this.acceptorSessions = acceptorSessions;
         }
 
+        @Override
         public Session getSession(SessionID sessionID, SessionConnector connector) {
             return acceptorSessions.get(sessionID);
         }
@@ -336,7 +341,7 @@ public abstract class AbstractSocketAcceptor extends SessionConnector implements
         return ehs == null ? 0 : ehs.getQueueSize();
     }
 
-    protected abstract EventHandlingStrategy getEventHandlingStrategy() ;
+    protected abstract EventHandlingStrategy getEventHandlingStrategy();
 
     private class DefaultAcceptorSessionProvider implements AcceptorSessionProvider {
 
@@ -346,6 +351,7 @@ public abstract class AbstractSocketAcceptor extends SessionConnector implements
             this.acceptorSessions = acceptorSessions;
         }
 
+        @Override
         public Session getSession(SessionID sessionID, SessionConnector ignored) {
             Session session = acceptorSessions.get(sessionID);
             if (session == null) {

@@ -24,97 +24,134 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.quickfixj.CharsetSupport;
+import org.quickfixj.FIXApplication;
+import org.quickfixj.FIXBeginString;
+import org.quickfixj.FIXDataDictionary;
 import org.quickfixj.FIXField;
+import org.quickfixj.FIXFieldGraph;
+import org.quickfixj.FIXGroup;
+import org.quickfixj.FIXGroupField;
+import org.quickfixj.FIXMessage;
+import org.quickfixj.MessageBuilder;
+import org.quickfixj.MessageBuilderFactory;
 import org.quickfixj.QFJException;
 
 import quickfix.Message.Header;
-import quickfix.field.StringField;
+import quickfix.field.converter.IntConverter;
 
 public class MessageUtils {
 
     private static final char FIELD_SEPARATOR = '\001';
 
+    private static final Map<FIXApplication, FIXBeginString> APPL_VER_ID_TO_BEGIN_STRING;
+
+    private static final Map<FIXBeginString, FIXApplication> BEGIN_STRING_TO_APPL_VER_ID;
+
+    static {
+
+        // populate maps with supported FIX versions
+        // No support for earlier versions of FIX
+        APPL_VER_ID_TO_BEGIN_STRING = new HashMap<FIXApplication, FIXBeginString>();
+        BEGIN_STRING_TO_APPL_VER_ID = new HashMap<FIXBeginString, FIXApplication>();
+
+        addSupportedVersion(FIXApplication.FIX40, FIXBeginString.FIX40);
+        addSupportedVersion(FIXApplication.FIX41, FIXBeginString.FIX41);
+        addSupportedVersion(FIXApplication.FIX42, FIXBeginString.FIX42);
+        addSupportedVersion(FIXApplication.FIX43, FIXBeginString.FIX43);
+        addSupportedVersion(FIXApplication.FIX44, FIXBeginString.FIX44);
+        addSupportedVersion(FIXApplication.FIX50, FIXBeginString.FIXT11);
+        addSupportedVersion(FIXApplication.FIX50SP1, FIXBeginString.FIXT11);
+        addSupportedVersion(FIXApplication.FIX50SP2, FIXBeginString.FIXT11);
+    }
+
+    private MessageUtils() {
+        //prevent construction
+    }
+
+    private static void addSupportedVersion(FIXApplication applVerID, FIXBeginString beginString) {
+        APPL_VER_ID_TO_BEGIN_STRING.put(applVerID, beginString);
+        BEGIN_STRING_TO_APPL_VER_ID.put(beginString, applVerID);
+    }
+
     public static SessionID getSessionID(Message fixMessage) {
 
         final Header header = fixMessage.getHeader();
-        return new SessionID(getFieldOrDefault(header, FixTags.BEGIN_STRING, null),
-                getFieldOrDefault(header, FixTags.SENDER_COMP_ID, null), getFieldOrDefault(header,
-                        FixTags.SENDER_SUB_ID, null), getFieldOrDefault(header,
-                        FixTags.SENDER_LOCATION_ID, null), getFieldOrDefault(header,
-                        FixTags.TARGET_COMP_ID, null), getFieldOrDefault(header,
+        return new SessionID(getBeginString(header), getFieldOrDefault(header,
+                FixTags.SENDER_COMP_ID, null), getFieldOrDefault(header, FixTags.SENDER_SUB_ID,
+                null), getFieldOrDefault(header, FixTags.SENDER_LOCATION_ID, null),
+                getFieldOrDefault(header, FixTags.TARGET_COMP_ID, null), getFieldOrDefault(header,
                         FixTags.TARGET_SUB_ID, null), getFieldOrDefault(header,
                         FixTags.TARGET_LOCATION_ID, null), null);
     }
 
     public static SessionID getSessionID(String messageString) {
 
-        return new SessionID(getStringField(messageString, FixTags.BEGIN_STRING), getStringField(
-                messageString, FixTags.SENDER_COMP_ID), getStringField(messageString,
-                FixTags.SENDER_SUB_ID), getStringField(messageString, FixTags.SENDER_LOCATION_ID),
-                getStringField(messageString, FixTags.TARGET_COMP_ID), getStringField(
-                        messageString, FixTags.TARGET_SUB_ID), getStringField(messageString,
+        return new SessionID(getBeginString(messageString), getStringField(messageString,
+                FixTags.SENDER_COMP_ID), getStringField(messageString, FixTags.SENDER_SUB_ID),
+                getStringField(messageString, FixTags.SENDER_LOCATION_ID), getStringField(
+                        messageString, FixTags.TARGET_COMP_ID), getStringField(messageString,
+                        FixTags.TARGET_SUB_ID), getStringField(messageString,
                         FixTags.TARGET_LOCATION_ID), null);
     }
 
     public static SessionID getReverseSessionID(Message fixMessage) {
 
         final Header header = fixMessage.getHeader();
-        return new SessionID(getFieldOrDefault(header, FixTags.BEGIN_STRING, null),
-                getFieldOrDefault(header, FixTags.TARGET_COMP_ID, null), getFieldOrDefault(header,
-                        FixTags.TARGET_SUB_ID, null), getFieldOrDefault(header,
-                        FixTags.TARGET_LOCATION_ID, null), getFieldOrDefault(header,
-                        FixTags.SENDER_COMP_ID, null), getFieldOrDefault(header,
+        return new SessionID(getBeginString(header), getFieldOrDefault(header,
+                FixTags.TARGET_COMP_ID, null), getFieldOrDefault(header, FixTags.TARGET_SUB_ID,
+                null), getFieldOrDefault(header, FixTags.TARGET_LOCATION_ID, null),
+                getFieldOrDefault(header, FixTags.SENDER_COMP_ID, null), getFieldOrDefault(header,
                         FixTags.SENDER_SUB_ID, null), getFieldOrDefault(header,
                         FixTags.SENDER_LOCATION_ID, null), null);
     }
 
     public static SessionID getReverseSessionID(String messageString) {
 
-        return new SessionID(getStringField(messageString, FixTags.BEGIN_STRING), getStringField(
-                messageString, FixTags.TARGET_COMP_ID), getStringField(messageString,
-                FixTags.TARGET_SUB_ID), getStringField(messageString, FixTags.TARGET_LOCATION_ID),
-                getStringField(messageString, FixTags.SENDER_COMP_ID), getStringField(
-                        messageString, FixTags.SENDER_SUB_ID), getStringField(messageString,
+        return new SessionID(getBeginString(messageString), getStringField(messageString,
+                FixTags.TARGET_COMP_ID), getStringField(messageString, FixTags.TARGET_SUB_ID),
+                getStringField(messageString, FixTags.TARGET_LOCATION_ID), getStringField(
+                        messageString, FixTags.SENDER_COMP_ID), getStringField(messageString,
+                        FixTags.SENDER_SUB_ID), getStringField(messageString,
                         FixTags.SENDER_LOCATION_ID), null);
     }
 
     private static String getFieldOrDefault(FieldMap fields, int tag, String defaultValue) {
 
-        if (fields.isSetField(tag)) {
+        if (fields.isFieldSet(tag)) {
             try {
                 return fields.getString(tag);
             } catch (final FieldNotFound e) {
                 // ignore, should never happen
                 return null;
             }
-        } else {
-            return defaultValue;
         }
+
+        return defaultValue;
     }
 
-    /**
-     * Utility method for parsing a mesasge. This should only be used for
-     * parsing messages from FIX versions 4.4 or earlier.
-     *
-     * @param messageFactory
-     * @param dataDictionary
-     * @param messageString
-     * @return the parsed message
-     * @throws InvalidMessage
-     */
-    public static Message parse(MessageFactory messageFactory, DataDictionary dataDictionary,
-            String messageString) throws InvalidMessage {
-
-        final int index = messageString.indexOf(FIELD_SEPARATOR);
-        if (index < 0) {
-            throw new InvalidMessage("Message does not contain any field separator");
-        }
-        final String beginString = messageString.substring(2, index);
-        final String messageType = getMessageType(messageString);
-        final quickfix.Message message = messageFactory.create(beginString, messageType);
-        message.fromString(messageString, dataDictionary, dataDictionary != null);
-        return message;
-    }
+    //    /**
+    //     * Utility method for parsing a mesasge. This should only be used for
+    //     * parsing messages from FIX versions 4.4 or earlier.
+    //     *
+    //     * @param messageFactory
+    //     * @param dataDictionary
+    //     * @param messageString
+    //     * @return the parsed message
+    //     * @throws InvalidMessage
+    //     */
+    //    public static Message parse(MessageFactory messageFactory, DataDictionary dataDictionary,
+    //            String messageString) throws InvalidMessage {
+    //
+    //        final int index = messageString.indexOf(FIELD_SEPARATOR);
+    //        if (index < 0) {
+    //            throw new InvalidMessage("Message does not contain any field separator");
+    //        }
+    //        final String beginString = messageString.substring(2, index);
+    //        final String messageType = getMessageType(messageString);
+    //        final quickfix.Message message = messageFactory.create(beginString, messageType);
+    //        message.fromString(messageString, dataDictionary, dataDictionary != null);
+    //        return message;
+    //    }
 
     /**
      * NOTE: This method is intended for internal use.
@@ -126,18 +163,18 @@ public class MessageUtils {
      */
     public static Message parse(Session session, String messageString) throws InvalidMessage {
 
-        final String beginString = getStringField(messageString, FixTags.BEGIN_STRING);
+        final FIXBeginString beginString = getBeginString(messageString);
         final String msgType = getMessageType(messageString);
 
-        StringField applVerID;
+        FIXApplication applVerID;
 
-        if (FixVersions.BEGINSTRING_FIXT11.equals(beginString)) {
+        if (FIXBeginString.FIXT11 == beginString) {
             applVerID = getApplVerID(session, messageString);
         } else {
             applVerID = toApplVerID(beginString);
         }
 
-        final MessageFactory messageFactory = session.getMessageFactory();
+        final MessageBuilderFactory messageFactory = session.getMessageFactory();
 
         final DataDictionaryProvider ddProvider = session.getDataDictionaryProvider();
         final DataDictionary sessionDataDictionary = ddProvider == null ? null : ddProvider
@@ -145,25 +182,51 @@ public class MessageUtils {
         final DataDictionary applicationDataDictionary = ddProvider == null ? null : ddProvider
                 .getApplicationDataDictionary(applVerID);
 
-        final quickfix.Message message = messageFactory.create(beginString, msgType);
+        MessageBuilder builder = messageFactory.getMessageBuilder(beginString, applVerID, msgType);
+
+        //       final quickfix.Message message = messageFactory.create(beginString, msgType);
         final DataDictionary payloadDictionary = MessageUtils.isAdminMessage(msgType)
                 ? sessionDataDictionary
                 : applicationDataDictionary;
 
-        message.parse(messageString, sessionDataDictionary, payloadDictionary,
-                payloadDictionary != null);
+        Parser parser = new Parser(builder, messageString);
 
-        return message;
+        return parser.parse(sessionDataDictionary, payloadDictionary, payloadDictionary != null);
     }
 
-    private static StringField getApplVerID(Session session, String messageString)
+    public static Message parse(Message message, String messageData, DataDictionary dd,
+            boolean doValidation) throws InvalidMessage {
+
+        MessageBuilder builder = new DefaultMessageBuilder();
+
+        Parser parser = new Parser(builder, messageData, message);
+
+        return parser.parse(dd, dd, doValidation);
+    }
+
+    public static Message parse(Message message, String messageData,
+            DataDictionary sessionDictionary, DataDictionary applicationDictionary,
+            boolean doValidation) throws InvalidMessage {
+
+        if (sessionDictionary.isAdminMessage(MessageUtils.getMessageType(messageData))) {
+            applicationDictionary = sessionDictionary;
+        }
+
+        MessageBuilder builder = new DefaultMessageBuilder();
+
+        Parser parser = new Parser(builder, messageData, message);
+
+        return parser.parse(sessionDictionary, applicationDictionary, doValidation);
+    }
+
+    private static FIXApplication getApplVerID(Session session, String messageString)
             throws InvalidMessage {
 
-        StringField applVerID = null;
+        FIXApplication applVerID = null;
 
         final String applVerIdString = getStringField(messageString, FixTags.APPL_VER_ID);
         if (applVerIdString != null) {
-            applVerID = new StringField(FixTags.APPL_VER_ID, applVerIdString);
+            applVerID = FIXApplication.parseId(applVerIdString);
         }
 
         if (applVerID == null) {
@@ -174,7 +237,7 @@ public class MessageUtils {
             final String defaultApplVerIdString = getStringField(messageString,
                     FixTags.DEFAULT_APPL_VER_ID);
             if (defaultApplVerIdString != null) {
-                applVerID = new StringField(FixTags.APPL_VER_ID, defaultApplVerIdString);
+                applVerID = FIXApplication.parseId(defaultApplVerIdString);
             }
         }
 
@@ -218,6 +281,20 @@ public class MessageUtils {
         return value;
     }
 
+    public static FIXBeginString getBeginString(String messageString) {
+
+        String value = getStringField(messageString, FixTags.BEGIN_STRING);
+
+        return FIXBeginString.parse(value);
+    }
+
+    public static FIXBeginString getBeginString(Header header) {
+
+        String value = getFieldOrDefault(header, FixTags.BEGIN_STRING, null);
+
+        return FIXBeginString.parse(value);
+    }
+
     public static String getStringField(String messageString, int tag) {
 
         String value = null;
@@ -245,72 +322,32 @@ public class MessageUtils {
         return value;
     }
 
-    private static Map<String, String> applVerIDtoBeginString = new HashMap<String, String>() {
-
-        {
-            // No support for earlier versions of FIX
-            put(FixVersions.APPL_VER_ID_FIX40, FixVersions.BEGINSTRING_FIX40);
-            put(FixVersions.APPL_VER_ID_FIX41, FixVersions.BEGINSTRING_FIX41);
-            put(FixVersions.APPL_VER_ID_FIX42, FixVersions.BEGINSTRING_FIX42);
-            put(FixVersions.APPL_VER_ID_FIX43, FixVersions.BEGINSTRING_FIX43);
-            put(FixVersions.APPL_VER_ID_FIX44, FixVersions.BEGINSTRING_FIX44);
-            put(FixVersions.APPL_VER_ID_FIX50, FixVersions.FIX50);
-            put(FixVersions.APPL_VER_ID_FIX50SP1, FixVersions.FIX50SP1);
-            put(FixVersions.APPL_VER_ID_FIX50SP2, FixVersions.FIX50SP2);
-        }
-    };
-
     /**
-     * Convert an ApplVerID to a "begin string"
+     * Convert an Appl Ver ID to a "begin string"
      *
-     * @param applVerID
-     * @return the begin string for the specified ApplVerID.
+     * @param appl Ver ID
+     * @return the begin string for the specified Appl Ver ID.
      * @throws QFJException if conversion fails.
-     * @see ApplVerID
      */
-    public static String toBeginString(FIXField<?> applVerID) throws QFJException {
+    public static FIXBeginString toBeginString(FIXApplication applVerID) throws QFJException {
 
-        final String beginString = applVerIDtoBeginString.get(applVerID.getCharacters());
+        final FIXBeginString beginString = APPL_VER_ID_TO_BEGIN_STRING.get(applVerID);
         if (beginString == null) {
-            throw new QFJException("Unknown or unsupported ApplVerID: " + applVerID.getCharacters());
+            throw new QFJException("Unknown or unsupported ApplVerID: " + applVerID);
         }
         return beginString;
     }
 
-    private static Map<String, StringField> beginStringToApplVerID = new HashMap<String, StringField>() {
-
-        {
-            // No support for earlier versions of FIX
-            put(FixVersions.BEGINSTRING_FIX40, new StringField(FixTags.APPL_VER_ID,
-                    FixVersions.APPL_VER_ID_FIX40));
-            put(FixVersions.BEGINSTRING_FIX41, new StringField(FixTags.APPL_VER_ID,
-                    FixVersions.APPL_VER_ID_FIX41));
-            put(FixVersions.BEGINSTRING_FIX42, new StringField(FixTags.APPL_VER_ID,
-                    FixVersions.APPL_VER_ID_FIX42));
-            put(FixVersions.BEGINSTRING_FIX43, new StringField(FixTags.APPL_VER_ID,
-                    FixVersions.APPL_VER_ID_FIX43));
-            put(FixVersions.BEGINSTRING_FIX44, new StringField(FixTags.APPL_VER_ID,
-                    FixVersions.APPL_VER_ID_FIX44));
-            put(FixVersions.FIX50, new StringField(FixTags.APPL_VER_ID,
-                    FixVersions.APPL_VER_ID_FIX50));
-            put(FixVersions.FIX50SP1, new StringField(FixTags.APPL_VER_ID,
-                    FixVersions.APPL_VER_ID_FIX50SP1));
-            put(FixVersions.FIX50SP2, new StringField(FixTags.APPL_VER_ID,
-                    FixVersions.APPL_VER_ID_FIX50SP2));
-        }
-    };
-
     /**
-     * Convert a begin string to an ApplVerID
+     * Convert a begin string to a valid 'Appl Ver ID' value.
      *
      * @param beginString
-     * @return the ApplVerID for the specified begin string.
+     * @return the 'Appl Ver ID' for the specified begin string.
      * @throws QFJException if conversion fails.
-     * @see FixVersions
      */
-    public static StringField toApplVerID(String beginString) throws QFJException {
+    public static FIXApplication toApplVerID(FIXBeginString beginString) throws QFJException {
 
-        final StringField applVerID = beginStringToApplVerID.get(beginString);
+        final FIXApplication applVerID = BEGIN_STRING_TO_APPL_VER_ID.get(beginString);
         if (applVerID == null) {
             throw new QFJException("Can't convert to ApplVerID: " + beginString);
         }
@@ -377,5 +414,488 @@ public class MessageUtils {
         return CharsetSupport.isStringEquivalent(charset)
                 ? data.length()
                 : data.getBytes(charset).length;
+    }
+
+    private static class Parser {
+
+        private final MessageBuilder builder;
+        private final String messageData;
+        private final FIXMessage message;
+
+        private int position;
+        private FIXField<?> pushedBackField;
+
+        Parser(MessageBuilder builder, String messageData) {
+            this(builder, messageData, builder.create());
+        }
+
+        Parser(MessageBuilder builder, String messageData, FIXMessage message) {
+            this.builder = builder;
+            this.messageData = messageData;
+            this.message = message;
+        }
+
+        public Message parse(DataDictionary sessionDataDictionary,
+                DataDictionary applicationDataDictionary, boolean doValidation)
+                throws InvalidMessage {
+
+            try {
+                parseHeader(sessionDataDictionary, doValidation);
+                parseBody(applicationDataDictionary, doValidation);
+                parseTrailer(sessionDataDictionary);
+                if (doValidation) {
+                    validateCheckSum(messageData);
+                }
+            } catch (final FieldException e) {
+                // TODO - shouldn't really be storing exceptions
+                ((Message) message).setException(e);
+            }
+
+            return (Message) message;
+        }
+
+        private void parseHeader(DataDictionary dd, boolean doValidation) throws InvalidMessage {
+
+            if (doValidation) {
+                final boolean validHeaderFieldOrder = isNextField(dd, message.getHeader(),
+                        FixTags.BEGIN_STRING)
+                        && isNextField(dd, message.getHeader(), FixTags.BODY_LENGTH)
+                        && isNextField(dd, message.getHeader(), FixTags.MSG_TYPE);
+                if (!validHeaderFieldOrder) {
+                    // Invalid message preamble (first three fields) is a serious
+                    // condition and is handled differently from other message
+                    // parsing errors.
+                    throw new InvalidMessage("Header fields out of order in " + messageData);
+                }
+            }
+
+            FIXField<?> field = extractField(DataDictionary.HEADER_ID, dd, message.getHeader());
+
+            while (field != null && isHeaderField(field, dd)) {
+                message.getHeader().setField(field);
+
+                if (dd != null && dd.isGroup(DataDictionary.HEADER_ID, field.getTag())) {
+                    parseGroup(DataDictionary.HEADER_ID, field, dd, (Header) message.getHeader());
+                }
+
+                field = extractField(null, dd, message.getHeader());
+            }
+            pushBack(field);
+        }
+
+        private void parseBody(DataDictionary dd, boolean doValidation) throws InvalidMessage {
+
+            FIXField<?> field = extractField(message.getMsgType(), dd, message);
+
+            while (field != null) {
+                if (isTrailerField(field.getTag())) {
+                    pushBack(field);
+                    return;
+                }
+
+                if (isHeaderField(field)) {
+                    // An acceptance test requires the sequence number to
+                    // be available even if the related field is out of order
+                    setField(message.getHeader(), field);
+                    // Group case
+                    if (dd != null && dd.isGroup(DataDictionary.HEADER_ID, field.getTag())) {
+                        parseGroup(DataDictionary.HEADER_ID, field, dd,
+                                (FieldMap) message.getHeader());
+                    }
+                    if (doValidation && dd != null && dd.isCheckFieldsOutOfOrder())
+                        throw new FieldException(
+                                SessionRejectReasonText.TAG_SPECIFIED_OUT_OF_REQUIRED_ORDER,
+                                field.getTag());
+                } else {
+                    setField(message, field);
+                    // Group case
+                    if (dd != null && dd.isGroup(message.getMsgType(), field.getTag())) {
+                        parseGroup(message.getMsgType(), field, dd, (FieldMap) message);
+                    }
+                }
+
+                field = extractField(message.getMsgType(), dd, message);
+            }
+        }
+
+        private void parseTrailer(DataDictionary dd) throws InvalidMessage {
+
+            FIXField<?> field = extractField(null, dd, message.getTrailer());
+            while (field != null) {
+                if (!isTrailerField(field, dd)) {
+                    throw new FieldException(
+                            SessionRejectReasonText.TAG_SPECIFIED_OUT_OF_REQUIRED_ORDER,
+                            field.getTag());
+                }
+                setField(message.getTrailer(), field);
+                field = extractField(null, dd, message.getTrailer());
+            }
+        }
+
+        private void setField(FIXFieldGraph fields, FIXField<?> field) {
+
+            if (fields.isFieldSet(field.getTag())) {
+                throw new FieldException(SessionRejectReasonText.TAG_APPEARS_MORE_THAN_ONCE,
+                        field.getTag());
+            }
+            fields.setField(field);
+        }
+
+        private boolean isNextField(DataDictionary dd, FIXFieldGraph fields, int tag)
+                throws InvalidMessage {
+
+            final FIXField<?> field = extractField(null, dd, message.getHeader());
+            if (field == null || field.getTag() != tag) {
+                return false;
+            }
+            fields.setField(field);
+            return true;
+        }
+
+        private FIXField<?> extractField(String msgType, FIXDataDictionary dataDictionary,
+                FIXFieldGraph fields) throws InvalidMessage {
+
+            if (pushedBackField != null) {
+                final FIXField<?> f = pushedBackField;
+                pushedBackField = null;
+                return f;
+            }
+
+            if (position >= messageData.length()) {
+                return null;
+            }
+
+            final int equalsOffset = messageData.indexOf('=', position);
+            if (equalsOffset == -1) {
+                throw new InvalidMessage("Equal sign not found in field" + " in " + messageData);
+            }
+
+            int tag;
+            try {
+                tag = Integer.parseInt(messageData.substring(position, equalsOffset));
+            } catch (final NumberFormatException e) {
+                position = messageData.indexOf('\001', position + 1) + 1;
+                throw new InvalidMessage("Bad tag format: " + e.getMessage() + " in " + messageData);
+            }
+
+            int sohOffset = messageData.indexOf('\001', equalsOffset + 1);
+            if (sohOffset == -1) {
+                throw new InvalidMessage("SOH not found at end of field: " + tag + " in "
+                        + messageData);
+            }
+
+            if (dataDictionary != null && dataDictionary.isDataField(tag)) {
+                /* Assume length field is 1 less. */
+                int lengthField = tag - 1;
+                /* Special case for Signature which violates above assumption. */
+                if (tag == 89) {
+                    lengthField = 93;
+                }
+                int fieldLength;
+                try {
+                    fieldLength = getInt(fields, lengthField);
+                } catch (final FieldNotFound e) {
+                    throw new InvalidMessage("Tag " + e.field + " not found in " + messageData);
+                }
+
+                // since length is in bytes but data is a string, and it may also
+                // contain an SOH,
+                // we find the real field-ending SOH by checking the encoded bytes
+                // length
+                // (we avoid re-encoding when the chars length equals the bytes
+                // length, e.g. ASCII text,
+                // by assuming the chars length is always smaller than the encoded
+                // bytes length)
+                while (sohOffset - equalsOffset - 1 < fieldLength
+                        && messageData.substring(equalsOffset + 1, sohOffset).getBytes(
+                                CharsetSupport.getCharsetInstance()).length < fieldLength) {
+                    sohOffset = messageData.indexOf('\001', sohOffset + 1);
+                    if (sohOffset == -1) {
+                        throw new InvalidMessage("SOH not found at end of field: " + tag + " in "
+                                + messageData);
+                    }
+                }
+            }
+
+            position = sohOffset + 1;
+
+            if (dataDictionary != null) {
+
+                return dataDictionary.produceField(builder, msgType, tag, messageData,
+                        equalsOffset + 1, sohOffset);
+            }
+
+            return builder.create(tag, messageData.subSequence(equalsOffset + 1, sohOffset));
+        }
+
+        private void pushBack(FIXField<?> field) {
+
+            pushedBackField = field;
+        }
+
+        private boolean isHeaderField(FIXField<?> field, DataDictionary dd) {
+
+            return isHeaderField(field) || (dd != null && dd.isHeaderField(field.getTag()));
+        }
+
+        @Deprecated
+        private boolean isHeaderField(FIXField<?> field) {
+            return isHeaderField(field.getTag());
+        }
+
+        @Deprecated
+        private boolean isHeaderField(int tag) {
+
+            switch (tag) {
+            case FixTags.BEGIN_STRING:
+            case FixTags.BODY_LENGTH:
+            case FixTags.MSG_TYPE:
+            case FixTags.SENDER_COMP_ID:
+            case FixTags.TARGET_COMP_ID:
+            case FixTags.ON_BEHALF_OF_COMP_ID:
+            case FixTags.DELIVER_TO_COMP_ID:
+            case FixTags.SECURE_DATA_LENGTH:
+            case FixTags.SECURE_DATA:
+            case FixTags.MSG_SEQ_NUM:
+            case FixTags.SENDER_SUB_ID:
+            case FixTags.SENDER_LOCATION_ID:
+            case FixTags.TARGET_SUB_ID:
+            case FixTags.TARGET_LOCATION_ID:
+            case FixTags.ON_BEHALF_OF_SUB_ID:
+            case FixTags.ON_BEHALF_OF_LOCATION_ID:
+                //       case OnBehalfOfSendingTime.TAG:
+            case FixTags.DELIVER_TO_SUB_ID:
+            case FixTags.DELIVER_TO_LOCATION_ID:
+            case FixTags.POSS_DUP_FLAG:
+            case FixTags.POSS_RESEND:
+            case FixTags.SENDING_TIME:
+            case FixTags.ORIG_SENDING_TIME:
+            case FixTags.XML_DATA_LENGTH:
+            case FixTags.XML_DATA:
+            case FixTags.MESSAGE_ENCODING:
+            case FixTags.LAST_MSG_SEQ_NUM_PROCESSED:
+            case FixTags.APPL_VER_ID:
+            case FixTags.CSTM_APPL_VER_ID:
+            case FixTags.NO_HOPS:
+                return true;
+            default:
+                return false;
+            }
+        }
+
+        private boolean isTrailerField(FIXField<?> field, DataDictionary dd) {
+
+            return isTrailerField(field.getTag())
+                    || (dd != null && dd.isTrailerField(field.getTag()));
+        }
+
+        private boolean isTrailerField(int field) {
+
+            switch (field) {
+            case FixTags.SIGNATURE_LENGTH:
+            case FixTags.SIGNATURE:
+            case FixTags.CHECK_SUM:
+                return true;
+            default:
+                return false;
+            }
+        }
+
+        private void parseGroup(String msgType, FIXField<?> field, DataDictionary dd,
+                FieldMap parent) throws InvalidMessage {
+
+            final DataDictionary.GroupInfo rg = dd.getGroup(msgType, field.getTag());
+            final DataDictionary groupDataDictionary = rg.getDataDictionary();
+            final int[] fieldOrder = groupDataDictionary.getOrderedFields();
+            int previousOffset = -1;
+            final int groupCountTag = field.getTag();
+            final int declaredGroupCount = Integer.parseInt(field.getCharacters().toString());
+            parent.setField(groupCountTag, field);
+            final int firstField = rg.getDelimiterField();
+            boolean firstFieldFound = false;
+            Group group = null;
+            boolean inGroupParse = true;
+            while (inGroupParse) {
+                field = extractField(msgType, dd, group != null ? group : parent);
+                if (field == null) {
+                    // QFJ-760: stop parsing since current position is greater than
+                    // message length
+                    break;
+                }
+                int tag = field.getTag();
+                if (tag == firstField) {
+                    if (group != null) {
+                        parent.addGroup(group);
+                    }
+                    group = new Group(groupCountTag, firstField,
+                            groupDataDictionary.getOrderedFields());
+                    group.setField(field);
+                    firstFieldFound = true;
+                    previousOffset = -1;
+                    // QFJ-742
+                    if (groupDataDictionary.isGroup(msgType, tag)) {
+                        parseGroup(msgType, field, groupDataDictionary, group);
+                    }
+                } else if (groupDataDictionary.isGroup(msgType, tag)) {
+                    if (!firstFieldFound) {
+                        throw new InvalidMessage("The group " + groupCountTag
+                                + " must set the delimiter field " + firstField + " in "
+                                + messageData);
+                    }
+                    parseGroup(msgType, field, groupDataDictionary, group);
+                } else if (groupDataDictionary.isField(tag)) {
+                    if (!firstFieldFound) {
+                        throw new FieldException(
+                                SessionRejectReasonText.REPEATING_GROUP_FIELDS_OUT_OF_ORDER, tag);
+                    }
+
+                    if (fieldOrder != null && dd.isCheckUnorderedGroupFields()) {
+                        final int offset = indexOf(tag, fieldOrder);
+                        if (offset > -1) {
+                            if (offset <= previousOffset) {
+                                throw new FieldException(
+                                        SessionRejectReasonText.REPEATING_GROUP_FIELDS_OUT_OF_ORDER,
+                                        tag);
+                            }
+                            previousOffset = offset;
+                        }
+                    }
+                    group.setField(field);
+                } else {
+                    pushBack(field);
+                    inGroupParse = false;
+                }
+            }
+            // add what we've already got and leave the rest to the validation (if
+            // enabled)
+            if (group != null) {
+                parent.addGroup(group);
+            }
+            // For later validation that the group size matches the parsed group
+            // count
+            parent.setGroupCount(groupCountTag, declaredGroupCount);
+        }
+
+        private int indexOf(int field, int[] fieldOrder) {
+
+            if (fieldOrder != null) {
+                for (int i = 0; i < fieldOrder.length; i++) {
+                    if (field == fieldOrder[i]) {
+                        return i;
+                    }
+                }
+            }
+            return -1;
+        }
+
+        private void validateCheckSum(String messageData) throws InvalidMessage {
+
+            try {
+                // Body length is checked at the protocol layer
+                final int checksum = getInt(message.getTrailer(), FixTags.CHECK_SUM);
+                if (checksum != MessageUtils.checksum(messageData)) {
+                    // message will be ignored if checksum is wrong or missing
+                    throw new InvalidMessage("Expected CheckSum="
+                            + MessageUtils.checksum(messageData) + ", Received CheckSum="
+                            + checksum + " in " + messageData);
+                }
+            } catch (final FieldNotFound e) {
+                throw new InvalidMessage("Field not found: " + e.field + " in " + messageData);
+            }
+        }
+
+        private int getInt(FIXFieldGraph graph, int tag) throws FieldNotFound {
+
+            try {
+                return IntConverter.convert(graph.getField(tag).getCharacters().toString());
+            } catch (final FieldConvertError e) {
+
+                throw new FieldException(SessionRejectReasonText.INCORRECT_DATA_FORMAT_FOR_VALUE,
+                        e.getMessage(), tag);
+            }
+        }
+    }
+
+    private static class DefaultMessageBuilder implements MessageBuilder {
+
+        /**
+         * {@inheritDoc}
+         *
+         * @since 2.0
+         */
+        @Override
+        public FIXBeginString getBeginString() {
+            throw new UnsupportedOperationException();
+        }
+
+        /**
+         * {@inheritDoc}
+         *
+         * @since 2.0
+         */
+        @Override
+        public FIXApplication getApplication() {
+            throw new UnsupportedOperationException();
+        }
+
+        /**
+         * {@inheritDoc}
+         *
+         * @since 2.0
+         */
+        @Override
+        public String getMsgType() {
+            throw new UnsupportedOperationException();
+        }
+
+        /**
+         * {@inheritDoc}
+         *
+         * @since 2.0
+         */
+        @Override
+        public Message create() {
+            throw new UnsupportedOperationException();
+        }
+
+        /**
+         * {@inheritDoc}
+         *
+         * @since 2.0
+         */
+        @Override
+        public FIXField<?> create(int tag, CharSequence chars) {
+            return new StringField(tag, chars.toString());
+        }
+
+        /**
+         * {@inheritDoc}
+         *
+         * @since 2.0
+         */
+        @Override
+        public <T extends FIXGroup> GroupBuilder<T> create(FIXGroupField<T> groupField) {
+            throw new UnsupportedOperationException();
+        }
+
+        /**
+         * {@inheritDoc}
+         *
+         * @since 2.0
+         */
+        @Override
+        public Map<Integer, FieldBuilder> getFieldBuilders() {
+            throw new UnsupportedOperationException();
+        }
+
+        /**
+         * {@inheritDoc}
+         *
+         * @since 2.0
+         */
+        @Override
+        public Map<Integer, GroupBuilder<?>> getGroupBuilders() {
+            throw new UnsupportedOperationException();
+        }
     }
 }

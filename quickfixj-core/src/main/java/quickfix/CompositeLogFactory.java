@@ -45,6 +45,7 @@ public class CompositeLogFactory implements LogFactory {
      * @return the composite log
      * @see SessionFactory
      */
+    @Override
     public Log create(SessionID sessionID) {
         Log[] logs = new Log[logFactories.length];
         for (int i = 0; i < logFactories.length; i++) {
@@ -57,9 +58,4 @@ public class CompositeLogFactory implements LogFactory {
         }
         return new CompositeLog(logs);
     }
-
-    public Log create() {
-        throw new UnsupportedOperationException();
-    }
-
 }

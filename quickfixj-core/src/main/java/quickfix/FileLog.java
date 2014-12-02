@@ -57,7 +57,9 @@ public class FileLog extends AbstractLog {
     private boolean includeMillis;
     private boolean includeTimestampForMessages;
 
-    FileLog(String path, SessionID sessionID, boolean includeMillis, boolean includeTimestampForMessages, boolean logHeartbeats) throws FileNotFoundException {
+    FileLog(String path, SessionID sessionID, boolean includeMillis,
+            boolean includeTimestampForMessages, boolean logHeartbeats)
+            throws FileNotFoundException {
         String sessionName = FileUtil.sessionIdFileName(sessionID);
 
         setLogHeartbeats(logHeartbeats);
@@ -82,10 +84,12 @@ public class FileLog extends AbstractLog {
         events = new FileOutputStream(eventFileName, append);
     }
 
+    @Override
     protected void logIncoming(String message) {
         writeMessage(messages, message, false);
     }
 
+    @Override
     protected void logOutgoing(String message) {
         writeMessage(messages, message, false);
     }
@@ -109,10 +113,12 @@ public class FileLog extends AbstractLog {
         }
     }
 
+    @Override
     public void onEvent(String message) {
         writeMessage(events, message, true);
     }
 
+    @Override
     public void onErrorEvent(String message) {
         writeMessage(events, message, true);
     }
@@ -141,6 +147,7 @@ public class FileLog extends AbstractLog {
      * @deprecated Use close instead.
      * @throws IOException
      */
+    @Deprecated
     public void closeFiles() throws IOException {
         close();
     }
@@ -160,6 +167,7 @@ public class FileLog extends AbstractLog {
      * Deletes the log files. Do not perform any log operations while performing
      * this operation.
      */
+    @Override
     public void clear() {
         try {
             close();

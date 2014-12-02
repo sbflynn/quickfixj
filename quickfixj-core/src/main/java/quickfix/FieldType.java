@@ -26,6 +26,7 @@ import java.util.HashMap;
 /**
  * A field type enum class.
  */
+@Deprecated
 public class FieldType {
     private int ordinal;
     private String name;

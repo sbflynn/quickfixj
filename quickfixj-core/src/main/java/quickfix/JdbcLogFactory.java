@@ -33,6 +33,7 @@ public class JdbcLogFactory implements LogFactory {
      *
      * @param sessionID the sessionID for the message store.
      */
+    @Override
     public Log create(SessionID sessionID) {
         try {
             return new JdbcLog(settings, sessionID, dataSource);
@@ -55,10 +56,6 @@ public class JdbcLogFactory implements LogFactory {
      */
     protected SessionSettings getSettings() {
         return settings;
-    }
-
-    public Log create() {
-        throw new UnsupportedOperationException();
     }
 
     /**

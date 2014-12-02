@@ -54,7 +54,7 @@ public class DecimalConverter {
      * @return the parsed BigDecimal
      * @throws FieldConvertError if the String is not a valid decimal pattern.
      */
-    public static BigDecimal convert(String value) throws FieldConvertError {
+    public static BigDecimal convert(String value) {
         try {
             return new BigDecimal(value);
         } catch (NumberFormatException e) {

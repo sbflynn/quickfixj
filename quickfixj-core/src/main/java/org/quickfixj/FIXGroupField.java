@@ -4,7 +4,7 @@
  * This software is the proprietary information of JF Technology (UK) Ltd.
  * Use is subject to license terms.
  *
- * Created on 19 Nov 2014 by stephen.flynn@jftechnology.com.
+ * Created on 28 Nov 2014 by stephen.flynn@jftechnology.com.
  */
 package org.quickfixj;
 
@@ -17,6 +17,8 @@ import java.util.List;
  * @since 2.0
  */
 public interface FIXGroupField<T extends FIXGroup> extends FIXField<Integer> {
+
+    int getDelimiterField();
 
     List<T> getGroups();
 

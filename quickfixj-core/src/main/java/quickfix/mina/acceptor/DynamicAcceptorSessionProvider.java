@@ -19,20 +19,28 @@
 
 package quickfix.mina.acceptor;
 
-import static quickfix.SessionSettings.*;
+import static quickfix.SessionSettings.BEGINSTRING;
+import static quickfix.SessionSettings.SENDERCOMPID;
+import static quickfix.SessionSettings.SENDERLOCID;
+import static quickfix.SessionSettings.SENDERSUBID;
+import static quickfix.SessionSettings.TARGETCOMPID;
+import static quickfix.SessionSettings.TARGETLOCID;
+import static quickfix.SessionSettings.TARGETSUBID;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.quickfixj.FIXBeginString;
+import org.quickfixj.MessageBuilderFactory;
 import org.quickfixj.QFJException;
 
 import quickfix.ConfigError;
 import quickfix.DefaultSessionFactory;
 import quickfix.LogFactory;
-import quickfix.MessageFactory;
 import quickfix.MessageStoreFactory;
 import quickfix.Session;
 import quickfix.SessionFactory;
@@ -50,8 +58,7 @@ import quickfix.mina.SessionConnector;
  */
 public class DynamicAcceptorSessionProvider implements AcceptorSessionProvider {
     public static final String WILDCARD = "*";
-    private static final SessionID ANY_SESSION = new SessionID(WILDCARD, WILDCARD, WILDCARD,
-            WILDCARD, WILDCARD, WILDCARD, WILDCARD, null);
+    private static final TemplatePattern ANY_SESSION = new TemplatePattern();
 
     private final List<TemplateMapping> templateMappings;
     protected final SessionSettings settings;
@@ -61,16 +68,16 @@ public class DynamicAcceptorSessionProvider implements AcceptorSessionProvider {
      * Mapping from a sessionID pattern to a session template ID.
      */
     public static class TemplateMapping {
-        private final SessionID pattern;
+        private final TemplatePattern pattern;
         private final SessionID templateID;
 
-        public TemplateMapping(SessionID pattern, SessionID templateID) {
+        public TemplateMapping(TemplatePattern pattern, SessionID templateID) {
             super();
             this.pattern = pattern;
             this.templateID = templateID;
         }
 
-        public SessionID getPattern() {
+        public TemplatePattern getPattern() {
             return pattern;
         }
 
@@ -81,6 +88,74 @@ public class DynamicAcceptorSessionProvider implements AcceptorSessionProvider {
         @Override
         public String toString() {
             return "<" + pattern + "," + templateID + ">";
+        }
+    }
+
+    /**
+     * Mapping from a sessionID pattern to a session template ID.
+     */
+    public static class TemplatePattern {
+        private final Collection<FIXBeginString> allowedBeginStrings;
+        private final String senderCompID;
+        private final String senderSubID;
+        private final String senderLocationID;
+        private final String targetCompID;
+        private final String targetSubID;
+        private final String targetLocationID;
+        private final String sessionQualifier;
+
+        public TemplatePattern() {
+            this.allowedBeginStrings = Arrays.asList(FIXBeginString.values());
+            this.senderCompID = WILDCARD;
+            this.senderSubID = WILDCARD;
+            this.senderLocationID = WILDCARD;
+            this.targetCompID = WILDCARD;
+            this.targetSubID = WILDCARD;
+            this.targetLocationID = WILDCARD;
+            this.sessionQualifier = WILDCARD;
+        }
+
+        public TemplatePattern(Collection<FIXBeginString> allowedBeginStrings, String senderCompID,
+                String targetCompID) {
+            this.allowedBeginStrings = allowedBeginStrings;
+            this.senderCompID = senderCompID;
+            this.senderSubID = null;
+            this.senderLocationID = null;
+            this.targetCompID = targetCompID;
+            this.targetSubID = null;
+            this.targetLocationID = null;
+            this.sessionQualifier = null;
+        }
+
+        public TemplatePattern(Collection<FIXBeginString> allowedBeginStrings, String senderCompID,
+                String senderSubID, String senderLocationID, String targetCompID,
+                String targetSubID, String targetLocationID, String sessionQualifier) {
+            this.allowedBeginStrings = allowedBeginStrings;
+            this.senderCompID = senderCompID;
+            this.senderSubID = senderSubID;
+            this.senderLocationID = senderLocationID;
+            this.targetCompID = targetCompID;
+            this.targetSubID = targetSubID;
+            this.targetLocationID = targetLocationID;
+            this.sessionQualifier = sessionQualifier;
+        }
+
+        public String getSenderCompID() {
+            return senderCompID;
+        }
+
+        private boolean isMatching(SessionID sessionID) {
+            return allowedBeginStrings.contains(sessionID.getBeginString())
+                    && isMatching(senderCompID, sessionID.getSenderCompID())
+                    && isMatching(senderSubID, sessionID.getSenderSubID())
+                    && isMatching(senderLocationID, sessionID.getSenderLocationID())
+                    && isMatching(targetCompID, sessionID.getTargetCompID())
+                    && isMatching(targetSubID, sessionID.getTargetSubID())
+                    && isMatching(targetLocationID, sessionID.getTargetLocationID());
+        }
+
+        private boolean isMatching(String pattern, String value) {
+            return WILDCARD.equals(pattern) || (pattern != null && pattern.equals(value));
         }
     }
 
@@ -98,7 +173,7 @@ public class DynamicAcceptorSessionProvider implements AcceptorSessionProvider {
     public DynamicAcceptorSessionProvider(final SessionSettings settings,
             final SessionID templateID, quickfix.Application application,
             MessageStoreFactory messageStoreFactory, LogFactory logFactory,
-            MessageFactory messageFactory) {
+            MessageBuilderFactory messageFactory) {
         this(settings, Collections.singletonList(new TemplateMapping(ANY_SESSION, templateID)),
                 application, messageStoreFactory, logFactory, messageFactory);
     }
@@ -121,13 +196,14 @@ public class DynamicAcceptorSessionProvider implements AcceptorSessionProvider {
     public DynamicAcceptorSessionProvider(final SessionSettings settings,
             List<TemplateMapping> templateMappings, quickfix.Application application,
             MessageStoreFactory messageStoreFactory, LogFactory logFactory,
-            MessageFactory messageFactory) {
+            MessageBuilderFactory messageFactory) {
         this.settings = settings;
         this.templateMappings = templateMappings;
         sessionFactory = new DefaultSessionFactory(application, messageStoreFactory, logFactory,
                 messageFactory);
     }
 
+    @Override
     public synchronized Session getSession(SessionID sessionID, SessionConnector sessionConnector) {
         Session s = Session.lookupSession(sessionID);
         if (s == null) {
@@ -139,7 +215,7 @@ public class DynamicAcceptorSessionProvider implements AcceptorSessionProvider {
                 SessionSettings dynamicSettings = new SessionSettings();
                 copySettings(dynamicSettings, settings.getDefaultProperties());
                 copySettings(dynamicSettings, settings.getSessionProperties(templateID));
-                dynamicSettings.setString(BEGINSTRING, sessionID.getBeginString());
+                dynamicSettings.setString(BEGINSTRING, sessionID.getBeginString().getValue());
                 dynamicSettings.setString(SENDERCOMPID, sessionID.getSenderCompID());
                 optionallySetValue(dynamicSettings, SENDERSUBID, sessionID.getSenderSubID());
                 optionallySetValue(dynamicSettings, SENDERLOCID, sessionID.getSenderLocationID());
@@ -163,25 +239,11 @@ public class DynamicAcceptorSessionProvider implements AcceptorSessionProvider {
 
     protected SessionID lookupTemplateID(SessionID sessionID) {
         for (TemplateMapping mapping : templateMappings) {
-            if (isMatching(mapping.getPattern(), sessionID)) {
+            if (mapping.getPattern().isMatching(sessionID)) {
                 return mapping.getTemplateID();
             }
         }
         return null;
-    }
-
-    private boolean isMatching(SessionID pattern, SessionID sessionID) {
-        return isMatching(pattern.getBeginString(), sessionID.getBeginString())
-                && isMatching(pattern.getSenderCompID(), sessionID.getSenderCompID())
-                && isMatching(pattern.getSenderSubID(), sessionID.getSenderSubID())
-                && isMatching(pattern.getSenderLocationID(), sessionID.getSenderLocationID())
-                && isMatching(pattern.getTargetCompID(), sessionID.getTargetCompID())
-                && isMatching(pattern.getTargetSubID(), sessionID.getTargetSubID())
-                && isMatching(pattern.getTargetLocationID(), sessionID.getTargetLocationID());
-    }
-
-    private boolean isMatching(String pattern, String value) {
-        return WILDCARD.equals(pattern) || (pattern != null && pattern.equals(value));
     }
 
     protected void copySettings(SessionSettings settings, Properties properties) {

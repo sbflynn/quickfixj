@@ -23,7 +23,12 @@ package quickfix;
  * An exception when a message is not valid according to the
  * basic message validation or the data dictionary.
  */
-public class InvalidMessage extends Exception {
+public class InvalidMessage extends RuntimeException {
+
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
 
     public InvalidMessage() {
         super();

@@ -34,6 +34,11 @@ import quickfix.examples.banzai.ExecutionTableModel;
  */
 public class ExecutionPanel extends JPanel {
 
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
+
     public ExecutionPanel(ExecutionTableModel executionTableModel) {
         setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         setLayout(new GridBagLayout());

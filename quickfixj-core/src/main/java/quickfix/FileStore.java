@@ -110,8 +110,10 @@ public class FileStore implements MessageStore, Closeable {
 
         messageFileWriter = new RandomAccessFile(msgFileName, getRandomAccessFileOptions());
         messageFileReader = new RandomAccessFile(msgFileName, READ_OPTION);
-        senderSequenceNumberFile = new RandomAccessFile(senderSeqNumFileName, getRandomAccessFileOptions());
-        targetSequenceNumberFile = new RandomAccessFile(targetSeqNumFileName, getRandomAccessFileOptions());
+        senderSequenceNumberFile = new RandomAccessFile(senderSeqNumFileName,
+                getRandomAccessFileOptions());
+        targetSequenceNumberFile = new RandomAccessFile(targetSeqNumFileName,
+                getRandomAccessFileOptions());
 
         initializeCache();
     }
@@ -158,6 +160,7 @@ public class FileStore implements MessageStore, Closeable {
     /* (non-Javadoc)
      * @see quickfix.MessageStore#getCreationTime()
      */
+    @Override
     public Date getCreationTime() throws IOException {
         return cache.getCreationTime();
     }
@@ -221,6 +224,7 @@ public class FileStore implements MessageStore, Closeable {
      *
      * @throws IOException
      */
+    @Override
     public void close() throws IOException {
         closeOutputStream(headerDataOutputStream);
         closeFile(messageFileWriter);
@@ -250,7 +254,7 @@ public class FileStore implements MessageStore, Closeable {
         deleteFile(sessionFileName);
     }
 
-    private void deleteFile(String fileName) throws IOException {
+    private void deleteFile(String fileName) {
         final File file = new File(fileName);
         if (file.exists() && !file.delete()) {
             System.err.println("File delete failed: " + fileName);
@@ -260,6 +264,7 @@ public class FileStore implements MessageStore, Closeable {
     /* (non-Javadoc)
      * @see quickfix.MessageStore#getNextSenderMsgSeqNum()
      */
+    @Override
     public int getNextSenderMsgSeqNum() throws IOException {
         return cache.getNextSenderMsgSeqNum();
     }
@@ -267,6 +272,7 @@ public class FileStore implements MessageStore, Closeable {
     /* (non-Javadoc)
      * @see quickfix.MessageStore#getNextTargetMsgSeqNum()
      */
+    @Override
     public int getNextTargetMsgSeqNum() throws IOException {
         return cache.getNextTargetMsgSeqNum();
     }
@@ -274,6 +280,7 @@ public class FileStore implements MessageStore, Closeable {
     /* (non-Javadoc)
      * @see quickfix.MessageStore#setNextSenderMsgSeqNum(int)
      */
+    @Override
     public void setNextSenderMsgSeqNum(int next) throws IOException {
         cache.setNextSenderMsgSeqNum(next);
         storeSenderSequenceNumber();
@@ -282,6 +289,7 @@ public class FileStore implements MessageStore, Closeable {
     /* (non-Javadoc)
      * @see quickfix.MessageStore#setNextTargetMsgSeqNum(int)
      */
+    @Override
     public void setNextTargetMsgSeqNum(int next) throws IOException {
         cache.setNextTargetMsgSeqNum(next);
         storeTargetSequenceNumber();
@@ -290,6 +298,7 @@ public class FileStore implements MessageStore, Closeable {
     /* (non-Javadoc)
      * @see quickfix.MessageStore#incrNextSenderMsgSeqNum()
      */
+    @Override
     public void incrNextSenderMsgSeqNum() throws IOException {
         cache.incrNextSenderMsgSeqNum();
         storeSenderSequenceNumber();
@@ -298,6 +307,7 @@ public class FileStore implements MessageStore, Closeable {
     /* (non-Javadoc)
      * @see quickfix.MessageStore#incrNextTargetMsgSeqNum()
      */
+    @Override
     public void incrNextTargetMsgSeqNum() throws IOException {
         cache.incrNextTargetMsgSeqNum();
         storeTargetSequenceNumber();
@@ -306,6 +316,7 @@ public class FileStore implements MessageStore, Closeable {
     /* (non-Javadoc)
      * @see quickfix.MessageStore#get(int, int, java.util.Collection)
      */
+    @Override
     public void get(int startSequence, int endSequence, Collection<String> messages)
             throws IOException {
         final Set<Integer> uncachedOffsetMsgIds = new HashSet<Integer>();
@@ -354,7 +365,7 @@ public class FileStore implements MessageStore, Closeable {
      * implemented. Use get(int, int, Collection) with the same
      * start and end sequence.
      */
-    public boolean get(int sequence, String message) throws IOException {
+    public boolean get(int sequence, String message) {
         throw new UnsupportedOperationException("not supported");
     }
 
@@ -388,6 +399,7 @@ public class FileStore implements MessageStore, Closeable {
     /* (non-Javadoc)
      * @see quickfix.MessageStore#set(int, java.lang.String)
      */
+    @Override
     public boolean set(int sequence, String message) throws IOException {
         final long offset = messageFileWriter.getFilePointer();
         final int size = message.length();
@@ -435,6 +447,7 @@ public class FileStore implements MessageStore, Closeable {
      * (non-Javadoc)
      * @see quickfix.RefreshableMessageStore#refresh()
      */
+    @Override
     public void refresh() throws IOException {
         initialize(false);
     }
@@ -442,6 +455,7 @@ public class FileStore implements MessageStore, Closeable {
     /* (non-Javadoc)
      * @see quickfix.MessageStore#reset()
      */
+    @Override
     public void reset() throws IOException {
         initialize(true);
     }

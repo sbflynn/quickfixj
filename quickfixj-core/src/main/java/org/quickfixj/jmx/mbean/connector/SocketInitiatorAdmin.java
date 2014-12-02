@@ -44,6 +44,7 @@ class SocketInitiatorAdmin extends ConnectorAdmin implements SocketInitiatorAdmi
         initiator = connector;
     }
 
+    @Override
     public TabularData getEndpoints() throws IOException {
         try {
             return tabularDataAdapter.fromBeanList("Endpoints", "Endpoint", "sessionID",
@@ -53,6 +54,7 @@ class SocketInitiatorAdmin extends ConnectorAdmin implements SocketInitiatorAdmi
         }
     }
 
+    @Override
     public int getQueueSize() {
         return initiator.getQueueSize();
     }

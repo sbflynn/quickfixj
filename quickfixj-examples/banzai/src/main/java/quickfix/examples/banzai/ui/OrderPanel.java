@@ -35,6 +35,11 @@ import quickfix.examples.banzai.OrderTableModel;
  */
 public class OrderPanel extends JPanel {
 
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
+
     private JTable orderTable = null;
 
     public OrderPanel(OrderTableModel orderTableModel, BanzaiApplication application) {

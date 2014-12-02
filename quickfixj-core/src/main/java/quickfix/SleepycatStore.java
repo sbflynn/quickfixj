@@ -26,6 +26,7 @@ import java.util.Collection;
 import java.util.Date;
 
 import org.quickfixj.CharsetSupport;
+import org.quickfixj.FIXBeginString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,10 +76,11 @@ public class SleepycatStore implements MessageStore {
          *
          * @see com.sleepycat.bind.tuple.TupleBinding#entryToObject(com.sleepycat.bind.tuple.TupleInput)
          */
+        @Override
         public Object entryToObject(TupleInput tupleIn) {
-            return new SessionID(tupleIn.readString(), tupleIn.readString(), tupleIn.readString(),
-                    tupleIn.readString(), tupleIn.readString(), tupleIn.readString(), tupleIn
-                            .readString(), tupleIn.readString());
+            return new SessionID(FIXBeginString.parse(tupleIn.readString()), tupleIn.readString(),
+                    tupleIn.readString(), tupleIn.readString(), tupleIn.readString(),
+                    tupleIn.readString(), tupleIn.readString(), tupleIn.readString());
         }
 
         /*
@@ -87,9 +89,10 @@ public class SleepycatStore implements MessageStore {
          * @see com.sleepycat.bind.tuple.TupleBinding#objectToEntry(java.lang.Object,
          *      com.sleepycat.bind.tuple.TupleOutput)
          */
+        @Override
         public void objectToEntry(Object object, TupleOutput tupleOut) {
             SessionID sessionID = (SessionID) object;
-            tupleOut.writeString(sessionID.getBeginString());
+            tupleOut.writeString(FIXBeginString.print(sessionID.getBeginString()));
             tupleOut.writeString(sessionID.getSenderCompID());
             tupleOut.writeString(sessionID.getSenderSubID());
             tupleOut.writeString(sessionID.getSenderLocationID());
@@ -107,9 +110,10 @@ public class SleepycatStore implements MessageStore {
          *
          * @see com.sleepycat.bind.tuple.TupleBinding#entryToObject(com.sleepycat.bind.tuple.TupleInput)
          */
+        @Override
         public Object entryToObject(TupleInput tupleIn) {
-            return new SessionInfo(SystemTime.getUtcCalendar(new Date(tupleIn.readLong())), tupleIn
-                    .readInt(), tupleIn.readInt());
+            return new SessionInfo(SystemTime.getUtcCalendar(new Date(tupleIn.readLong())),
+                    tupleIn.readInt(), tupleIn.readInt());
         }
 
         /*
@@ -118,6 +122,7 @@ public class SleepycatStore implements MessageStore {
          * @see com.sleepycat.bind.tuple.TupleBinding#objectToEntry(java.lang.Object,
          *      com.sleepycat.bind.tuple.TupleOutput)
          */
+        @Override
         public void objectToEntry(Object object, TupleOutput tupleOut) {
             SessionInfo sessionInfo = (SessionInfo) object;
             tupleOut.writeLong(sessionInfo.getCreationTime().getTimeInMillis());
@@ -206,6 +211,7 @@ public class SleepycatStore implements MessageStore {
         }
     }
 
+    @Override
     public synchronized void get(int startSequence, int endSequence, Collection<String> messages)
             throws IOException {
         Cursor cursor = null;
@@ -229,8 +235,8 @@ public class SleepycatStore implements MessageStore {
                     messages.add(new String(messageBytes.getData(), charsetEncoding));
                     if (log.isDebugEnabled()) {
                         log.debug("Found record " + sequenceNumber + "=>"
-                                + new String(messageBytes.getData(), charsetEncoding) + " for search key/data: "
-                                + sequenceKey + "=>" + messageBytes);
+                                + new String(messageBytes.getData(), charsetEncoding)
+                                + " for search key/data: " + sequenceKey + "=>" + messageBytes);
                     }
                     cursor.getNext(sequenceKey, messageBytes, LockMode.DEFAULT);
                     sequenceNumber = (Integer) sequenceBinding.entryToObject(sequenceKey);
@@ -258,28 +264,34 @@ public class SleepycatStore implements MessageStore {
         throw ioe;
     }
 
+    @Override
     public Date getCreationTime() throws IOException {
         return info.getCreationTime().getTime();
     }
 
+    @Override
     public int getNextSenderMsgSeqNum() throws IOException {
         return info.getNextSenderMsgSeqNum();
     }
 
+    @Override
     public int getNextTargetMsgSeqNum() throws IOException {
         return info.getNextTargetMsgSeqNum();
     }
 
+    @Override
     public void incrNextSenderMsgSeqNum() throws IOException {
         info.setNextSenderMsgSeqNum(info.getNextSenderMsgSeqNum() + 1);
         storeSessionInfo();
     }
 
+    @Override
     public void incrNextTargetMsgSeqNum() throws IOException {
         info.setNextTargetMsgSeqNum(info.getNextTargetMsgSeqNum() + 1);
         storeSessionInfo();
     }
 
+    @Override
     public void reset() throws IOException {
         try {
             info = new SessionInfo();
@@ -295,12 +307,14 @@ public class SleepycatStore implements MessageStore {
         }
     }
 
+    @Override
     public boolean set(int sequence, String message) throws IOException {
         try {
             DatabaseEntry sequenceKey = new DatabaseEntry();
             EntryBinding sequenceBinding = TupleBinding.getPrimitiveBinding(Integer.class);
             sequenceBinding.objectToEntry(sequence, sequenceKey);
-            DatabaseEntry messageBytes = new DatabaseEntry(message.getBytes(CharsetSupport.getCharset()));
+            DatabaseEntry messageBytes = new DatabaseEntry(message.getBytes(CharsetSupport
+                    .getCharset()));
             messageDatabase.put(null, sequenceKey, messageBytes);
         } catch (Exception e) {
             convertToIOExceptionAndRethrow(e);
@@ -308,11 +322,13 @@ public class SleepycatStore implements MessageStore {
         return true;
     }
 
+    @Override
     public void setNextSenderMsgSeqNum(int next) throws IOException {
         info.setNextSenderMsgSeqNum(next);
         storeSessionInfo();
     }
 
+    @Override
     public void setNextTargetMsgSeqNum(int next) throws IOException {
         info.setNextTargetMsgSeqNum(next);
         storeSessionInfo();
@@ -349,6 +365,7 @@ public class SleepycatStore implements MessageStore {
         }
     }
 
+    @Override
     public void refresh() throws IOException {
         loadSessionInfo();
     }

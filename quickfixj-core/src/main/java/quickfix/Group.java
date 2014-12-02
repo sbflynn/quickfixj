@@ -19,13 +19,19 @@
 
 package quickfix;
 
-import quickfix.field.IntField;
+import org.quickfixj.FIXGroup;
 
 /**
  * Represents a repeating field group within a message.
  */
-public class Group extends FieldMap {
-    private IntField field;
+public class Group extends FieldMap implements FIXGroup {
+
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
+
+    private int fieldTag;
     private int delim;
 
     /**
@@ -34,20 +40,20 @@ public class Group extends FieldMap {
      * @param field the count tag number
      * @param delim the delimiter tag number (first group field)
      */
-    public Group(int field, int delim) {
-        this(field, delim, new int[] { delim });
+    public Group(int fieldTag, int delim) {
+        this(fieldTag, delim, new int[] { delim });
     }
 
-    /**
-     * Copy a group.
-     *
-     * @param group the group to copy
-     */
-    public Group(Group group) {
-        this(group.getFieldTag(), group.delim(), group.getFieldOrder());
-        setFields(group);
-        setGroups(group);
-    }
+    //    /**
+    //     * Copy a group.
+    //     *
+    //     * @param group the group to copy
+    //     */
+    //    public Group(Group group) {
+    //        this(group.getFieldTag(), group.delim(), group.getFieldOrder());
+    //        setFields(group);
+    //        //  setGroups(group);
+    //    }
 
     /**
      * Create a group with the specified count and delimiter fields and
@@ -57,9 +63,9 @@ public class Group extends FieldMap {
      * @param delim
      * @param order
      */
-    public Group(int field, int delim, int[] order) {
+    public Group(int fieldTag, int delim, int[] order) {
         super(order);
-        this.field = new IntField(field);
+        this.fieldTag = fieldTag;
         this.delim = delim;
     }
 
@@ -70,37 +76,32 @@ public class Group extends FieldMap {
         return delim;
     }
 
-    /**
-     * Add a copy of the group to the message.
-     *
-     * @param group the group to copy
-     */
-    public void addGroup(Group group) {
-        super.addGroup(group);
-    }
+    //    /**
+    //     * Add a copy of the group to the message.
+    //     *
+    //     * @param group the group to copy
+    //     */
+    //    @Override
+    //    public void addGroup(Group group) {
+    //        super.addGroup(group);
+    //    }
 
-    /**
-     * Copy the group at the specified index into the supplied group object.
-     *
-     * @param num the index of the group (1 based)
-     * @param group the target group object for the group fields (it will be cleared).sss
-     */
-    public Group getGroup(int num, Group group) throws FieldNotFound {
-        return super.getGroup(num, group);
-    }
+    //    /**
+    //     * Copy the group at the specified index into the supplied group object.
+    //     *
+    //     * @param num the index of the group (1 based)
+    //     * @param group the target group object for the group fields (it will be cleared).sss
+    //     */
+    //    @Override
+    //    public Group getGroup(int num, Group group) throws FieldNotFound {
+    //        return super.getGroup(num, group);
+    //    }
 
     /**
      * @return the count field tag.
      */
+    @Override
     public int getFieldTag() {
-        return field.getTag();
-    }
-
-    /**
-     * @deprecated Use getFieldTag
-     * @return the field's tag number
-     */
-    public int field() {
-        return getFieldTag();
+        return fieldTag;
     }
 }

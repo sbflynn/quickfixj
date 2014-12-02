@@ -22,10 +22,15 @@ package quickfix.examples.ordermatch;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class OrderMatcher {
-    private HashMap<String, Market> markets = new HashMap<String, Market>();
+import quickfix.fix42.field.Side;
+import quickfix.fix42.field.Symbol;
 
-    private Market getMarket(String symbol) {
+public class OrderMatcher {
+
+    private HashMap<Symbol, Market> markets = new HashMap<Symbol, Market>();
+
+    private Market getMarket(Symbol symbol) {
+
         Market m = markets.get(symbol);
         if (m == null) {
             m = new Market();
@@ -35,30 +40,35 @@ public class OrderMatcher {
     }
 
     public boolean insert(Order order) {
+
         return getMarket(order.getSymbol()).insert(order);
     }
 
-    public void match(String symbol, ArrayList<Order> orders) {
+    public void match(Symbol symbol, ArrayList<Order> orders) {
+
         getMarket(symbol).match(symbol, orders);
     }
 
-    public Order find(String symbol, char side, String id) {
+    public Order find(Symbol symbol, Side side, String id) {
+
         return getMarket(symbol).find(symbol, side, id);
     }
 
     public void erase(Order order) {
+
         getMarket(order.getSymbol()).erase(order);
     }
 
     public void display() {
-        for (String symbol : markets.keySet()) {
+
+        for (Symbol symbol : markets.keySet()) {
             System.out.println("MARKET: " + symbol);
             display(symbol);
         }
     }
 
-    public void display(String symbol) {
+    public void display(Symbol symbol) {
+
         getMarket(symbol).display();
     }
-
 }

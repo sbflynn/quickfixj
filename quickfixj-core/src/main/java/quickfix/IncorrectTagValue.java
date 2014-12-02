@@ -24,6 +24,11 @@ package quickfix;
  */
 public class IncorrectTagValue extends Exception {
 
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
+
     public IncorrectTagValue(int field) {
         super("Field [" + field + "] contains an incorrect tag value.");
         this.field = field;

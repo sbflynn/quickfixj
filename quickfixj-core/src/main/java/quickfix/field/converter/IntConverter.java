@@ -45,7 +45,7 @@ public final class IntConverter {
      * @throws FieldConvertError raised if the String does not represent a valid integer
      * @see java.lang.Integer#parseInt(String)
      */
-    public static int convert(String value) throws FieldConvertError {
+    public static int convert(String value) {
         try {
             for (int i = 0; i < value.length(); i++) {
                 if (!Character.isDigit(value.charAt(i)) && !(i == 0 && value.charAt(i) == '-')) {

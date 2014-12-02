@@ -28,14 +28,13 @@ import java.util.TimeZone;
 import quickfix.FieldConvertError;
 
 abstract class AbstractDateTimeConverter {
-    protected static void assertLength(String value, int i, String type) throws FieldConvertError {
+    protected static void assertLength(String value, int i, String type) {
         if (value.length() != i) {
             throwFieldConvertError(value, type);
         }
     }
 
-    protected static void assertDigitSequence(String value, int i, int j, String type)
-            throws FieldConvertError {
+    protected static void assertDigitSequence(String value, int i, int j, String type) {
         for (int offset = i; offset < j; offset++) {
             if (!Character.isDigit(value.charAt(offset))) {
                 throwFieldConvertError(value, type);
@@ -43,15 +42,13 @@ abstract class AbstractDateTimeConverter {
         }
     }
 
-    protected static void assertSeparator(String value, int offset, char ch, String type)
-            throws FieldConvertError {
+    protected static void assertSeparator(String value, int offset, char ch, String type) {
         if (value.charAt(offset) != ch) {
             throwFieldConvertError(value, type);
         }
     }
 
-    protected static void throwFieldConvertError(String value, String type)
-            throws FieldConvertError {
+    protected static void throwFieldConvertError(String value, String type) {
         throw new FieldConvertError("invalid UTC " + type + " value: " + value);
     }
 

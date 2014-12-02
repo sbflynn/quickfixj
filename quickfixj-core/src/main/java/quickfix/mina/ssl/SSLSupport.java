@@ -19,10 +19,10 @@
 
 package quickfix.mina.ssl;
 
-import quickfix.SessionID;
-import quickfix.SessionSettings;
 import quickfix.ConfigError;
 import quickfix.FieldConvertError;
+import quickfix.SessionID;
+import quickfix.SessionSettings;
 
 public class SSLSupport {
     // This will be moved else when settings mechanism is refactored.
@@ -33,8 +33,8 @@ public class SSLSupport {
     public static final String SETTING_USE_SSL = "SocketUseSSL";
     public static final String SETTING_ENABLE_PROTOCOLE = "EnabledProtocols";
     public static final String SETTING_CIPHER_SUITES = "CipherSuites";
-    /* package */ static final String QUICKFIXJ_CERT = "quickfixj.cert";
-    /* package */ static final String QUICKFIXJ_PW = "quickfixjpw";
+    /* package */static final String QUICKFIXJ_CERT = "quickfixj.cert";
+    /* package */static final String QUICKFIXJ_PW = "quickfixjpw";
 
     public static String getKeystoreName(SessionSettings settings, SessionID sessionID) {
         String keyStoreName = QUICKFIXJ_CERT;
@@ -42,7 +42,9 @@ public class SSLSupport {
             try {
                 keyStoreName = settings.getString(sessionID, SSLSupport.SETTING_KEY_STORE_NAME);
             } catch (ConfigError ignored) {
+                // ignore
             } catch (FieldConvertError ignored) {
+                // ignore
             }
         }
         return keyStoreName;
@@ -54,7 +56,9 @@ public class SSLSupport {
             try {
                 keyStorePassword = settings.getString(sessionID, SSLSupport.SETTING_KEY_STORE_PWD);
             } catch (ConfigError ignored) {
+                // ignore
             } catch (FieldConvertError ignored) {
+                // ignore
             }
         }
         return keyStorePassword;
@@ -64,9 +68,12 @@ public class SSLSupport {
         String strEnableProtocole = null;
         if (settings.isSetting(sessionID, SSLSupport.SETTING_ENABLE_PROTOCOLE)) {
             try {
-                strEnableProtocole = settings.getString(sessionID, SSLSupport.SETTING_ENABLE_PROTOCOLE);
+                strEnableProtocole = settings.getString(sessionID,
+                        SSLSupport.SETTING_ENABLE_PROTOCOLE);
             } catch (ConfigError ignored) {
+                // ignore
             } catch (FieldConvertError ignored) {
+                // ignore
             }
         }
         return strEnableProtocole;
@@ -78,7 +85,9 @@ public class SSLSupport {
             try {
                 strCipherSuite = settings.getString(sessionID, SSLSupport.SETTING_CIPHER_SUITES);
             } catch (ConfigError ignored) {
+                // ignore
             } catch (FieldConvertError ignored) {
+                // ignore
             }
         }
         return strCipherSuite;

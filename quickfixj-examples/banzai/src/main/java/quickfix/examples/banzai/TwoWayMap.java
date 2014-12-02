@@ -38,6 +38,7 @@ public class TwoWayMap {
         return secondToFirst.get(second);
     }
 
+    @Override
     public String toString() {
         return firstToSecond.toString() + "\n" + secondToFirst.toString();
     }

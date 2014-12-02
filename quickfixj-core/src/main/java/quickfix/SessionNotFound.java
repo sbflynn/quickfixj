@@ -24,6 +24,11 @@ package quickfix;
  */
 public class SessionNotFound extends Exception {
 
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
+
     public SessionNotFound() {
         super();
     }

@@ -44,7 +44,7 @@ public class CharConverter {
      * @return the converted character
      * @throws FieldConvertError if String length != 1
      */
-    public static char convert(String value) throws FieldConvertError {
+    public static char convert(String value) {
         if (value.length() != 1) {
             throw new FieldConvertError("invalid character value: " + value);
         }

@@ -19,15 +19,21 @@
 
 package quickfix.examples.banzai;
 
-import javax.swing.*;
 import java.awt.event.KeyEvent;
+
+import javax.swing.JTextField;
 
 public class DoubleNumberTextField extends JTextField {
 
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
+
+    @Override
     public void processKeyEvent(KeyEvent e) {
         char keyChar = e.getKeyChar();
-        if (((keyChar >= '0') && (keyChar <= '9')) ||
-                (keyChar == 8) || (keyChar == 127)) {
+        if (((keyChar >= '0') && (keyChar <= '9')) || (keyChar == 8) || (keyChar == 127)) {
             super.processKeyEvent(e);
         } else if (keyChar == '.') {
             String text = getText();

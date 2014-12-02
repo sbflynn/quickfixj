@@ -88,7 +88,7 @@ public class SLF4JLog extends AbstractLog {
     private static final String QUALIFIER_VAR = "\\$\\{qualifier}";
 
     private String substituteVariables(SessionID sessionID, String category) {
-        final String[] beginStringFields = sessionID.getBeginString().split("\\.");
+        final String[] beginStringFields = sessionID.getBeginString().getValue().split("\\.");
         String processedCategory = category;
         processedCategory = processedCategory.replaceAll(FIX_MAJOR_VERSION_VAR,
                 beginStringFields[1]);
@@ -111,10 +111,12 @@ public class SLF4JLog extends AbstractLog {
         return processedCategory;
     }
 
+    @Override
     public void onEvent(String text) {
         log(eventLog, text);
     }
 
+    @Override
     public void onErrorEvent(String text) {
         logError(errorEventLog, text);
     }
@@ -149,6 +151,7 @@ public class SLF4JLog extends AbstractLog {
         log.error(message);
     }
 
+    @Override
     public void clear() {
         onEvent("Log clear operation is not supported: " + getClass().getName());
     }

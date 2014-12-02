@@ -28,6 +28,7 @@ import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -36,16 +37,16 @@ import java.util.Map;
 import javax.management.JMException;
 import javax.management.ObjectName;
 
+import org.quickfixj.MessageBuilderFactory;
 import org.quickfixj.jmx.JmxExporter;
+import org.quickfixj.spi.MessageBuilderServiceLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import quickfix.ConfigError;
-import quickfix.DefaultMessageFactory;
 import quickfix.FieldConvertError;
 import quickfix.FileStoreFactory;
 import quickfix.LogFactory;
-import quickfix.MessageFactory;
 import quickfix.MessageStoreFactory;
 import quickfix.RuntimeError;
 import quickfix.ScreenLogFactory;
@@ -54,6 +55,7 @@ import quickfix.SessionSettings;
 import quickfix.SocketAcceptor;
 import quickfix.mina.acceptor.DynamicAcceptorSessionProvider;
 import quickfix.mina.acceptor.DynamicAcceptorSessionProvider.TemplateMapping;
+import quickfix.mina.acceptor.DynamicAcceptorSessionProvider.TemplatePattern;
 
 public class Executor {
     private final static Logger log = LoggerFactory.getLogger(Executor.class);
@@ -67,7 +69,8 @@ public class Executor {
         Application application = new Application(settings);
         MessageStoreFactory messageStoreFactory = new FileStoreFactory(settings);
         LogFactory logFactory = new ScreenLogFactory(true, true, true);
-        MessageFactory messageFactory = new DefaultMessageFactory();
+        MessageBuilderFactory messageFactory = MessageBuilderServiceLoader
+                .getMessageBuilderFactory();
 
         acceptor = new SocketAcceptor(application, messageStoreFactory, settings, logFactory,
                 messageFactory);
@@ -82,7 +85,7 @@ public class Executor {
 
     private void configureDynamicSessions(SessionSettings settings, Application application,
             MessageStoreFactory messageStoreFactory, LogFactory logFactory,
-            MessageFactory messageFactory) throws ConfigError, FieldConvertError {
+            MessageBuilderFactory messageFactory) throws ConfigError, FieldConvertError {
         //
         // If a session template is detected in the settings, then
         // set up a dynamic session provider.
@@ -93,7 +96,10 @@ public class Executor {
             SessionID sessionID = sectionIterator.next();
             if (isSessionTemplate(settings, sessionID)) {
                 InetSocketAddress address = getAcceptorSocketAddress(settings, sessionID);
-                getMappings(address).add(new TemplateMapping(sessionID, sessionID));
+                getMappings(address).add(
+                        new TemplateMapping(new TemplatePattern(Arrays.asList(sessionID
+                                .getBeginString()), sessionID.getSenderCompID(), sessionID
+                                .getTargetCompID()), sessionID));
             }
         }
 

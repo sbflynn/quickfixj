@@ -32,6 +32,7 @@ import javax.naming.NamingException;
 import javax.sql.DataSource;
 
 import org.logicalcobwebs.proxool.ProxoolDataSource;
+import org.quickfixj.FIXBeginString;
 
 class JdbcUtil {
 
@@ -64,7 +65,8 @@ class JdbcUtil {
      * This is typically called from a single thread, but just in case we are synchronizing modification
      * of the cache. The cache itself is thread safe.
      */
-    static synchronized DataSource getDataSource(String jdbcDriver, String connectionURL, String user, String password, boolean cache) {
+    static synchronized DataSource getDataSource(String jdbcDriver, String connectionURL,
+            String user, String password, boolean cache) {
         String key = jdbcDriver + "#" + connectionURL + "#" + user + "#" + password;
         ProxoolDataSource ds = cache ? dataSources.get(key) : null;
 
@@ -123,7 +125,8 @@ class JdbcUtil {
         }
     }
 
-    static boolean determineSessionIdSupport(DataSource dataSource, String tableName) throws SQLException {
+    static boolean determineSessionIdSupport(DataSource dataSource, String tableName)
+            throws SQLException {
         Connection connection = dataSource.getConnection();
         try {
             DatabaseMetaData metaData = connection.getMetaData();
@@ -162,9 +165,11 @@ class JdbcUtil {
         return isExtendedSessionID ? "?,?,?,?,?,?,?,?" : "?,?,?,?";
     }
 
-    static int setSessionIdParameters(SessionID sessionID, PreparedStatement query, int offset, boolean isExtendedSessionID, String defaultSqlValue) throws SQLException {
+    static int setSessionIdParameters(SessionID sessionID, PreparedStatement query, int offset,
+            boolean isExtendedSessionID, String defaultSqlValue) throws SQLException {
         if (isExtendedSessionID) {
-            query.setString(offset++, getSqlValue(sessionID.getBeginString(), defaultSqlValue));
+            query.setString(offset++,
+                    getSqlValue(FIXBeginString.print(sessionID.getBeginString()), defaultSqlValue));
             query.setString(offset++, getSqlValue(sessionID.getSenderCompID(), defaultSqlValue));
             query.setString(offset++, getSqlValue(sessionID.getSenderSubID(), defaultSqlValue));
             query.setString(offset++, getSqlValue(sessionID.getSenderLocationID(), defaultSqlValue));
@@ -173,7 +178,8 @@ class JdbcUtil {
             query.setString(offset++, getSqlValue(sessionID.getTargetLocationID(), defaultSqlValue));
             query.setString(offset++, getSqlValue(sessionID.getSessionQualifier(), defaultSqlValue));
         } else {
-            query.setString(offset++, getSqlValue(sessionID.getBeginString(), defaultSqlValue));
+            query.setString(offset++,
+                    getSqlValue(FIXBeginString.print(sessionID.getBeginString()), defaultSqlValue));
             query.setString(offset++, getSqlValue(sessionID.getSenderCompID(), defaultSqlValue));
             query.setString(offset++, getSqlValue(sessionID.getTargetCompID(), defaultSqlValue));
             query.setString(offset++, getSqlValue(sessionID.getSessionQualifier(), defaultSqlValue));

@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -85,12 +84,14 @@ public class SocketAcceptorAdmin extends ConnectorAdmin implements SocketAccepto
         }
     }
 
+    @Override
     public TabularData getAcceptorAddresses() throws IOException {
         List<SessionAcceptorAddressRow> rows = new ArrayList<SessionAcceptorAddressRow>();
         for (Map.Entry<SessionID, SocketAddress> entry : acceptor.getAcceptorAddresses().entrySet()) {
             SessionID sessionID = entry.getKey();
             SocketAddress address = entry.getValue();
-            rows.add(new SessionAcceptorAddressRow(sessionID, address, sessionExporter.getSessionName(sessionID)));
+            rows.add(new SessionAcceptorAddressRow(sessionID, address, sessionExporter
+                    .getSessionName(sessionID)));
         }
         try {
             return tabularDataAdapter.fromBeanList("AcceptorAddresses", "AddressInfo", "sessionID",
@@ -100,6 +101,7 @@ public class SocketAcceptorAdmin extends ConnectorAdmin implements SocketAccepto
         }
     }
 
+    @Override
     public int getQueueSize() {
         return acceptor.getQueueSize();
     }

@@ -24,6 +24,11 @@ package quickfix;
  */
 public class RejectLogon extends Exception {
 
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
+
     private final boolean logoutBeforeDisconnect;
     private final int sessionStatus;
 
@@ -58,7 +63,7 @@ public class RejectLogon extends Exception {
     }
 
     public boolean isLogoutBeforeDisconnect() {
-        return logoutBeforeDisconnect ;
+        return logoutBeforeDisconnect;
     }
 
     public int getSessionStatus() {

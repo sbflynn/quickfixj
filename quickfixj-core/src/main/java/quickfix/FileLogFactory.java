@@ -66,6 +66,7 @@ public class FileLogFactory implements LogFactory {
      *
      * @param sessionID session ID for the logger
      */
+    @Override
     public Log create(SessionID sessionID) {
         try {
             boolean includeMillis = false;
@@ -75,7 +76,8 @@ public class FileLogFactory implements LogFactory {
 
             boolean includeTimestampInMessages = false;
             if (settings.isSetting(sessionID, SETTING_INCLUDE_TIMESTAMP_FOR_MESSAGES)) {
-                includeTimestampInMessages = settings.getBool(sessionID, SETTING_INCLUDE_TIMESTAMP_FOR_MESSAGES);
+                includeTimestampInMessages = settings.getBool(sessionID,
+                        SETTING_INCLUDE_TIMESTAMP_FOR_MESSAGES);
             }
 
             boolean logHeartbeats = true;
@@ -88,9 +90,5 @@ public class FileLogFactory implements LogFactory {
         } catch (Exception e) {
             throw new RuntimeError(e);
         }
-    }
-
-    public Log create() {
-        throw new UnsupportedOperationException();
     }
 }

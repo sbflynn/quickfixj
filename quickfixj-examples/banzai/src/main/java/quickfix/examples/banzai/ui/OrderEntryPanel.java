@@ -40,6 +40,7 @@ import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import javax.swing.SwingConstants;
 
 import quickfix.SessionID;
 import quickfix.examples.banzai.BanzaiApplication;
@@ -53,6 +54,12 @@ import quickfix.examples.banzai.OrderTableModel;
 import quickfix.examples.banzai.OrderType;
 
 public class OrderEntryPanel extends JPanel implements Observer {
+
+    /**
+     * The serialVersionUID property.
+     */
+    private static final long serialVersionUID = 1L;
+
     private boolean symbolEntered = false;
     private boolean quantityEntered = false;
     private boolean limitEntered = false;
@@ -60,17 +67,14 @@ public class OrderEntryPanel extends JPanel implements Observer {
     private boolean sessionEntered = false;
 
     private JTextField symbolTextField = new JTextField();
-    private IntegerNumberTextField quantityTextField =
-        new IntegerNumberTextField();
+    private IntegerNumberTextField quantityTextField = new IntegerNumberTextField();
 
-    private JComboBox sideComboBox = new JComboBox(OrderSide.toArray());
-    private JComboBox typeComboBox = new JComboBox(OrderType.toArray());
-    private JComboBox tifComboBox = new JComboBox(OrderTIF.toArray());
+    private JComboBox sideComboBox = new JComboBox(OrderSide.values());
+    private JComboBox typeComboBox = new JComboBox(OrderType.values());
+    private JComboBox tifComboBox = new JComboBox(OrderTIF.values());
 
-    private DoubleNumberTextField limitPriceTextField =
-        new DoubleNumberTextField();
-    private DoubleNumberTextField stopPriceTextField =
-        new DoubleNumberTextField();
+    private DoubleNumberTextField limitPriceTextField = new DoubleNumberTextField();
+    private DoubleNumberTextField stopPriceTextField = new DoubleNumberTextField();
 
     private JComboBox sessionComboBox = new JComboBox();
 
@@ -86,7 +90,7 @@ public class OrderEntryPanel extends JPanel implements Observer {
     private GridBagConstraints constraints = new GridBagConstraints();
 
     public OrderEntryPanel(final OrderTableModel orderTableModel,
-                final BanzaiApplication application) {
+            final BanzaiApplication application) {
         setName("OrderEntryPanel");
         this.orderTableModel = orderTableModel;
         this.application = application;
@@ -170,7 +174,7 @@ public class OrderEntryPanel extends JPanel implements Observer {
         Font font = new Font(messageLabel.getFont().getFontName(), Font.BOLD, 12);
         messageLabel.setFont(font);
         messageLabel.setForeground(Color.red);
-        messageLabel.setHorizontalAlignment(JLabel.CENTER);
+        messageLabel.setHorizontalAlignment(SwingConstants.CENTER);
         submitButton.setEnabled(false);
         submitButton.addActionListener(new SubmitListener());
         activateSubmit();
@@ -198,6 +202,7 @@ public class OrderEntryPanel extends JPanel implements Observer {
     }
 
     private class PriceListener implements ItemListener {
+        @Override
         public void itemStateChanged(ItemEvent e) {
             OrderType item = (OrderType) typeComboBox.getSelectedItem();
             if (item == OrderType.MARKET) {
@@ -233,6 +238,7 @@ public class OrderEntryPanel extends JPanel implements Observer {
         }
     }
 
+    @Override
     public void update(Observable o, Object arg) {
         LogonEvent logonEvent = (LogonEvent) arg;
         if (logonEvent.isLoggedOn())
@@ -242,6 +248,7 @@ public class OrderEntryPanel extends JPanel implements Observer {
     }
 
     private class SubmitListener implements ActionListener {
+        @Override
         public void actionPerformed(ActionEvent e) {
             Order order = new Order();
             order.setSide((OrderSide) sideComboBox.getSelectedItem());
@@ -265,6 +272,7 @@ public class OrderEntryPanel extends JPanel implements Observer {
     }
 
     private class SubmitActivator implements KeyListener, ItemListener {
+        @Override
         public void keyReleased(KeyEvent e) {
             Object obj = e.getSource();
             if (obj == symbolTextField) {
@@ -279,6 +287,7 @@ public class OrderEntryPanel extends JPanel implements Observer {
             activateSubmit();
         }
 
+        @Override
         public void itemStateChanged(ItemEvent e) {
             sessionEntered = sessionComboBox.getSelectedItem() != null;
             activateSubmit();
@@ -290,8 +299,14 @@ public class OrderEntryPanel extends JPanel implements Observer {
             return value.length() > 0;
         }
 
-        public void keyTyped(KeyEvent e) {}
+        @Override
+        public void keyTyped(KeyEvent e) {
+            //no-op
+        }
 
-        public void keyPressed(KeyEvent e) {}
+        @Override
+        public void keyPressed(KeyEvent e) {
+            //no-op
+        }
     }
 }

@@ -30,6 +30,7 @@ public class SystemTime {
     public static final TimeZone UTC_TIMEZONE = TimeZone.getTimeZone("UTC");
 
     private static SystemTimeSource DEFAULT_TIME_SOURCE = new SystemTimeSource() {
+        @Override
         public long getTime() {
             return System.currentTimeMillis();
         }
@@ -46,7 +47,8 @@ public class SystemTime {
     }
 
     public static synchronized void setTimeSource(SystemTimeSource systemTimeSource) {
-        SystemTime.systemTimeSource = systemTimeSource != null ? systemTimeSource
+        SystemTime.systemTimeSource = systemTimeSource != null
+                ? systemTimeSource
                 : DEFAULT_TIME_SOURCE;
     }
 
