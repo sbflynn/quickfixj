@@ -39,8 +39,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.quickfixj.FIXBeginString;
-
-import quickfix.field.converter.UtcTimeOnlyConverter;
+import org.quickfixj.field.FieldConversionException;
+import org.quickfixj.field.UtcTimeOnlyConverter;
 
 public class SessionScheduleTest {
     private MockSystemTimeSource mockSystemTimeSource;
@@ -147,7 +147,7 @@ public class SessionScheduleTest {
 
     private void doIsSessionTimeTest(boolean expectedInSession, int year, int month, int day,
             int hour, int minute, int second, TimeZone timeZone, String scheduleStartDay,
-            String scheduleEndDay) throws ConfigError, FieldConvertError {
+            String scheduleEndDay) throws ConfigError, FieldConversionException {
         mockSystemTimeSource
                 .setTime(getTimeStamp(year, month, day, hour, minute, second, timeZone));
         SessionSettings settings = new SessionSettings();
@@ -163,7 +163,7 @@ public class SessionScheduleTest {
 
     private void doIsSessionTimeTest(SessionSettings settings, SessionID sessionID,
             boolean expectedInSession, int year, int month, int day, int hour, int minute,
-            int second, String timeZoneID) throws ConfigError, FieldConvertError {
+            int second, String timeZoneID) throws ConfigError, FieldConversionException {
         mockSystemTimeSource.setTime(getTimeStamp(year, month, day, hour, minute, second,
                 TimeZone.getTimeZone(timeZoneID)));
         SessionSchedule schedule = new SessionSchedule(settings, sessionID);
@@ -490,8 +490,7 @@ public class SessionScheduleTest {
      * http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4832236
      */
     @Test
-    public void testThatUTCAndGMTAreTheSameNow() throws ConfigError, FieldConvertError,
-            ParseException {
+    public void testThatUTCAndGMTAreTheSameNow() throws ConfigError {
         SessionSettings settings = new SessionSettings();
         settings.setString(Session.SETTING_START_TIME, "00:01:00");
         settings.setString(Session.SETTING_END_TIME, "21:50:00");
@@ -633,7 +632,7 @@ public class SessionScheduleTest {
     }
 
     @Test
-    public void testWeeklyToString() throws ConfigError, FieldConvertError {
+    public void testWeeklyToString() throws ConfigError, FieldConversionException {
         // Just be sure it doesn't throw exceptions
         SessionSettings settings = new SessionSettings();
         settings.setString(Session.SETTING_TIMEZONE, "US/Eastern");
@@ -647,7 +646,7 @@ public class SessionScheduleTest {
     }
 
     @Test
-    public void testDailyToString() throws ConfigError, FieldConvertError {
+    public void testDailyToString() throws ConfigError, FieldConversionException {
         // Just be sure it doesn't throw exceptions
         SessionSettings settings = new SessionSettings();
         settings.setString(Session.SETTING_TIMEZONE, "US/Eastern");
@@ -865,7 +864,7 @@ public class SessionScheduleTest {
     }
 
     private void doWeeklyIsSameSessionTest(String startDay, String startTimeString, String endDay,
-            String endTimeString) throws ConfigError, FieldConvertError, ParseException {
+            String endTimeString) throws ConfigError, FieldConversionException, ParseException {
         DateFormat timeFormat = new SimpleDateFormat("HH:mm:ss");
         timeFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         Calendar startTime = parseTime(startTimeString, timeFormat);

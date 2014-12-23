@@ -19,7 +19,9 @@
 
 package quickfix;
 
-import java.util.ArrayList;
+import java.util.List;
+
+import org.quickfixj.engine.FIXSession.FIXSessionID;
 
 /**
  * Common base interface for acceptors and initiators.
@@ -69,5 +71,5 @@ public interface Connector {
      *
      * @return the sessions associated with this acceptor
      */
-    ArrayList<SessionID> getSessions();
+    List<FIXSessionID> getSessions();
 }

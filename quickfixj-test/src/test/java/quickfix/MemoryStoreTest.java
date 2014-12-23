@@ -19,6 +19,8 @@
 
 package quickfix;
 
+import org.quickfixj.engine.MessageStoreFactory;
+
 public class MemoryStoreTest extends AbstractMessageStoreTest {
     @Override
     protected MessageStoreFactory getMessageStoreFactory() {

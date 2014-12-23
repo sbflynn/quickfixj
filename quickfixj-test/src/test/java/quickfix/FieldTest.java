@@ -35,16 +35,15 @@ import org.quickfixj.FIXField;
 import org.quickfixj.field.BooleanField;
 import org.quickfixj.field.CharField;
 import org.quickfixj.field.DateField;
-import org.quickfixj.field.DecimalField;
+import org.quickfixj.field.BigDecimalField;
 import org.quickfixj.field.DoubleField;
 import org.quickfixj.field.IntField;
 import org.quickfixj.field.UtcDateOnlyField;
 import org.quickfixj.field.UtcTimeOnlyField;
-import org.quickfixj.field.UtcTimeStampField;
-
-import quickfix.fix44.field.PossDupFlag;
-import quickfix.fix44.field.RawData;
-import quickfix.fix44.field.Side;
+import org.quickfixj.field.UtcTimestampField;
+import org.quickfixj.messages.bd.fix44.field.PossDupFlag;
+import org.quickfixj.messages.bd.fix44.field.RawData;
+import org.quickfixj.messages.bd.fix44.field.Side;
 
 public class FieldTest {
 
@@ -73,16 +72,16 @@ public class FieldTest {
         //        assertEquals(side1, side2);
     }
 
-    private void testFieldCalcuations(String value, int checksum, int length) throws IOException {
+    private void testFieldCalcuations(String value, int checksum, int length) {
 
         FIXField<String> field;
 
         field = new MockStringField(12, value);
 
         //   field.setObject(value);
-        assertEquals("12=" + value, field.serialize(new StringBuffer()).toString());
-        assertEquals(checksum, field.getChecksum());
-        assertEquals(length, field.getLength());
+        assertEquals("12=" + value + "\001", field.serialize(new StringBuffer()).toString());
+        assertEquals(checksum, MessageUtils.checksum(CharsetSupport.getCharsetInstance(), field));
+        assertEquals(length, MessageUtils.length(CharsetSupport.getCharsetInstance(), field));
 
         value = value.substring(0, value.length() - 1)
                 + (char) (value.charAt(value.length() - 1) + 1);
@@ -90,19 +89,19 @@ public class FieldTest {
 
         field = new MockStringField(12, value);
         //   field.setObject(value);
-        assertEquals("12=" + value, field.serialize(new StringBuffer()).toString());
-        assertEquals(checksum, field.getChecksum());
-        assertEquals(length, field.getLength());
+        assertEquals("12=" + value + "\001", field.serialize(new StringBuffer()).toString());
+        assertEquals(checksum, MessageUtils.checksum(CharsetSupport.getCharsetInstance(), field));
+        assertEquals(length, MessageUtils.length(CharsetSupport.getCharsetInstance(), field));
 
         field = new MockStringField(13, value);
         checksum = (checksum + 1) & 0xFF;
-        assertEquals("13=" + value, field.serialize(new StringBuffer()).toString());
-        assertEquals(checksum, field.getChecksum());
-        assertEquals(length, field.getLength());
+        assertEquals("13=" + value + "\001", field.serialize(new StringBuffer()).toString());
+        assertEquals(checksum, MessageUtils.checksum(CharsetSupport.getCharsetInstance(), field));
+        assertEquals(length, MessageUtils.length(CharsetSupport.getCharsetInstance(), field));
     }
 
     @Test
-    public void testFieldCalculationsWithDefaultCharset() throws IOException {
+    public void testFieldCalculationsWithDefaultCharset() {
 
         testFieldCalcuations("VALUE", 30, 9);
     }
@@ -169,7 +168,7 @@ public class FieldTest {
     @Test
     public void testUtcTimeStampField() {
 
-        UtcTimeStampField field;
+        UtcTimestampField field;
         Date date = new Date();
 
         field = new MockUtcTimeStampField(11, date);
@@ -199,13 +198,13 @@ public class FieldTest {
         assertEquals(Boolean.FALSE, field.getValue());
         //     assertEquals(PossDupFlag.ORIGINAL_TRANSMISSION, field);
 
-        field = new PossDupFlag("Y");
+        field = new PossDupFlag("Y".toCharArray(), 0, 1);
         // field.setValue(true);
         assertEquals(PossDupFlag.TAG, field.getTag());
         assertEquals(Boolean.TRUE, field.getValue());
         //     assertEquals(PossDupFlag.POSSIBLE_DUPLICATE, field);
 
-        field = new PossDupFlag("N");
+        field = new PossDupFlag("N".toCharArray(), 0, 1);
         // field.setValue(Boolean.FALSE);
         assertEquals(PossDupFlag.TAG, field.getTag());
         assertEquals(Boolean.FALSE, field.getValue());
@@ -247,16 +246,16 @@ public class FieldTest {
         //        assertEquals(45.6, field.getValue(), 0);
     }
 
+    @SuppressWarnings("unused")
     @Test(expected = NumberFormatException.class)
     public void testDoubleFieldException() {
-
         new MockDoubleField(11, Double.NaN);
     }
 
     @Test
     public void testDecimalField() {
 
-        DecimalField field;
+        BigDecimalField field;
         field = new MockDecimalField(11, new BigDecimal("12.3"));
         //   field.setValue(12.3);
         assertEquals(11, field.getTag());
@@ -278,9 +277,9 @@ public class FieldTest {
         //        assertEquals(BigDecimal.valueOf(45.6), field.getValue());
     }
 
+    @SuppressWarnings("unused")
     @Test(expected = NumberFormatException.class)
     public void testDecimalFieldException() {
-
         new MockDecimalField(11, BigDecimal.valueOf(Double.POSITIVE_INFINITY));
     }
 
@@ -331,7 +330,7 @@ public class FieldTest {
     }
 
     @Test
-    public void testBytesField() throws IOException {
+    public void testBytesField() {
 
         byte[] data = "rawdata".getBytes();
 
@@ -343,7 +342,7 @@ public class FieldTest {
 
         StringBuilder sb = new StringBuilder();
         field.serialize(sb);
-        assertEquals("96=rawdata", sb.toString());
+        assertEquals("96=rawdata\001", sb.toString());
     }
 
     @Test
@@ -391,11 +390,6 @@ public class FieldTest {
             this.tag = tag;
         }
 
-        protected MockStringField(int tag, CharSequence value) {
-            super(value);
-            this.tag = tag;
-        }
-
         @Override
         public int getTag() {
             return tag;
@@ -416,8 +410,8 @@ public class FieldTest {
             this.tag = tag;
         }
 
-        protected MockIntField(int tag, CharSequence value) {
-            super(value);
+        protected MockIntField(int tag, String value) {
+            super(value.toCharArray(), 0, value.length());
             this.tag = tag;
         }
 
@@ -441,8 +435,8 @@ public class FieldTest {
             this.tag = tag;
         }
 
-        protected MockBooleanField(int tag, CharSequence value) {
-            super(value);
+        protected MockBooleanField(int tag, String value) {
+            super(value.toCharArray(), 0, value.length());
             this.tag = tag;
         }
 
@@ -466,8 +460,8 @@ public class FieldTest {
             this.tag = tag;
         }
 
-        protected MockCharField(int tag, CharSequence value) {
-            super(value);
+        protected MockCharField(int tag, String value) {
+            super(value.toCharArray(), 0, value.length());
             this.tag = tag;
         }
 
@@ -491,8 +485,8 @@ public class FieldTest {
             this.tag = tag;
         }
 
-        protected MockDoubleField(int tag, CharSequence value) {
-            super(value);
+        protected MockDoubleField(int tag, String value) {
+            super(value.toCharArray(), 0, value.length());
             this.tag = tag;
         }
 
@@ -502,7 +496,7 @@ public class FieldTest {
         }
     }
 
-    private class MockDecimalField extends DecimalField {
+    private class MockDecimalField extends BigDecimalField {
 
         /**
          * The serialVersionUID property.
@@ -516,8 +510,8 @@ public class FieldTest {
             this.tag = tag;
         }
 
-        protected MockDecimalField(int tag, CharSequence value) {
-            super(value);
+        protected MockDecimalField(int tag, String value) {
+            super(value.toCharArray(), 0, value.length());
             this.tag = tag;
         }
 
@@ -561,8 +555,8 @@ public class FieldTest {
             this.tag = tag;
         }
 
-        protected MockUtcDateOnlyField(int tag, CharSequence value) {
-            super(value);
+        protected MockUtcDateOnlyField(int tag, String value) {
+            super(value.toCharArray(), 0, value.length());
             this.tag = tag;
         }
 
@@ -586,8 +580,8 @@ public class FieldTest {
             this.tag = tag;
         }
 
-        protected MockUtcTimeOnlyField(int tag, CharSequence value) {
-            super(value);
+        protected MockUtcTimeOnlyField(int tag, String value) {
+            super(value.toCharArray(), 0, value.length());
             this.tag = tag;
         }
 
@@ -597,7 +591,7 @@ public class FieldTest {
         }
     }
 
-    private class MockUtcTimeStampField extends UtcTimeStampField {
+    private class MockUtcTimeStampField extends UtcTimestampField {
 
         /**
          * The serialVersionUID property.
@@ -611,8 +605,8 @@ public class FieldTest {
             this.tag = tag;
         }
 
-        protected MockUtcTimeStampField(int tag, CharSequence value) {
-            super(value);
+        protected MockUtcTimeStampField(int tag, String value) {
+            super(value.toCharArray(), 0, value.length());
             this.tag = tag;
         }
 

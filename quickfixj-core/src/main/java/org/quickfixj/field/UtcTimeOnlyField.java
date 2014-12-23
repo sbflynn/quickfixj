@@ -21,8 +21,6 @@ package org.quickfixj.field;
 
 import java.util.Date;
 
-import quickfix.field.converter.UtcTimeOnlyConverter;
-
 /*
  * A time-valued message field.
  */
@@ -38,8 +36,8 @@ public abstract class UtcTimeOnlyField extends DateField {
         this(value, true);
     }
 
-    protected UtcTimeOnlyField(CharSequence charSequence) {
-        this(UtcTimeOnlyConverter.convert(charSequence.toString()), true);
+    protected UtcTimeOnlyField(char[] value, int offset, int count) {
+        this(UtcTimeOnlyConverter.convert(new String(value, offset, count)), true);
     }
 
     protected UtcTimeOnlyField(Date value, boolean includeMilliseconds) {

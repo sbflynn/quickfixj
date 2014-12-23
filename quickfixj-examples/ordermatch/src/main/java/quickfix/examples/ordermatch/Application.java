@@ -19,43 +19,44 @@
 
 package quickfix.examples.ordermatch;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
+
+import org.quickfixj.FIXMessage;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.engine.FIXTag;
+import org.quickfixj.engine.SessionNotFoundException;
+import org.quickfixj.messages.bd.fix42.ExecutionReport;
+import org.quickfixj.messages.bd.fix42.MarketDataRequest;
+import org.quickfixj.messages.bd.fix42.MarketDataRequest.NoRelatedSymGroup;
+import org.quickfixj.messages.bd.fix42.NewOrderSingle;
+import org.quickfixj.messages.bd.fix42.OrderCancelRequest;
+import org.quickfixj.messages.bd.fix42.field.AvgPx;
+import org.quickfixj.messages.bd.fix42.field.ClOrdID;
+import org.quickfixj.messages.bd.fix42.field.CumQty;
+import org.quickfixj.messages.bd.fix42.field.ExecID;
+import org.quickfixj.messages.bd.fix42.field.ExecTransType;
+import org.quickfixj.messages.bd.fix42.field.ExecType;
+import org.quickfixj.messages.bd.fix42.field.LastPx;
+import org.quickfixj.messages.bd.fix42.field.LastShares;
+import org.quickfixj.messages.bd.fix42.field.LeavesQty;
+import org.quickfixj.messages.bd.fix42.field.OrdStatus;
+import org.quickfixj.messages.bd.fix42.field.OrdType;
+import org.quickfixj.messages.bd.fix42.field.OrderID;
+import org.quickfixj.messages.bd.fix42.field.OrderQty;
+import org.quickfixj.messages.bd.fix42.field.Side;
+import org.quickfixj.messages.bd.fix42.field.SubscriptionRequestType;
+import org.quickfixj.messages.bd.fix42.field.Symbol;
+import org.quickfixj.messages.bd.fix42.field.Text;
+import org.quickfixj.messages.bd.fix42.field.TimeInForce;
 
 import quickfix.DoNotSend;
 import quickfix.FieldNotFound;
-import quickfix.FixTags;
-import quickfix.IncorrectDataFormat;
 import quickfix.IncorrectTagValue;
-import quickfix.Message;
 import quickfix.MessageCracker;
-import quickfix.RejectLogon;
 import quickfix.Session;
 import quickfix.SessionID;
-import quickfix.SessionNotFound;
 import quickfix.UnsupportedMessageType;
-import quickfix.fix42.ExecutionReport;
-import quickfix.fix42.MarketDataRequest;
-import quickfix.fix42.MarketDataRequest.NoRelatedSymGroup;
-import quickfix.fix42.NewOrderSingle;
-import quickfix.fix42.OrderCancelRequest;
-import quickfix.fix42.field.AvgPx;
-import quickfix.fix42.field.ClOrdID;
-import quickfix.fix42.field.CumQty;
-import quickfix.fix42.field.ExecID;
-import quickfix.fix42.field.ExecTransType;
-import quickfix.fix42.field.ExecType;
-import quickfix.fix42.field.LastPx;
-import quickfix.fix42.field.LastShares;
-import quickfix.fix42.field.LeavesQty;
-import quickfix.fix42.field.OrdStatus;
-import quickfix.fix42.field.OrdType;
-import quickfix.fix42.field.OrderID;
-import quickfix.fix42.field.OrderQty;
-import quickfix.fix42.field.Side;
-import quickfix.fix42.field.SubscriptionRequestType;
-import quickfix.fix42.field.Symbol;
-import quickfix.fix42.field.Text;
-import quickfix.fix42.field.TimeInForce;
 
 public class Application extends MessageCracker implements quickfix.Application {
 
@@ -64,39 +65,32 @@ public class Application extends MessageCracker implements quickfix.Application 
     private IdGenerator generator = new IdGenerator();
 
     @Override
-    public void fromAdmin(Message message, SessionID sessionId)
-            throws FieldNotFound, IncorrectDataFormat, IncorrectTagValue,
-            RejectLogon {
+    public void fromAdmin(FIXMessage message, FIXSessionID sessionId) {
 
         // no-op
     }
 
     @Override
-    public void fromApp(Message message, SessionID sessionId)
-            throws FieldNotFound, IncorrectDataFormat, IncorrectTagValue,
-            UnsupportedMessageType {
+    public void fromApp(FIXMessage message, FIXSessionID sessionId) {
 
         crack(message, sessionId);
     }
 
-    public void onMessage(NewOrderSingle message, SessionID sessionID)
-            throws FieldNotFound, UnsupportedMessageType {
+    public void onMessage(NewOrderSingle message, FIXSessionID sessionID) {
 
-        String senderCompId = message.getHeader().getString(
-                FixTags.SENDER_COMP_ID);
-        String targetCompId = message.getHeader().getString(
-                FixTags.TARGET_COMP_ID);
+        String senderCompId = message.getHeader().getFieldValue(FIXTag.SENDER_COMP_ID);
+        String targetCompId = message.getHeader().getFieldValue(FIXTag.TARGET_COMP_ID);
         ClOrdID clOrdId = message.getClOrdID();
         Symbol symbol = message.getSymbol();
         Side side = message.getSide();
         OrdType ordType = message.getOrdType();
 
-        double price = 0;
+        BigDecimal price = BigDecimal.ZERO;
         if (OrdType.LIMIT.equals(ordType)) {
             price = message.getPrice().getValue();
         }
 
-        double qty = message.getOrderQty().getValue();
+        BigDecimal qty = message.getOrderQty().getValue();
         TimeInForce timeInForce = TimeInForce.DAY;
         if (message.isFieldSet(TimeInForce.TAG)) {
             timeInForce = message.getTimeInForce();
@@ -107,30 +101,27 @@ public class Application extends MessageCracker implements quickfix.Application 
                 throw new RuntimeException("Unsupported TIF, use Day");
             }
 
-            Order order = new Order(clOrdId, symbol, senderCompId,
-                    targetCompId, side, ordType, price, (int) qty);
+            Order order = new Order(clOrdId, symbol, senderCompId, targetCompId, side, ordType,
+                    price.doubleValue(), qty.intValue());
 
             processOrder(order);
         } catch (Exception e) {
-            rejectOrder(senderCompId, targetCompId, clOrdId, symbol, side,
-                    e.getMessage());
+            rejectOrder(senderCompId, targetCompId, clOrdId, symbol, side, e.getMessage());
         }
     }
 
-    private void rejectOrder(String senderCompId, String targetCompId,
-            ClOrdID clOrdId, Symbol symbol, Side side, String message) {
+    private void rejectOrder(String senderCompId, String targetCompId, ClOrdID clOrdId,
+            Symbol symbol, Side side, String message) {
 
-        ExecutionReport fixOrder = new ExecutionReport(new OrderID(
-                clOrdId.getCharacters()),
-                new ExecID(generator.genExecutionID()), ExecTransType.NEW,
-                ExecType.REJECTED, OrdStatus.REJECTED, symbol, side,
-                new LeavesQty(0), new CumQty(0), new AvgPx(0));
+        ExecutionReport fixOrder = new ExecutionReport(new OrderID(clOrdId.getValue()), new ExecID(
+                generator.genExecutionID()), ExecTransType.NEW, ExecType.REJECTED,
+                OrdStatus.REJECTED, symbol, side, new LeavesQty(0), new CumQty(0), new AvgPx(0));
 
         fixOrder.setText(new Text(message));
 
         try {
             Session.sendToTarget(fixOrder, senderCompId, targetCompId);
-        } catch (SessionNotFound e) {
+        } catch (SessionNotFoundException e) {
             e.printStackTrace();
         }
     }
@@ -172,24 +163,21 @@ public class Application extends MessageCracker implements quickfix.Application 
         String targetCompId = order.getOwner();
         String senderCompId = order.getTarget();
 
-        ExecutionReport fixOrder = new ExecutionReport(new OrderID(order
-                .getClientOrderId().getCharacters()), new ExecID(
-                generator.genExecutionID()), ExecTransType.NEW, execType,
-                status, order.getSymbol(), order.getSide(), new LeavesQty(
-                        order.getOpenQuantity()), new CumQty(
-                        order.getExecutedQuantity()), new AvgPx(
-                        order.getAvgExecutedPrice()));
+        ExecutionReport fixOrder = new ExecutionReport(new OrderID(order.getClientOrderId()
+                .getValue()), new ExecID(generator.genExecutionID()), ExecTransType.NEW, execType,
+                status, order.getSymbol(), order.getSide(), new LeavesQty(order.getOpenQuantity()),
+                new CumQty(order.getExecutedQuantity()), new AvgPx(order.getAvgExecutedPrice()));
 
-        fixOrder.setDouble(OrderQty.TAG, order.getQuantity());
+        fixOrder.setOrderQty(new OrderQty(order.getQuantity()));
 
         if (status == OrdStatus.FILLED || status == OrdStatus.PARTIALLY_FILLED) {
-            fixOrder.setDouble(LastShares.TAG, order.getLastExecutedQuantity());
-            fixOrder.setDouble(LastPx.TAG, order.getPrice());
+            fixOrder.setLastShares(new LastShares(order.getLastExecutedQuantity()));
+            fixOrder.setLastPx(new LastPx(order.getPrice()));
         }
 
         try {
             Session.sendToTarget(fixOrder, senderCompId, targetCompId);
-        } catch (SessionNotFound e) {
+        } catch (SessionNotFoundException e) {
             // ignore
         }
     }
@@ -199,13 +187,12 @@ public class Application extends MessageCracker implements quickfix.Application 
         if (order.isFilled()) {
             updateOrder(order, ExecType.FILL, OrdStatus.FILLED);
         } else {
-            updateOrder(order, ExecType.PARTIAL_FILL,
-                    OrdStatus.PARTIALLY_FILLED);
+            updateOrder(order, ExecType.PARTIAL_FILL, OrdStatus.PARTIALLY_FILLED);
         }
     }
 
-    public void onMessage(OrderCancelRequest message, SessionID sessionID)
-            throws FieldNotFound, UnsupportedMessageType {
+    public void onMessage(OrderCancelRequest message, SessionID sessionID) throws FieldNotFound,
+            UnsupportedMessageType {
 
         Symbol symbol = message.getSymbol();
         Side side = message.getSide();
@@ -216,17 +203,16 @@ public class Application extends MessageCracker implements quickfix.Application 
         orderMatcher.erase(order);
     }
 
-    public void onMessage(MarketDataRequest message, SessionID sessionID)
-            throws FieldNotFound, UnsupportedMessageType, IncorrectTagValue {
+    public void onMessage(MarketDataRequest message, SessionID sessionID) throws FieldNotFound,
+            UnsupportedMessageType, IncorrectTagValue {
 
-        SubscriptionRequestType subscriptionRequestType = message
-                .getSubscriptionRequestType();
+        SubscriptionRequestType subscriptionRequestType = message.getSubscriptionRequestType();
 
         if (SubscriptionRequestType.SNAPSHOT.equals(subscriptionRequestType)) {
             throw new IncorrectTagValue(SubscriptionRequestType.TAG);
         }
 
-        for (NoRelatedSymGroup group : message.getNoRelatedSym().getGroups()) {
+        for (NoRelatedSymGroup group : message.getNoRelatedSym()) {
 
             Symbol symbol = group.getSymbol();
             System.err.println("*** market data: " + symbol);
@@ -234,37 +220,31 @@ public class Application extends MessageCracker implements quickfix.Application 
     }
 
     @Override
-    public void onCreate(SessionID sessionId) {
-
+    public void onCreate(FIXSessionID sessionId) {
         // no-op
     }
 
     @Override
-    public void onLogon(SessionID sessionId) {
-
+    public void onLogon(FIXSessionID sessionId) {
         System.out.println("Logon - " + sessionId);
     }
 
     @Override
-    public void onLogout(SessionID sessionId) {
-
+    public void onLogout(FIXSessionID sessionId) {
         System.out.println("Logout - " + sessionId);
     }
 
     @Override
-    public void toAdmin(Message message, SessionID sessionId) {
-
+    public void toAdmin(FIXMessage message, FIXSessionID sessionId) {
         // no-op
     }
 
     @Override
-    public void toApp(Message message, SessionID sessionId) throws DoNotSend {
-
+    public void toApp(FIXMessage message, FIXSessionID sessionId) throws DoNotSend {
         // no-op
     }
 
     public OrderMatcher orderMatcher() {
-
         return orderMatcher;
     }
 }

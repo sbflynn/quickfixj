@@ -22,64 +22,67 @@ package quickfix;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.quickfixj.FIXMessage;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+
 public class UnitTestApplication implements ApplicationExtended, SessionStateListener {
-    public List<Message> fromAppMessages = new ArrayList<Message>();
-    public List<Message> toAppMessages = new ArrayList<Message>();
-    public List<Message> fromAdminMessages = new ArrayList<Message>();
-    public List<Message> toAdminMessages = new ArrayList<Message>();
-    public List<SessionID> logonSessions = new ArrayList<SessionID>();
-    public List<SessionID> logoutSessions = new ArrayList<SessionID>();
-    public List<SessionID> createSessions = new ArrayList<SessionID>();
+    public List<FIXMessage> fromAppMessages = new ArrayList<FIXMessage>();
+    public List<FIXMessage> toAppMessages = new ArrayList<FIXMessage>();
+    public List<FIXMessage> fromAdminMessages = new ArrayList<FIXMessage>();
+    public List<FIXMessage> toAdminMessages = new ArrayList<FIXMessage>();
+    public List<FIXSessionID> logonSessions = new ArrayList<FIXSessionID>();
+    public List<FIXSessionID> logoutSessions = new ArrayList<FIXSessionID>();
+    public List<FIXSessionID> createSessions = new ArrayList<FIXSessionID>();
     public int sessionResets = 0;
 
     @Override
-    public boolean canLogon(SessionID sessionID) {
+    public boolean canLogon(FIXSessionID sessionID) {
         return true;
     }
 
     @Override
-    public void fromApp(Message message, SessionID sessionId) throws FieldNotFound,
+    public void fromApp(FIXMessage message, FIXSessionID sessionId) throws FieldNotFound,
             IncorrectDataFormat, IncorrectTagValue, UnsupportedMessageType {
         System.out.println("from app [" + sessionId + "] " + message);
         fromAppMessages.add(message);
     }
 
     @Override
-    public void toApp(Message message, SessionID sessionId) throws DoNotSend {
+    public void toApp(FIXMessage message, FIXSessionID sessionId) throws DoNotSend {
         System.out.println("to app [" + sessionId + "] " + message);
         toAppMessages.add(message);
     }
 
     @Override
-    public void fromAdmin(Message message, SessionID sessionId) throws FieldNotFound,
+    public void fromAdmin(FIXMessage message, FIXSessionID sessionId) throws FieldNotFound,
             IncorrectDataFormat, IncorrectTagValue, RejectLogon {
         System.out.println("from admin [" + sessionId + "] " + message);
         fromAdminMessages.add(message);
     }
 
     @Override
-    public void toAdmin(Message message, SessionID sessionId) {
+    public void toAdmin(FIXMessage message, FIXSessionID sessionId) {
         System.out.println("to admin [" + sessionId + "] " + message);
         toAdminMessages.add(message);
     }
 
     @Override
-    public void onBeforeSessionReset(SessionID sessionId) {
+    public void onBeforeSessionReset(FIXSessionID sessionId) {
         System.out.println("onBeforeSessionReset [" + sessionId + "]");
     }
 
     @Override
-    public void onLogout(SessionID sessionId) {
+    public void onLogout(FIXSessionID sessionId) {
         logoutSessions.add(sessionId);
     }
 
     @Override
-    public void onLogon(SessionID sessionId) {
+    public void onLogon(FIXSessionID sessionId) {
         logonSessions.add(sessionId);
     }
 
     @Override
-    public void onCreate(SessionID sessionId) {
+    public void onCreate(FIXSessionID sessionId) {
         createSessions.add(sessionId);
     }
 
@@ -93,25 +96,25 @@ public class UnitTestApplication implements ApplicationExtended, SessionStateLis
         createSessions.clear();
     }
 
-    public Message lastFromAppMessage() {
+    public FIXMessage lastFromAppMessage() {
         if (fromAppMessages.size() == 0)
             return null;
         return fromAppMessages.get(fromAppMessages.size() - 1);
     }
 
-    public Message lastFromAdminMessage() {
+    public FIXMessage lastFromAdminMessage() {
         if (fromAdminMessages.size() == 0)
             return null;
         return fromAdminMessages.get(fromAdminMessages.size() - 1);
     }
 
-    public Message lastToAppMessage() {
+    public FIXMessage lastToAppMessage() {
         if (toAppMessages.size() == 0)
             return null;
         return toAppMessages.get(toAppMessages.size() - 1);
     }
 
-    public Message lastToAdminMessage() {
+    public FIXMessage lastToAdminMessage() {
         if (toAdminMessages.size() == 0)
             return null;
         return toAdminMessages.get(toAdminMessages.size() - 1);

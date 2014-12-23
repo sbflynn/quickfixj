@@ -19,6 +19,10 @@
 
 package quickfix;
 
+import org.quickfixj.engine.Log;
+import org.quickfixj.engine.LogFactory;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+
 /**
  * Allows multiple log factories to be used with QuickFIX/J. For example,
  * you could log events to the console and also log all events and messages to
@@ -46,7 +50,7 @@ public class CompositeLogFactory implements LogFactory {
      * @see SessionFactory
      */
     @Override
-    public Log create(SessionID sessionID) {
+    public Log create(FIXSessionID sessionID) {
         Log[] logs = new Log[logFactories.length];
         for (int i = 0; i < logFactories.length; i++) {
             if (logFactories[i] instanceof LocationAwareLogFactory) {

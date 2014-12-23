@@ -23,11 +23,12 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import org.quickfixj.FIXMessage;
+import org.quickfixj.engine.FIXTag;
+
 import quickfix.FieldNotFound;
 import quickfix.FixMessageTypes;
-import quickfix.FixTags;
 import quickfix.LogUtil;
-import quickfix.Message;
 import quickfix.Session;
 import quickfix.SystemTime;
 
@@ -53,7 +54,7 @@ public class SingleThreadedEventHandlingStrategy implements EventHandlingStrateg
     }
 
     @Override
-    public void onMessage(Session quickfixSession, Message message) {
+    public void onMessage(Session quickfixSession, FIXMessage message) {
 
         try {
             eventQueue.put(new SessionMessageEvent(quickfixSession, message));
@@ -118,32 +119,32 @@ public class SingleThreadedEventHandlingStrategy implements EventHandlingStrateg
 
     private static class SessionMessageEvent {
 
-        private final Session quickfixSession;
+        private final Session session;
 
-        private final Message message;
+        private final FIXMessage message;
 
-        public SessionMessageEvent(Session session, Message message) {
-
+        SessionMessageEvent(Session session, FIXMessage message) {
             this.message = message;
-            quickfixSession = session;
+            this.session = session;
         }
 
         public void processMessage() {
 
             try {
-                if (quickfixSession.hasResponder()) {
-                    quickfixSession.next(message);
+                if (session.hasResponder()) {
+                    session.next(message);
                 } else {
                     try {
-                        final String msgType = message.getHeader().getString(FixTags.MSG_TYPE);
-                        if (msgType.equals(FixMessageTypes.LOGOUT))
-                            quickfixSession.next(message);
+                        final String msgType = message.getHeader().getFieldValue(FIXTag.MSG_TYPE);
+                        if (msgType.equals(FixMessageTypes.LOGOUT)) {
+                            session.next(message);
+                        }
                     } catch (FieldNotFound ex) {
                         // ignore
                     }
                 }
             } catch (Throwable e) {
-                LogUtil.logThrowable(quickfixSession.getSessionID(), e.getMessage(), e);
+                LogUtil.logThrowable(session.getSessionID(), e.getMessage(), e);
             }
         }
     }

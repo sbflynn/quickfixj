@@ -27,151 +27,134 @@
 
 		<xsl:value-of select="$NEW_LINE" />
 		<xsl:value-of select="concat('package ', $messagePackage,';')" />
-		<xsl:value-of select="$NEW_LINE" />
-		<xsl:value-of select="$NEW_LINE" />
 
-		<xsl:text>import quickfix.*;</xsl:text>
-		<xsl:value-of select="$NEW_LINE" />
-		<xsl:value-of select="concat('import ', $fieldPackage,'.*;')" />
 		<xsl:value-of select="$NEW_LINE" />
 		<xsl:value-of select="$NEW_LINE" />
 		<xsl:text>@javax.annotation.Generated("org.quickfixj.codegenerator.GenerateMojo")</xsl:text>
 		<xsl:value-of select="$NEW_LINE" />
-		<xsl:text>public class MessageCracker {</xsl:text>
+		<xsl:text>public abstract class MessageCracker {</xsl:text>
 
-		/**
-		* Callback for quickfix.Message message.
-		*
-		*
-		@param message
-		* @param sessionID
-		*
-		*
-		@throws FieldNotFound
-		* @throws
-		UnsupportedMessageType
-		* @throws IncorrectTagValue
-		*/
-		public void
-		onMessage(quickfix.Message message, SessionID sessionID) throws
-		FieldNotFound,
-		UnsupportedMessageType, IncorrectTagValue {
-		throw new
-		UnsupportedMessageType();
-		}
-		<xsl:call-template name="virtual-functions" />
 		<xsl:call-template name="switch-statement" />
-		}
+		<xsl:call-template name="virtual-functions" />
+
+		<!-- Very basic javadoc -->
+		<xsl:value-of select="$NEW_LINE" />
+		<xsl:value-of select="$NEW_LINE_INDENT" />
+		<xsl:text>/**</xsl:text>
+		<xsl:value-of select="$NEW_LINE_INDENT" />
+		<xsl:text> * Callback for uncracked {@link org.quickfixj.FIXMessage} instance.</xsl:text>
+		<xsl:value-of select="$NEW_LINE_INDENT" />
+		<xsl:text> * </xsl:text>
+		<xsl:value-of select="$NEW_LINE_INDENT" />
+		<xsl:text> * @param message</xsl:text>
+		<xsl:value-of select="$NEW_LINE_INDENT" />
+		<xsl:text> * @param sessionID</xsl:text>
+		<xsl:value-of select="$NEW_LINE_INDENT" />
+		<xsl:text> * @throws quickfix.UnsupportedMessageType</xsl:text>
+		<xsl:value-of select="$NEW_LINE_INDENT" />
+		<xsl:text> **/</xsl:text>
+
+		<!-- Uncracked message fall-through -->
+		<xsl:value-of select="$NEW_LINE_INDENT" />
+		<xsl:text>public void onMessage(org.quickfixj.FIXMessage message, quickfix.SessionID sessionID) throws quickfix.UnsupportedMessageType {</xsl:text>
+		<xsl:value-of select="$NEW_LINE_INDENT2" />
+		<xsl:text>throw new quickfix.UnsupportedMessageType();</xsl:text>
+		<xsl:value-of select="$NEW_LINE_INDENT" />
+		<xsl:text>}</xsl:text>
+
+		<xsl:value-of select="$NEW_LINE" />
+		<xsl:text>}</xsl:text>
+
 	</xsl:template>
 
 	<xsl:template name="virtual-functions">
 		<xsl:for-each select="fix:messages/fix:message">
-			/**
-			* Callback for FIX
+
+			<!-- Very basic javadoc -->
+			<xsl:value-of select="$NEW_LINE" />
+			<xsl:value-of select="$NEW_LINE_INDENT" />
+			<xsl:text>/**</xsl:text>
+			<xsl:value-of select="$NEW_LINE_INDENT" />
+			<xsl:text> * Callback for FIX {@link </xsl:text>
 			<xsl:value-of select="@name" />
-			message.
-			*
-			* @param message
-			* @param sessionID
-			*
-			* @throws FieldNotFound
-			* @throws
-			UnsupportedMessageType
-			* @throws IncorrectTagValue
-			*/
-			public void onMessage(
+			<xsl:text>} message. Subclasses wishing to handle messages of this type should overload this method.</xsl:text>
+			<xsl:value-of select="$NEW_LINE_INDENT" />
+			<xsl:text> * </xsl:text>
+			<xsl:value-of select="$NEW_LINE_INDENT" />
+			<xsl:text> * @param message</xsl:text>
+			<xsl:value-of select="$NEW_LINE_INDENT" />
+			<xsl:text> * @param sessionID</xsl:text>
+			<xsl:value-of select="$NEW_LINE_INDENT" />
+			<xsl:text> * @throws quickfix.UnsupportedMessageType</xsl:text>
+			<xsl:value-of select="$NEW_LINE_INDENT" />
+			<xsl:text> **/</xsl:text>
+
+			<!-- The method -->
+			<xsl:value-of select="$NEW_LINE_INDENT" />
+			<xsl:text>public void onMessage(</xsl:text>
 			<xsl:value-of select="@name" />
-			message, SessionID sessionID) throws FieldNotFound, UnsupportedMessageType,
-			IncorrectTagValue {
-			<xsl:text />
+			<xsl:text> message, quickfix.SessionID sessionID) throws quickfix.UnsupportedMessageType {</xsl:text>
+
+			<xsl:value-of select="$NEW_LINE_INDENT2" />
 			<xsl:choose>
-				<xsl:when
-					test="(@msgcat='app' or @msgcat='Common') and @name='BusinessMessageReject'"
-				>
-					}
-				</xsl:when>
 				<xsl:when test="@msgcat='admin'">
-					}
-				</xsl:when>
-				<xsl:when test="@msgcat='Session'">
-					}
+					<xsl:text>// no-op</xsl:text>
 				</xsl:when>
 				<xsl:otherwise>
-					throw new UnsupportedMessageType();
-					}
+					<xsl:text>throw new quickfix.UnsupportedMessageType();</xsl:text>
 				</xsl:otherwise>
 			</xsl:choose>
+
+			<xsl:value-of select="$NEW_LINE_INDENT" />
+			<xsl:text>}</xsl:text>
 		</xsl:for-each>
 	</xsl:template>
 
 	<xsl:template name="switch-statement">
-		<xsl:value-of select="$NEW_LINE_INDENT" />
-		public void crack(quickfix.Message message, SessionID sessionID)
-		throws
-		UnsupportedMessageType, FieldNotFound, IncorrectTagValue {
-		<xsl:value-of select="$NEW_LINE_INDENT" />
-		<xsl:value-of
-			select="concat('crack', //fix:fix/@major, //fix:fix/@minor,'((Message) message, sessionID);')" />
-		}
 
-		/**
-		* Cracker method for
-		<xsl:value-of select="//fix:fix/@major" />
-		<xsl:value-of select="//fix:fix/@minor" />
-		messages.
-		*
-		* @throws FieldNotFound
-		* @throws UnsupportedMessageType
-		* @throws
-		IncorrectTagValue
-		*/
+		<!-- Very basic javadoc -->
+		<xsl:value-of select="$NEW_LINE" />
 		<xsl:value-of select="$NEW_LINE_INDENT" />
-		<xsl:value-of select="concat('public void crack', //fix:fix/@major, //fix:fix/@minor)" />
-		<xsl:text>(Message message, SessionID sessionID) throws UnsupportedMessageType, FieldNotFound, IncorrectTagValue {</xsl:text>
+		<xsl:text>/**</xsl:text>
+		<xsl:value-of select="$NEW_LINE_INDENT" />
+		<xsl:text> * Entry point for cracking {@link org.quickfixj.FIXMessage} instances.</xsl:text>
+		<xsl:value-of select="$NEW_LINE_INDENT" />
+		<xsl:text> * </xsl:text>
+		<xsl:value-of select="$NEW_LINE_INDENT" />
+		<xsl:text> * @param message</xsl:text>
+		<xsl:value-of select="$NEW_LINE_INDENT" />
+		<xsl:text> * @param sessionID</xsl:text>
+		<xsl:value-of select="$NEW_LINE_INDENT" />
+		<xsl:text> * @throws quickfix.UnsupportedMessageType</xsl:text>
+		<xsl:value-of select="$NEW_LINE_INDENT" />
+		<xsl:text> **/</xsl:text>
 
 		<xsl:value-of select="$NEW_LINE_INDENT" />
+		<xsl:text>public void crack(org.quickfixj.FIXMessage message, quickfix.SessionID sessionID) throws quickfix.UnsupportedMessageType {</xsl:text>
+		<xsl:value-of select="$NEW_LINE" />
+		<xsl:value-of select="$NEW_LINE_INDENT2" />
 		<xsl:text>String type = message.getMsgType();</xsl:text>
 
+		<xsl:value-of select="$NEW_LINE" />
+		<xsl:value-of select="$NEW_LINE_INDENT2" />
 		<xsl:for-each select="fix:messages/fix:message">
 			<xsl:if test="position()!=1">
-				else
+				<xsl:text> else </xsl:text>
 			</xsl:if>
 
-			<xsl:value-of select="$NEW_LINE_INDENT" />
-			<xsl:value-of select="concat('if (type.equals(',@name,'.MSGTYPE)) {')" />
-			<xsl:value-of select="$NEW_LINE_INDENT" />
+			<xsl:value-of select="concat('if (type.equals(', @name, '.MSGTYPE)) {')" />
+			<xsl:value-of select="$NEW_LINE_INDENT3" />
 			<xsl:value-of select="concat('onMessage((', @name, ')message, sessionID);')" />
-			<xsl:value-of select="$NEW_LINE_INDENT" />
+			<xsl:value-of select="$NEW_LINE_INDENT2" />
 			<xsl:text>}</xsl:text>
 		</xsl:for-each>
-		else
-		onMessage(message, sessionID);
-		}
-	</xsl:template>
-
-	<xsl:template name="base-class">
-		<xsl:if test="//fix:fix/@major='4'">
-			<xsl:if test="//fix:fix/@minor='1'">
-				extends quickfix.fix40.MessageCracker
-			</xsl:if>
-			<xsl:if test="//fix:fix/@minor='2'">
-				extends quickfix.fix41.MessageCracker
-			</xsl:if>
-			<xsl:if test="//fix:fix/@minor='3'">
-				extends quickfix.fix42.MessageCracker
-			</xsl:if>
-			<xsl:if test="//fix:fix/@minor='4'">
-				extends quickfix.fix43.MessageCracker
-			</xsl:if>
-		</xsl:if>
-		<xsl:if test="//fix:fix/@major='5'">
-			<xsl:if test="//fix:fix/@minor='0'">
-				extends quickfix.fix44.MessageCracker
-			</xsl:if>
-		</xsl:if>
-		<xsl:if test="//fix:fix/@type='FIXT'">
-			extends quickfix.fix50.MessageCracker
-		</xsl:if>
+		<xsl:text> else {</xsl:text>
+		<xsl:value-of select="$NEW_LINE_INDENT3" />
+		<xsl:text>onMessage(message, sessionID);</xsl:text>
+		<xsl:value-of select="$NEW_LINE_INDENT2" />
+		<xsl:text>}</xsl:text>
+		<xsl:value-of select="$NEW_LINE_INDENT" />
+		<xsl:text>}</xsl:text>
 	</xsl:template>
 
 </xsl:stylesheet>

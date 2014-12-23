@@ -21,7 +21,8 @@ package quickfix;
 
 import java.io.PrintStream;
 
-import quickfix.field.converter.UtcTimestampConverter;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.field.UtcTimestampConverter;
 
 /**
  * Screen log implementation. THIS CLASS IS PUBLIC ONLY TO MAINTAIN COMPATIBILITY WITH THE QUICKFIX JNI. IT SHOULD ONLY
@@ -41,7 +42,7 @@ public class ScreenLog extends AbstractLog {
 
     private PrintStream out;
 
-    private final SessionID sessionID;
+    private final FIXSessionID sessionID;
 
     private final boolean incoming;
 
@@ -52,7 +53,7 @@ public class ScreenLog extends AbstractLog {
     private final boolean includeMillis;
 
     ScreenLog(boolean incoming, boolean outgoing, boolean events, boolean logHeartbeats,
-            boolean includeMillis, SessionID sessionID, PrintStream out) {
+            boolean includeMillis, FIXSessionID sessionID, PrintStream out) {
         setLogHeartbeats(logHeartbeats);
         this.out = out;
         this.incoming = incoming;

@@ -19,34 +19,30 @@
 
 package quickfix;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.Locale;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
-public class DayConverterTest extends TestCase {
+public class DayConverterTest {
+
     private Locale defaultLocale;
 
     protected void setUp() throws Exception {
-        super.setUp();
         defaultLocale = Locale.getDefault();
         Locale.setDefault(Locale.US);
     }
 
     protected void tearDown() throws Exception {
         Locale.setDefault(defaultLocale);
-        super.tearDown();
+        defaultLocale = null;
     }
 
+    @Test
     public void testConversionToInt() throws Exception {
         assertEquals(1, DayConverter.toInteger("sU"));
         assertEquals(4, DayConverter.toInteger("WEDnes"));
-
-        try {
-            DayConverter.toInteger("bogus");
-            fail("expected an exception");
-        } catch (ConfigError e) {
-            // expected
-        }
 
         // check that day values are US days either default local is set to France
         Locale.setDefault(Locale.FRANCE);
@@ -54,21 +50,25 @@ public class DayConverterTest extends TestCase {
         assertEquals(2, DayConverter.toInteger("Mo"));
     }
 
+    @Test(expected = ConfigError.class)
+    public void testConversionToInt_FAIL() throws Exception {
+        DayConverter.toInteger("bogus");
+    }
+
+    @Test
     public void testConversionToString() throws Exception {
         Locale.setDefault(Locale.US);
         assertEquals("sunday", DayConverter.toString(1));
         assertEquals("wednesday", DayConverter.toString(4));
 
-        try {
-            DayConverter.toString(999);
-            fail("expected an exception");
-        } catch (ConfigError e) {
-            // expected
-        }
-
         // check that day values are US days either default local is set to France
         Locale.setDefault(Locale.FRANCE);
         assertEquals("sunday", DayConverter.toString(1));
         assertEquals("wednesday", DayConverter.toString(4));
+    }
+
+    @Test(expected = ConfigError.class)
+    public void testConversionToString_FAIL() throws Exception {
+        DayConverter.toString(999);
     }
 }

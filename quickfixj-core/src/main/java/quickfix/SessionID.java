@@ -25,6 +25,7 @@ import java.util.regex.Pattern;
 
 import org.quickfixj.FIXBeginString;
 import org.quickfixj.FIXField;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
 
 /**
  * Identifier for a session. Only supports a company ID (target, sender) and a
@@ -32,7 +33,7 @@ import org.quickfixj.FIXField;
  * possible to have multiple sessions to the same counterparty but using
  * different FIX versions (and/or session qualifiers).
  */
-public class SessionID implements Serializable {
+public class SessionID implements FIXSessionID, Serializable {
 
     /**
      * The serialVersionUID property.
@@ -147,36 +148,43 @@ public class SessionID implements Serializable {
         this.id = createID();
     }
 
+    @Override
     public FIXBeginString getBeginString() {
 
         return beginString;
     }
 
+    @Override
     public String getSenderCompID() {
 
         return senderCompID;
     }
 
+    @Override
     public String getTargetCompID() {
 
         return targetCompID;
     }
 
+    @Override
     public String getSenderSubID() {
 
         return senderSubID;
     }
 
+    @Override
     public String getSenderLocationID() {
 
         return senderLocationID;
     }
 
+    @Override
     public String getTargetSubID() {
 
         return targetSubID;
     }
 
+    @Override
     public String getTargetLocationID() {
 
         return targetLocationID;
@@ -189,6 +197,7 @@ public class SessionID implements Serializable {
      *
      * @return the session qualifier
      */
+    @Override
     public String getSessionQualifier() {
 
         return sessionQualifier;
@@ -228,37 +237,14 @@ public class SessionID implements Serializable {
     }
 
     private boolean isSet(String value) {
-
         return !value.equals(NOT_SET);
     }
 
     private static String value(FIXField<?> f) {
-
         return f != null ? f.getCharacters().toString() : NOT_SET;
     }
 
     private static String value(String s) {
-
         return s == null ? NOT_SET : s;
-    }
-
-    /**
-     * @return true if session version if FIXT 1.1 or newer.
-     */
-    public boolean isFIXT() {
-
-        return FIXBeginString.FIXT11 == beginString;
-    }
-
-    /**
-     * Populate the sessionID from a string.
-     *
-     * @param sessionIDString
-     * @return the sessionIDString
-     */
-    public String fromString(String sessionIDString) {
-
-        throw new UnsupportedOperationException(
-                "Unsupported QuickFIX feature: use SessionID constructor instead.");
     }
 }

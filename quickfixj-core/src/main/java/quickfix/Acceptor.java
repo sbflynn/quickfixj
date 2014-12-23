@@ -19,6 +19,11 @@
 
 package quickfix;
 
+import java.net.SocketAddress;
+import java.util.Map;
+
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+
 /**
  * Accepts connections from FIX clients and manages the associated sessions.
  */
@@ -43,4 +48,16 @@ public interface Acceptor extends Connector {
      * Acceptor setting specifying local IP interface address for accepting connections.
      */
     public static final String SETTING_ACCEPTOR_TEMPLATE = "AcceptorTemplate";
+
+    /**
+     * The size of the underlying event queue
+     *
+     * @return size of the queue; if this counters grows, the application does not consume FIX message quick enough
+     */
+    int getQueueSize();
+
+    /**
+     * @since 2.0
+     */
+    Map<FIXSessionID, SocketAddress> getAcceptorAddresses();
 }

@@ -19,6 +19,8 @@
 
 package quickfix;
 
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+
 /**
  * Creates a Session based on the specified settings.
  */
@@ -40,6 +42,6 @@ public interface SessionFactory {
     public static final String ACCEPTOR_CONNECTION_TYPE = "acceptor";
     public static final String INITIATOR_CONNECTION_TYPE = "initiator";
 
-    Session create(SessionID sessionID, SessionSettings settings) throws ConfigError;
+    Session create(FIXSessionID sessionID, SessionSettings settings) throws ConfigError;
 
 }

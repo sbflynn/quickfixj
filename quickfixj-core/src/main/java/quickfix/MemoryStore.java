@@ -25,6 +25,8 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 
+import org.quickfixj.engine.FIXSession;
+import org.quickfixj.engine.MessageStore;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -56,15 +58,6 @@ public class MemoryStore implements MessageStore {
                 messages.add(message);
             }
         }
-    }
-
-    /**
-     * This method is here for JNI API consistency but it's not
-     * implemented. Use get(int, int, Collection) with the same
-     * start and end sequence.
-     */
-    public boolean get(int sequence, String message) {
-        throw new UnsupportedOperationException("not supported");
     }
 
     @Override
@@ -124,7 +117,7 @@ public class MemoryStore implements MessageStore {
         // IOException is declared to maintain strict compatibility with QF JNI
         final String text = "memory store does not support refresh!";
         if (sessionID != null) {
-            Session session = Session.lookupSession(sessionID);
+            FIXSession session = Session.lookupSession(sessionID);
             session.getLog().onErrorEvent("ERROR: " + text);
         } else {
             LoggerFactory.getLogger(MemoryStore.class).error(text);

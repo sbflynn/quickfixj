@@ -89,8 +89,9 @@ public class ExpectMessageStep implements TestStep {
             if (threadIds != null) {
                 for (long threadId : threadIds) {
                     final ThreadInfo threadInfo = bean.getThreadInfo(threadId);
-                    deadlockedThreads.add(threadInfo.getThreadId() + ": " + threadInfo.getThreadName()
-                            + " state: " + threadInfo.getThreadState());
+                    deadlockedThreads
+                            .add(threadInfo.getThreadId() + ": " + threadInfo.getThreadName()
+                                    + " state: " + threadInfo.getThreadState());
                 }
             }
             if (!deadlockedThreads.isEmpty()) {
@@ -126,13 +127,13 @@ public class ExpectMessageStep implements TestStep {
             }
             if (key.equals("58")) {
                 Assert.assertTrue("field " + key + " not equal: actual=" + entry.getValue()
-                        + ",expected(prefix)=" + expectedFields.get(key),
-                        entry.getValue().startsWith(expectedFields.get(key)));
+                        + ",expected(prefix)=" + expectedFields.get(key), entry.getValue()
+                        .startsWith(expectedFields.get(key)));
             } else if (!expectedFields.containsKey(key)) {
                 Assert.fail("Unexpected field " + key + ",value=" + entry.getValue());
             } else {
-                Assert.assertEquals("field " + key + " not equal: ", expectedFields.get(key), entry
-                        .getValue());
+                Assert.assertEquals("field " + key + " not equal: ", expectedFields.get(key),
+                        entry.getValue());
             }
         }
         for (String key : expectedFields.keySet()) {
@@ -149,11 +150,12 @@ public class ExpectMessageStep implements TestStep {
             }
         }
         if (expectedFields.get("9") != null && !dateLengthMismatch && heartBeatOverride < 0) {
-            Assert.assertEquals("field 9 not equal: ", expectedFields.get("9"), actualFields
-                    .get("9"));
+            Assert.assertEquals("field 9 not equal: ", expectedFields.get("9"),
+                    actualFields.get("9"));
         }
     }
 
+    @Override
     public String toString() {
         return "expect message: " + data;
     }

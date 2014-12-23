@@ -65,29 +65,19 @@
 		<xsl:value-of
 			select="concat('protected static final String TAG_CHARACTERS = &#34;', @number, '&#34;;')" />
 
-		<xsl:apply-templates select="fix:value" mode="write" />
+		<xsl:apply-templates select="current()" mode="emit-static-values" />
+		<xsl:apply-templates select="fix:value" mode="emit-static-values" />
 
 		<!-- Type constructor -->
-		<xsl:value-of select="$NEW_LINE" />
-		<xsl:value-of select="$NEW_LINE_INDENT" />
-		<xsl:value-of select="concat('public ', @name,'(')" />
-		<xsl:call-template name="emit-type" />
-		<xsl:text> data) {</xsl:text>
-		<xsl:value-of select="$NEW_LINE_INDENT2" />
-		<xsl:text>super(data</xsl:text>
-		<xsl:if test="@type='UTCTIMESTAMP' or @type='UTCTIMEONLY'">
-			, true
-		</xsl:if>
-		<xsl:text>);</xsl:text>
-		<xsl:value-of select="$NEW_LINE_INDENT" />
-		<xsl:text>}</xsl:text>
+		<xsl:apply-templates select="current()" mode="emit-type-constructor" />
 
 		<!-- Character constructor -->
 		<xsl:value-of select="$NEW_LINE" />
 		<xsl:value-of select="$NEW_LINE_INDENT" />
-		<xsl:value-of select="concat('public ', @name,'(CharSequence charSequence) {')" />
+		<xsl:value-of
+			select="concat('public ', @name,'(char[] value, int offset, int count) {')" />
 		<xsl:value-of select="$NEW_LINE_INDENT2" />
-		<xsl:text>super(charSequence);</xsl:text>
+		<xsl:text>super(value, offset, count);</xsl:text>
 		<xsl:value-of select="$NEW_LINE_INDENT" />
 		<xsl:text>}</xsl:text>
 
@@ -96,15 +86,14 @@
 		</xsl:variable>
 
 		<xsl:if test="$dataType = 'java.math.BigDecimal'">
-			public
+			<xsl:value-of select="$NEW_LINE" />
+			<xsl:value-of select="$NEW_LINE_INDENT" />
+			<xsl:text>public </xsl:text>
 			<xsl:value-of select="@name" />
-			(double data) {
-			super(
-			<xsl:value-of select="@number" />
-			, new
-			<xsl:value-of select="$dataType" />
-			(data));
-			}
+			<xsl:text>(double data) {</xsl:text>
+			<xsl:value-of select="$NEW_LINE_INDENT2" />
+			<xsl:text>super(new java.math.BigDecimal(data));</xsl:text>
+			<xsl:text>}</xsl:text>
 		</xsl:if>
 
 		<xsl:value-of select="$NEW_LINE" />
@@ -132,16 +121,29 @@
 
 	</xsl:template>
 
-	<xsl:template name="y-or-n-to-bool">
-		<xsl:choose>
-			<xsl:when test="@enum='Y'">
-				<xsl:text>true</xsl:text>
-			</xsl:when>
-			<xsl:when test="@enum='N'">
-				<xsl:text>false</xsl:text>
-			</xsl:when>
-		</xsl:choose>
+	<xsl:template match="fix:fix/fix:fields/fix:field[@type='BOOLEAN']"
+		mode="emit-static-values" priority="10"
+	>
+
+		<xsl:value-of select="$NEW_LINE" />
+		<xsl:value-of select="$NEW_LINE_INDENT" />
+		<xsl:text>public static final </xsl:text>
+		<xsl:value-of select="@name" />
+		<xsl:text> Y = new </xsl:text>
+		<xsl:value-of select="@name" />
+		<xsl:text>(true);</xsl:text>
+
+		<xsl:value-of select="$NEW_LINE" />
+		<xsl:value-of select="$NEW_LINE_INDENT" />
+		<xsl:text>public static final </xsl:text>
+		<xsl:value-of select="@name" />
+		<xsl:text> N = new </xsl:text>
+		<xsl:value-of select="@name" />
+		<xsl:text>(false);</xsl:text>
+
 	</xsl:template>
+
+	<xsl:template match="fix:fix/fix:fields/fix:field" mode="emit-static-values" />
 
 	<xsl:template
 		match="fix:value[../@type='MULTIPLESTRINGVALUE' or ../@type='MULTIPLECHARVALUE']"
@@ -157,7 +159,7 @@
 	</xsl:template>
 
 	<xsl:template match="fix:value[../@type='INT' or ../@type='NUMINGROUP']"
-		mode="write" priority="10"
+		mode="emit-static-values" priority="10"
 	>
 		<xsl:value-of select="$NEW_LINE" />
 		<xsl:value-of select="$NEW_LINE_INDENT" />
@@ -172,8 +174,8 @@
 		<xsl:text>);</xsl:text>
 	</xsl:template>
 
-	<xsl:template match="fix:value[../@type='STRING' or ../@type='BOOLEAN']"
-		mode="write" priority="10"
+	<xsl:template match="fix:value[../@type='STRING']" mode="emit-static-values"
+		priority="10"
 	>
 		<xsl:value-of select="$NEW_LINE" />
 		<xsl:value-of select="$NEW_LINE_INDENT" />
@@ -188,7 +190,35 @@
 		<xsl:text>");</xsl:text>
 	</xsl:template>
 
-	<xsl:template match="fix:value[../@type='CHAR']" mode="write"
+	<xsl:template match="fix:value[../@type='BOOLEAN'][@enum ='Y']"
+		mode="emit-static-values" priority="10"
+	>
+		<xsl:value-of select="$NEW_LINE" />
+		<xsl:value-of select="$NEW_LINE_INDENT" />
+		<xsl:text>public static final </xsl:text>
+		<xsl:value-of select="../@name" />
+		<xsl:text> </xsl:text>
+		<xsl:value-of select="@description" />
+		<xsl:text> = new </xsl:text>
+		<xsl:value-of select="../@name" />
+		<xsl:text>(true);</xsl:text>
+	</xsl:template>
+
+	<xsl:template match="fix:value[../@type='BOOLEAN'][@enum ='N']"
+		mode="emit-static-values" priority="10"
+	>
+		<xsl:value-of select="$NEW_LINE" />
+		<xsl:value-of select="$NEW_LINE_INDENT" />
+		<xsl:text>public static final </xsl:text>
+		<xsl:value-of select="../@name" />
+		<xsl:text> </xsl:text>
+		<xsl:value-of select="@description" />
+		<xsl:text> = new </xsl:text>
+		<xsl:value-of select="../@name" />
+		<xsl:text>(false);</xsl:text>
+	</xsl:template>
+
+	<xsl:template match="fix:value[../@type='CHAR']" mode="emit-static-values"
 		priority="10"
 	>
 		<xsl:value-of select="$NEW_LINE" />
@@ -204,7 +234,7 @@
 		<xsl:text>');</xsl:text>
 	</xsl:template>
 
-	<xsl:template match="fix:value" mode="write">
+	<xsl:template match="fix:value" mode="emit-static-values">
 		<xsl:value-of select="$NEW_LINE" />
 		<xsl:value-of select="$NEW_LINE_INDENT" />
 		<xsl:text>    public static final String </xsl:text>
@@ -218,6 +248,48 @@
 		fix
 		<xsl:value-of select="//fix/@major" />
 		<xsl:value-of select="//fix/@minor" />
+	</xsl:template>
+
+
+	<xsl:template
+		match="fix:fix/fix:fields/fix:field[@type='UTCTIMESTAMP' or @type='UTCTIMEONLY']"
+		mode="emit-type-constructor" priority="10"
+	>
+
+		<xsl:value-of select="$NEW_LINE" />
+		<xsl:value-of select="$NEW_LINE_INDENT" />
+		<xsl:value-of select="concat('public ', @name,'(')" />
+		<xsl:call-template name="emit-type" />
+		<xsl:text> data) {</xsl:text>
+		<xsl:value-of select="$NEW_LINE_INDENT2" />
+		<xsl:text>super(data, true);</xsl:text>
+		<xsl:value-of select="$NEW_LINE_INDENT" />
+		<xsl:text>}</xsl:text>
+
+		<xsl:value-of select="$NEW_LINE" />
+		<xsl:value-of select="$NEW_LINE_INDENT" />
+		<xsl:value-of select="concat('public ', @name,'(')" />
+		<xsl:call-template name="emit-type" />
+		<xsl:text> data, boolean milliseconds) {</xsl:text>
+		<xsl:value-of select="$NEW_LINE_INDENT2" />
+		<xsl:text>super(data, milliseconds);</xsl:text>
+		<xsl:value-of select="$NEW_LINE_INDENT" />
+		<xsl:text>}</xsl:text>
+
+	</xsl:template>
+
+	<xsl:template match="fix:fix/fix:fields/fix:field" mode="emit-type-constructor"
+		priority="0"
+	>
+		<xsl:value-of select="$NEW_LINE" />
+		<xsl:value-of select="$NEW_LINE_INDENT" />
+		<xsl:value-of select="concat('public ', @name,'(')" />
+		<xsl:call-template name="emit-type" />
+		<xsl:text> data) {</xsl:text>
+		<xsl:value-of select="$NEW_LINE_INDENT2" />
+		<xsl:text>super(data);</xsl:text>
+		<xsl:value-of select="$NEW_LINE_INDENT" />
+		<xsl:text>}</xsl:text>
 	</xsl:template>
 
 </xsl:stylesheet>

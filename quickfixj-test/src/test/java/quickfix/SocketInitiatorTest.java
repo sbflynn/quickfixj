@@ -38,11 +38,13 @@ import org.apache.mina.core.write.WriteRequest;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.quickfixj.FIXBeginString;
-import org.quickfixj.spi.MessageBuilderServiceLoader;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import quickfix.mina.ProtocolFactory;
+import quickfix.mina.initiator.SocketInitiator;
+import quickfix.mina.initiator.ThreadedSocketInitiator;
 import quickfix.test.acceptance.ATServer;
 
 public class SocketInitiatorTest {
@@ -68,8 +70,7 @@ public class SocketInitiatorTest {
             SessionSettings settings = getClientSessionSettings(clientSessionID);
             ClientApplication clientApplication = new ClientApplication();
             ThreadedSocketInitiator initiator = new ThreadedSocketInitiator(clientApplication,
-                    new MemoryStoreFactory(), settings,
-                    MessageBuilderServiceLoader.getMessageBuilderFactory());
+                    new MemoryStoreFactory(), settings, DefaultEngine.getDefaultEngine());
             initiator.setIoFilterChainBuilder(new IoFilterChainBuilder() {
                 @Override
                 public void buildFilterChain(IoFilterChain chain) throws Exception {
@@ -122,8 +123,7 @@ public class SocketInitiatorTest {
             SessionSettings settings = getClientSessionSettings(clientSessionID);
             ClientApplication clientApplication = new ClientApplication();
             final SocketInitiator initiator = new SocketInitiator(clientApplication,
-                    new MemoryStoreFactory(), settings,
-                    MessageBuilderServiceLoader.getMessageBuilderFactory());
+                    new MemoryStoreFactory(), settings, DefaultEngine.getDefaultEngine());
             try {
                 clientApplication.stopAfterLogon(initiator);
                 clientApplication.setUpLogonExpectation();
@@ -146,7 +146,7 @@ public class SocketInitiatorTest {
         SessionSettings settings = getClientSessionSettings(clientSessionID);
         ClientApplication clientApplication = new ClientApplication();
         Initiator initiator = new SocketInitiator(clientApplication, new MemoryStoreFactory(),
-                settings, MessageBuilderServiceLoader.getMessageBuilderFactory());
+                settings, DefaultEngine.getDefaultEngine());
 
         doTestOfRestart(clientSessionID, clientApplication, initiator, null);
     }
@@ -168,7 +168,7 @@ public class SocketInitiatorTest {
         settings.setString("ResetOnLogon", "Y");
         FileLogFactory logFactory = new FileLogFactory(settings);
         Initiator initiator = new SocketInitiator(clientApplication, new MemoryStoreFactory(),
-                settings, logFactory, MessageBuilderServiceLoader.getMessageBuilderFactory());
+                settings, logFactory, DefaultEngine.getDefaultEngine());
         doTestOfRestart(clientSessionID, clientApplication, initiator, messageLog);
 
         messageLog.delete();
@@ -181,8 +181,7 @@ public class SocketInitiatorTest {
         SessionSettings settings = getClientSessionSettings(clientSessionID);
         ClientApplication clientApplication = new ClientApplication();
         Initiator initiator = new ThreadedSocketInitiator(clientApplication,
-                new MemoryStoreFactory(), settings,
-                MessageBuilderServiceLoader.getMessageBuilderFactory());
+                new MemoryStoreFactory(), settings, DefaultEngine.getDefaultEngine());
 
         doTestOfRestart(clientSessionID, clientApplication, initiator, null);
     }
@@ -276,7 +275,7 @@ public class SocketInitiatorTest {
         }
 
         @Override
-        public void onLogon(SessionID sessionId) {
+        public void onLogon(FIXSessionID sessionId) {
             if (logonLatch != null) {
                 log.info("Releasing logon latch");
                 logonLatch.countDown();

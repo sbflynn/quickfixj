@@ -25,7 +25,7 @@
 
 	<xsl:param name="orderedFields" />
 	<xsl:param name="itemName" />
-	<xsl:param name="baseClass" select="'Message'" />
+	<xsl:param name="baseClass" select="'quickfix.AbstractMessage'" />
 	<xsl:param name="subpackage" />
 
 	<!-- ********************************************************************* -->
@@ -75,19 +75,8 @@
 		<xsl:value-of select="$NEW_LINE" />
 		<xsl:value-of select="$NEW_LINE_INDENT" />
 		<xsl:value-of select="concat('public ', @name, '() {')" />
-
-		<xsl:choose>
-			<xsl:when test="$orderedFields = 'true'">
-				super(new int[] {
-				<xsl:apply-templates select="fix:field|fix:component|fix:group"
-					mode="group-field-numbers" />
-				0 });
-			</xsl:when>
-			<xsl:otherwise>
-				<xsl:value-of select="$NEW_LINE_INDENT2" />
-				<xsl:text>super();</xsl:text>
-			</xsl:otherwise>
-		</xsl:choose>
+		<xsl:value-of select="$NEW_LINE_INDENT2" />
+		<xsl:text>super();</xsl:text>
 		<xsl:value-of select="$NEW_LINE_INDENT" />
 		<xsl:text>}</xsl:text>
 
@@ -101,13 +90,13 @@
 				<xsl:if test="position() > 1">
 					<xsl:text>,</xsl:text>
 				</xsl:if>
-				<xsl:value-of select="$NEW_LINE_INDENT2" />
+				<xsl:value-of select="$NEW_LINE_INDENT3" />
 				<xsl:value-of select="concat($fieldPackage, '.', @name, ' ', $varname)" />
 			</xsl:for-each>
 			<xsl:value-of select="$NEW_LINE_INDENT2" />
 			<xsl:text>) {</xsl:text>
 			<xsl:value-of select="$NEW_LINE_INDENT2" />
-			<xsl:text>this();</xsl:text>
+			<xsl:text>super();</xsl:text>
 			<xsl:for-each select="fix:field[@required='Y']">
 				<xsl:variable name="varname"
 					select="concat(translate(substring(@name, 1, 1), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), substring(@name, 2, string-length(@name)-1))" />

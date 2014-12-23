@@ -135,11 +135,11 @@ public class FIXMessageDecoder implements MessageDecoder {
                 position = 0;
             }
             return MessageDecoderResult.OK;
-        } else {
-            // Mina will compact the buffer
-            position -= in.position();
-            return MessageDecoderResult.NEED_DATA;
         }
+
+        // Mina will compact the buffer
+        position -= in.position();
+        return MessageDecoderResult.NEED_DATA;
     }
 
     /**
@@ -190,9 +190,9 @@ public class FIXMessageDecoder implements MessageDecoder {
                                     "Length format error in message (last character:" + ch + "): "
                                             + messageString, false);
                             continue;
-                        } else {
-                            break;
                         }
+
+                        break;
                     }
                 }
 
@@ -252,9 +252,8 @@ public class FIXMessageDecoder implements MessageDecoder {
             bodyLength = 0;
             if (t instanceof ProtocolCodecException) {
                 throw (ProtocolCodecException) t;
-            } else {
-                throw new ProtocolCodecException(t);
             }
+            throw new ProtocolCodecException(t);
         }
     }
 
@@ -307,9 +306,8 @@ public class FIXMessageDecoder implements MessageDecoder {
         bodyLength = 0;
         if (disconnect) {
             throw new CriticalProtocolCodecException(text);
-        } else {
-            log.error(text);
         }
+        log.error(text);
     }
 
     private boolean isLogon(IoBuffer buffer) {

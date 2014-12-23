@@ -21,6 +21,10 @@ package quickfix;
 
 import javax.sql.DataSource;
 
+import org.quickfixj.engine.MessageStore;
+import org.quickfixj.engine.MessageStoreFactory;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+
 /**
  * Creates a generic JDBC message store.
  */
@@ -41,7 +45,7 @@ public class JdbcStoreFactory implements MessageStoreFactory {
      * @param sessionID the sessionID for the message store.
      */
     @Override
-    public MessageStore create(SessionID sessionID) {
+    public MessageStore create(FIXSessionID sessionID) {
         try {
             return new JdbcStore(settings, sessionID, dataSource);
         } catch (Exception e) {

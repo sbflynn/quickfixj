@@ -25,34 +25,30 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.util.JAXBSource;
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.TransformerFactoryConfigurationError;
 import javax.xml.transform.URIResolver;
-import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
 
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
-import org.xml.sax.ErrorHandler;
-import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
+import org.apache.maven.plugin.logging.Log;
+import org.quickfixj.xml.dictionary.BuildDirective;
+import org.quickfixj.xml.dictionary.ComponentDefinition;
+import org.quickfixj.xml.dictionary.DataDictionaryConfig;
+import org.quickfixj.xml.dictionary.Engine.MessageFactory;
+import org.quickfixj.xml.dictionary.EnumDecimalType;
+import org.quickfixj.xml.dictionary.FieldDefinition;
+import org.quickfixj.xml.dictionary.MessageDefinition;
+import org.quickfixj.xml.dictionary.ObjectFactory;
 
 /**
  * Generates Message and Field related code for the various FIX versions.
@@ -70,200 +66,202 @@ public class MessageCodeGenerator {
     // The name of the param in the .xsl files to pass the serialVersionUID
     private static final String XSLPARAM_SERIAL_UID = "serialVersionUID";
 
-    private Schema schema;
+    private final TransformerFactory transformerFactory = TransformerFactory
+            .newInstance("net.sf.saxon.TransformerFactoryImpl", null);
 
-    private Map<String, Document> specificationCache = new HashMap<String, Document>();
+    private final JAXBContext jaxbContext = JAXBContext
+            .newInstance(ObjectFactory.class);
 
-    protected void logInfo(String msg) {
+    private final GenerateMojo mojo;
 
-        System.out.println(msg);
+    private final MessageFactory directives;
+
+    private final DataDictionaryConfig dictionary;
+
+    MessageCodeGenerator(GenerateMojo mojo, MessageFactory directives,
+            DataDictionaryConfig dictionary) throws JAXBException {
+
+        this.mojo = mojo;
+        this.directives = directives;
+        this.dictionary = dictionary;
+
+        getLog().info(
+                "Successfully created an instance of the QuickFIX source generator");
     }
 
-    protected void logDebug(String msg) {
+    private void generateFieldClasses() {
 
-        System.out.println(msg);
-    }
+        BuildDirective directive = directives.getFields();
 
-    protected void logError(String msg, Throwable e) {
-
-        System.err.println(msg);
-        e.printStackTrace();
-    }
-
-    private void generateMessageBaseClass(Task task)
-            throws TransformerConfigurationException, FileNotFoundException,
-            ParserConfigurationException, SAXException, IOException,
-            TransformerFactoryConfigurationError, TransformerException {
-
-        logInfo(task.getName() + ": generating message base class");
-        Map<String, String> parameters = new HashMap<String, String>();
-        parameters.put(XSLPARAM_SERIAL_UID, SERIAL_UID_STR);
-        parameters.put("fieldPackage", task.getFieldPackage());
-        generateClassCode(task, "Message", parameters);
-        generateClassCode(task, "MessageHeader", parameters);
-        generateClassCode(task, "MessageTrailer", parameters);
-    }
-
-    private void generateMessageFactoryClass(Task task)
-            throws TransformerConfigurationException, FileNotFoundException,
-            ParserConfigurationException, SAXException, IOException,
-            TransformerFactoryConfigurationError, TransformerException {
-
-        // generateClassCode(task, "MessageFactory", null);
-        // generateClassCode(task, "MessageFactoryServiceImpl", null);
-    }
-
-    private void generateMessageCrackerClass(Task task)
-            throws TransformerConfigurationException, FileNotFoundException,
-            ParserConfigurationException, SAXException, IOException,
-            TransformerFactoryConfigurationError, TransformerException {
-
-        generateClassCode(task, "MessageCracker", null);
-    }
-
-    private void generateClassCode(Task task, String className,
-            Map<String, String> parameters)
-            throws ParserConfigurationException, SAXException, IOException,
-            TransformerFactoryConfigurationError,
-            TransformerConfigurationException, FileNotFoundException,
-            TransformerException {
-
-        logDebug("generating " + className + " for " + task.getName());
-        if (parameters == null) {
-            parameters = new HashMap<String, String>();
+        if (!directive.isBuild()) {
+            return;
         }
-        parameters.put("messagePackage", task.getPackaging());
-        parameters.put("fieldPackage", task.getFieldPackage());
-        Document document = getSpecification(task);
-        generateCodeFile(
-                task,
-                document,
-                parameters,
-                task.getOutputBaseDirectory() + "/"
-                        + task.getMessageDirectory() + "/" + className
-                        + ".java", createTransformer(task, className + ".xsl"));
-    }
 
-    private void generateFieldClasses(Task task)
-            throws ParserConfigurationException, SAXException, IOException {
+        File directory = getPackageDirectory(directive);
 
-        String outputDirectory = task.getOutputBaseDirectory() + "/"
-                + task.getFieldDirectory() + "/";
-        logInfo(task.getName() + ": generating field classes in "
-                + outputDirectory);
-        writePackageDocumentation(outputDirectory, "FIX field definitions for "
-                + task.getName());
-        Document document = getSpecification(task);
+        logInfo("Generating field classes in directory " + directory);
+        writePackageDocumentation(directory, "FIX field definitions for "
+                + directives.getNamespace() + " " + directives.getDecimal());
 
-        List<String> fieldNames = getNames(document.getDocumentElement(),
-                "fields/field");
-        List<String> headerFieldNames = getNames(document.getDocumentElement(),
-                "header/field");
-        List<String> trailerFieldNames = getNames(
-                document.getDocumentElement(), "trailer/field");
+        Transformer transformer = createTransformer("Fields.xsl");
 
-        // if (!task.isGenerateHeaderFields()) {
-        // fieldNames.removeAll(headerFieldNames);
-        // }
-        //
-        // if (!task.isGenerateTrailerFields()) {
-        // fieldNames.removeAll(trailerFieldNames);
-        // }
-
-        try {
-            Transformer transformer = createTransformer(task, "Fields.xsl");
-            for (String fieldName : fieldNames) {
-                String outputFile = outputDirectory + fieldName + ".java";
-                if (!new File(outputFile).exists()) {
-                    logDebug("field: " + fieldName);
-                    Map<String, String> parameters = createParameters(task);
-                    parameters.put("fieldName", fieldName);
-                    if (task.isDecimalGenerated()) {
-                        parameters.put("decimalType", "java.math.BigDecimal");
-                        parameters.put("decimalConverter", "Decimal");
-                    }
-                    generateCodeFile(task, document, parameters, outputFile,
-                            transformer);
-                }
+        for (FieldDefinition field : dictionary.getFields().getField()) {
+            if (field.getNumber() < 5000) {
+                generateFieldClass(field, directory, transformer);
             }
-        } catch (Exception e) {
-            logError("error while generating field classes", e);
         }
     }
 
-    private int generateMessageSubclasses(Task task)
-            throws ParserConfigurationException, SAXException, IOException,
-            TransformerConfigurationException, FileNotFoundException,
-            TransformerFactoryConfigurationError, TransformerException {
+    private void generateFieldClass(FieldDefinition definition, File directory,
+            Transformer transformer) {
 
-        logInfo(task.getName() + ": generating message subclasses");
-        String outputDirectory = task.getOutputBaseDirectory() + "/"
-                + task.getMessageDirectory() + "/";
-        writePackageDocumentation(outputDirectory, "Message classes");
-        Document document = getSpecification(task);
-        List<String> messageNames = getNames(document.getDocumentElement(),
-                "messages/message");
-        Transformer transformer = createTransformer(task, "MessageSubclass.xsl");
-        for (String messageName : messageNames) {
-            logDebug("generating message class: " + messageName);
-            Map<String, String> parameters = new HashMap<String, String>();
-            parameters.put("itemName", messageName);
-            parameters.put(XSLPARAM_SERIAL_UID, SERIAL_UID_STR);
-            parameters.put("orderedFields",
-                    Boolean.toString(task.isOrderedFields()));
-            parameters.put("fieldPackage", task.getFieldPackage());
-            parameters.put("messagePackage", task.getPackaging());
-            generateCodeFile(task, document, parameters, outputDirectory
-                    + messageName + ".java", transformer);
-        }
-
-        return messageNames.size();
-    }
-
-    private void generateComponentClasses(Task task)
-            throws ParserConfigurationException, SAXException, IOException,
-            TransformerConfigurationException, FileNotFoundException,
-            TransformerFactoryConfigurationError, TransformerException {
-
-        String outputDirectory = task.getOutputBaseDirectory() + "/"
-                + task.getComponentDirectory();
-
-        Document document = getSpecification(task);
-
-        List<String> componentNames = getNames(document.getDocumentElement(),
-                "components/component");
-
-        logInfo(task.getName() + ": generating " + componentNames.size()
-                + " component classes : " + outputDirectory + " : "
-                + componentNames.size());
-
-        if (componentNames.size() > 0) {
-            writePackageDocumentation(outputDirectory,
-                    "Message component classes");
-        }
-
-        Transformer transformer = createTransformer(task, "Component.xsl");
-        for (String componentName : componentNames) {
-            logDebug("generating component class: " + componentName);
-            Map<String, String> parameters = createParameters(task);
-            parameters.put("itemName", componentName);
-            parameters.put("baseClass", "quickfix.MessageComponent");
-            parameters.put("orderedFields",
-                    Boolean.toString(task.isOrderedFields()));
-            generateCodeFile(task, document, parameters, outputDirectory
-                    + componentName + ".java", transformer);
+        File outputFile = new File(directory, definition.getName() + ".java");
+        if (!outputFile.exists()) {
+            logDebug("field: " + definition.getName());
+            Map<String, String> parameters = createParameters();
+            parameters.put("fieldName", definition.getName());
+            if (directives.getDecimal() == EnumDecimalType.BD) {
+                parameters.put("decimalType", "java.math.BigDecimal");
+                parameters.put("decimalConverter", "BigDecimal");
+            }
+            generateCodeFile(parameters, outputFile, transformer);
         }
     }
 
-    private Transformer createTransformer(Task task, String xsltFile)
-            throws TransformerFactoryConfigurationError,
-            TransformerConfigurationException {
+    private void generateComponentClasses() {
 
-        TransformerFactory transformerFactory = TransformerFactory.newInstance(
-                "net.sf.saxon.TransformerFactoryImpl", null);
+        BuildDirective directive = directives.getComponents();
+
+        if (!directive.isBuild() || dictionary.getComponents() == null) {
+            logInfo("No components to build");
+            return;
+        }
+
+        File directory = getPackageDirectory(directive);
+
+        if (!dictionary.getComponents().getComponent().isEmpty()) {
+            writePackageDocumentation(directory, "Message component classes");
+
+            Transformer transformer = createTransformer("Component.xsl");
+            for (ComponentDefinition component : dictionary.getComponents()
+                    .getComponent()) {
+                File outputFile = new File(directory, component.getName()
+                        + ".java");
+                logDebug("generating component class: " + component.getName());
+                Map<String, String> parameters = createParameters();
+                parameters.put("itemName", component.getName());
+                parameters.put("baseClass", "quickfix.MessageComponent");
+                parameters.put("orderedFields", "true");
+                generateCodeFile(parameters, outputFile, transformer);
+            }
+        }
+    }
+
+    private int generateMessageSubclasses() {
+
+        BuildDirective directive = directives.getMessages();
+
+        if (!directive.isBuild()) {
+            return 0;
+        }
+
+        File directory = getPackageDirectory(directive);
+        logInfo("Generating field classes in directory " + directory);
+        writePackageDocumentation(directory, "FIX message definitions for "
+                + directives.getNamespace() + " " + directives.getDecimal());
+
+        Transformer transformer = createTransformer("MessageSubclass.xsl");
+
+        for (MessageDefinition message : dictionary.getMessages().getMessage()) {
+            File outputFile = new File(directory, message.getName() + ".java");
+            logDebug("generating message class: " + message.getName());
+            Map<String, String> parameters = createParameters();
+            parameters.put("itemName", message.getName());
+            generateCodeFile(parameters, outputFile, transformer);
+        }
+
+        return dictionary.getMessages().getMessage().size();
+    }
+
+    private void generateMessageHeaderClass() {
+
+        BuildDirective directive = directives.getMessages();
+
+        if (!directive.isBuild()) {
+            return;
+        }
+
+        File directory = getPackageDirectory(directive);
+        File outputFile = new File(directory, "MessageHeader.java");
+        Transformer transformer = createTransformer("MessageHeader.xsl");
+
+        generateCodeFile(createParameters(), outputFile, transformer);
+    }
+
+    private void generateMessageTrailerClass() {
+
+        BuildDirective directive = directives.getMessages();
+
+        if (!directive.isBuild()) {
+            return;
+        }
+
+        File directory = getPackageDirectory(directive);
+        File outputFile = new File(directory, "MessageTrailer.java");
+        Transformer transformer = createTransformer("MessageTrailer.xsl");
+
+        generateCodeFile(createParameters(), outputFile, transformer);
+    }
+
+    private void generateDictionaryServiceClass() {
+
+        BuildDirective directive = directives.getMessages();
+
+        if (!directive.isBuild()) {
+            return;
+        }
+
+        File directory;
+        File outputFile;
+        Transformer transformer;
+
+        Map<String, String> parameters = createParameters();
+        parameters.put("resource", mojo.getResource());
+
+        directory = getPackageDirectory(directive);
+        outputFile = new File(directory, "DictionaryService.java");
+        transformer = createTransformer("DictionaryService.xsl");
+
+        generateCodeFile(parameters, outputFile, transformer);
+
+        directory = new File(mojo.getOutputDirectory(), "META-INF/services");
+        directory.mkdirs();
+        outputFile = new File(directory, "org.quickfixj.spi.DictionaryService");
+        transformer = createTransformer("DictionaryServiceLocator.xsl");
+
+        generateCodeFile(parameters, outputFile, transformer);
+    }
+
+    private File getPackageDirectory(BuildDirective directive) {
+
+        File directory = mojo.getOutputDirectory();
+        String[] path = directive.getPackage().split("\\.");
+        for (String string : path) {
+            directory = new File(directory, string);
+        }
+        directory.mkdirs();
+
+        getLog().info(
+                String.format("Created directory %s for package %s", directory,
+                        directive.getPackage()));
+
+        return directory;
+    }
+
+    private Transformer createTransformer(String xsltFile) {
 
         StreamSource styleSource;
-        File xslt = new File(task.getTransformDirectory() + "/" + xsltFile);
+        File xslt = new File(mojo.getTransformDirectory(), xsltFile);
         if (xslt.exists()) {
 
             styleSource = new StreamSource(xslt);
@@ -283,175 +281,77 @@ public class MessageCodeGenerator {
             styleSource = new StreamSource(this.getClass().getResourceAsStream(
                     xsltFile));
         }
-        return transformerFactory.newTransformer(styleSource);
-    }
 
-    private Document getSpecification(Task task)
-            throws ParserConfigurationException, SAXException, IOException {
-
-        Document document = specificationCache.get(task.getName());
-
-        if (document == null) {
-
-            if (schema == null) {
-
-                SchemaFactory factory = SchemaFactory
-                        .newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-
-                schema = factory.newSchema(getClass().getResource(
-                        "/META-INF/xsd/fix-dictionary.xsd"));
-            }
-
-            DocumentBuilderFactory factory = DocumentBuilderFactory
-                    .newInstance();
-
-            factory.setNamespaceAware(true);
-
-            if (task.isValidate()) {
-
-                factory.setSchema(schema);
-
-            } else {
-
-                logInfo("WARNING : Dictionary has not been validated against schema");
-            }
-
-            DocumentBuilder builder = factory.newDocumentBuilder();
-
-            builder.setErrorHandler(new ErrorHandler() {
-
-                @Override
-                public void warning(SAXParseException exception)
-                        throws SAXException {
-
-                    // stop mojo execution
-                    throw exception;
-                }
-
-                @Override
-                public void fatalError(SAXParseException exception)
-                        throws SAXException {
-
-                    // stop mojo execution
-                    throw exception;
-                }
-
-                @Override
-                public void error(SAXParseException exception)
-                        throws SAXException {
-
-                    // stop mojo execution
-                    throw exception;
-                }
-            });
-
-            document = builder.parse(task.getSpecification());
-            specificationCache.put(task.getName(), document);
-        }
-
-        return document;
-    }
-
-    private void writePackageDocumentation(String outputDirectory,
-            String description) throws FileNotFoundException {
-
-        File packageDescription = new File(outputDirectory + "package.html");
-        File parentDirectory = packageDescription.getParentFile();
-        if (!parentDirectory.exists()) {
-            parentDirectory.mkdirs();
-        }
-        PrintStream out = new PrintStream(new FileOutputStream(
-                packageDescription));
-        out.println("<html>");
-        out.println("<head><title/></head>");
-        out.println("<body>" + description + "</body>");
-        out.println("</html>");
-        out.close();
-    }
-
-    private List<String> getNames(Element element, String path) {
-
-        return getNames(element, path, new ArrayList<String>());
-    }
-
-    private List<String> getNames(Element element, String path,
-            List<String> names) {
-
-        int separatorOffset = path.indexOf("/");
-        if (separatorOffset == -1) {
-            NodeList fieldNodeList = element.getElementsByTagName(path);
-            for (int i = 0; i < fieldNodeList.getLength(); i++) {
-                names.add(((Element) fieldNodeList.item(i))
-                        .getAttribute("name"));
-            }
-        } else {
-            String tag = path.substring(0, separatorOffset);
-            NodeList subnodes = element.getElementsByTagName(tag);
-            for (int i = 0; i < subnodes.getLength(); i++) {
-                getNames((Element) subnodes.item(i),
-                        path.substring(separatorOffset + 1), names);
-            }
-        }
-        return names;
-    }
-
-    private void generateCodeFile(Task task, Document document,
-            Map<String, String> parameters, String outputFileName,
-            Transformer transformer)
-            throws TransformerFactoryConfigurationError,
-            TransformerConfigurationException, FileNotFoundException,
-            TransformerException {
-
-        if (parameters != null) {
-            for (Map.Entry<String, String> entry : parameters.entrySet()) {
-                transformer.setParameter(entry.getKey(), entry.getValue());
-            }
-        }
-
-        File outputFile = new File(outputFileName);
-        if (!outputFile.getParentFile().exists()) {
-            outputFile.getParentFile().mkdirs();
-        }
-
-        if (outputFile.exists()) {
-            if (!task.isOverwrite()) {
-                return;
-            }
-            if (outputFile.lastModified() > task.getSpecificationLastModified()) {
-                logDebug("Skipping file " + outputFile.getName());
-                return;
-            }
-        }
-        logDebug("spec has mod " + task.getSpecificationLastModified()
-                + " output has mod " + outputFile.lastModified());
-
-        DOMSource source = new DOMSource(document);
-        FileOutputStream fos = new FileOutputStream(outputFile);
-        BufferedOutputStream bos = new BufferedOutputStream(fos);
         try {
-            StreamResult result = new StreamResult(bos);
-            transformer.transform(source, result);
-        } finally {
-            try {
-                bos.close();
-            } catch (IOException ioe) {
-                logError("error closing " + outputFile, ioe);
-            }
+            return transformerFactory.newTransformer(styleSource);
+        } catch (TransformerConfigurationException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    private Map<String, String> createParameters(Task task) {
+    private void writePackageDocumentation(File outputDirectory,
+            String description) {
+
+        try {
+
+            File packageDescription = new File(outputDirectory, "package.html");
+            PrintStream out = new PrintStream(new FileOutputStream(
+                    packageDescription));
+            out.println("<html>");
+            out.println("<head><title/></head>");
+            out.println("<body>" + description + "</body>");
+            out.println("</html>");
+            out.close();
+
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void generateCodeFile(Map<String, String> parameters,
+            File outputFile, Transformer transformer) {
+
+        try {
+
+            if (parameters != null) {
+                for (Map.Entry<String, String> entry : parameters.entrySet()) {
+                    transformer.setParameter(entry.getKey(), entry.getValue());
+                }
+            }
+
+            if (!outputFile.getParentFile().exists()) {
+                outputFile.getParentFile().mkdirs();
+            }
+
+            Source source = new JAXBSource(jaxbContext,
+                    new ObjectFactory().createFix(dictionary));
+            FileOutputStream fos = new FileOutputStream(outputFile);
+            BufferedOutputStream bos = new BufferedOutputStream(fos);
+            try {
+                StreamResult result = new StreamResult(bos);
+                transformer.transform(source, result);
+            } finally {
+                try {
+                    bos.close();
+                } catch (IOException ioe) {
+                    logError("error closing " + outputFile, ioe);
+                }
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private Map<String, String> createParameters() {
 
         Map<String, String> parameters = new HashMap<String, String>();
 
         parameters.put(XSLPARAM_SERIAL_UID, SERIAL_UID_STR);
-        parameters.put("messagePackage", task.getPackaging());
-        if (task.getFieldPackage() != null) {
-            parameters.put("fieldPackage", task.getFieldPackage());
-        }
-        if (task.getComponentPackage() != null) {
-            parameters.put("componentPackage", task.getComponentPackage());
-        }
+        parameters.put("messagePackage", directives.getMessages().getPackage());
+        parameters.put("fieldPackage", directives.getFields().getPackage());
+        parameters.put("componentPackage", directives.getComponents()
+                .getPackage());
 
         return parameters;
     }
@@ -459,262 +359,35 @@ public class MessageCodeGenerator {
     /*
      * Generate the Message and Field related source code.
      */
-    public void generate(Task task) {
+    public void generate() {
 
-        try {
-
-            generateFieldClasses(task);
-            generateComponentClasses(task);
-
-            if (generateMessageSubclasses(task) > 0) {
-
-                generateMessageBaseClass(task);
-                generateMessageFactoryClass(task);
-                generateMessageCrackerClass(task);
-            }
-
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new CodeGenerationException(e);
+        generateFieldClasses();
+        generateComponentClasses();
+        generateMessageSubclasses();
+        if (directives.getTransport() != null) {
+            generateMessageHeaderClass();
+            generateMessageTrailerClass();
         }
+        generateDictionaryServiceClass();
     }
 
-    public static class Task {
+    public Log getLog() {
 
-        private String name;
+        return mojo.getLog();
+    }
 
-        private File specification;
+    private void logInfo(String msg) {
 
-        private File outputBaseDirectory;
+        getLog().info(msg);
+    }
 
-        private String packaging;
+    private void logDebug(String msg) {
 
-        private String fieldPackage;
+        getLog().debug(msg);
+    }
 
-        private String componentPackage;
+    private void logError(String msg, Throwable e) {
 
-        private boolean validate;
-
-        private boolean generateHeaderFields;
-
-        private boolean generateTrailerFields;
-
-        private boolean overwrite = true;
-
-        private File transformDirectory;
-
-        private boolean orderedFields;
-
-        private boolean useDecimal;
-
-        private long specificationLastModified;
-
-        public long getSpecificationLastModified() {
-
-            return specificationLastModified;
-        }
-
-        public String getName() {
-
-            return name;
-        }
-
-        public void setOrderedFields(boolean orderedFields) {
-
-            this.orderedFields = orderedFields;
-        }
-
-        public boolean isOrderedFields() {
-
-            return orderedFields;
-        }
-
-        public File getTransformDirectory() {
-
-            return transformDirectory;
-        }
-
-        public void setName(String name) {
-
-            this.name = name;
-        }
-
-        public String getFieldPackage() {
-
-            return fieldPackage;
-        }
-
-        public String getFieldDirectory() {
-
-            if (fieldPackage != null) {
-                return fieldPackage.replace('.', '/');
-            }
-
-            return getMessageDirectory() + "/field";
-        }
-
-        public String getComponentDirectory() {
-
-            if (componentPackage != null) {
-                return componentPackage.replace('.', '/');
-            }
-
-            return getMessageDirectory() + "/component/";
-        }
-
-        public void setFieldPackage(String fieldPackage) {
-
-            this.fieldPackage = fieldPackage;
-        }
-
-        /**
-         * Get the componentPackage property.
-         *
-         * @return Returns the componentPackage.
-         * @since 2.0
-         */
-        public String getComponentPackage() {
-
-            return componentPackage;
-        }
-
-        /**
-         * Set the componentPackage property.
-         *
-         * @param componentPackage The componentPackage to set.
-         * @since 2.0
-         */
-        public void setComponentPackage(String componentPackage) {
-
-            this.componentPackage = componentPackage;
-        }
-
-        public String getMessageDirectory() {
-
-            return packaging.replace('.', '/');
-        }
-
-        public String getPackaging() {
-
-            return packaging;
-        }
-
-        public void setPackaging(String packaging) {
-
-            this.packaging = packaging;
-        }
-
-        public File getOutputBaseDirectory() {
-
-            return outputBaseDirectory;
-        }
-
-        public void setOutputBaseDirectory(File outputDirectory) {
-
-            this.outputBaseDirectory = outputDirectory;
-        }
-
-        public File getSpecification() {
-
-            return specification;
-        }
-
-        public void setSpecification(File dictFile) {
-
-            this.specification = dictFile;
-            this.specificationLastModified = dictFile.lastModified();
-        }
-
-        public boolean isOverwrite() {
-
-            return overwrite;
-        }
-
-        public void setOverwrite(boolean overwrite) {
-
-            this.overwrite = overwrite;
-        }
-
-        /**
-         * Get the validate property.
-         *
-         * @return Returns the validate.
-         * @since 2.0
-         */
-        public boolean isValidate() {
-
-            return validate;
-        }
-
-        /**
-         * Set the validate property.
-         *
-         * @param validate The validate to set.
-         * @since 2.0
-         */
-        public void setValidate(boolean validate) {
-
-            this.validate = validate;
-        }
-
-        /**
-         * Get the generateHeaderFields property.
-         *
-         * @return Returns the generateHeaderFields.
-         * @since TODO
-         */
-        public boolean isGenerateHeaderFields() {
-
-            return generateHeaderFields;
-        }
-
-        /**
-         * Set the generateHeaderFields property.
-         *
-         * @param generateHeaderFields The generateHeaderFields to set.
-         * @since TODO
-         */
-        public void setGenerateHeaderFields(boolean generateHeaderFields) {
-
-            this.generateHeaderFields = generateHeaderFields;
-        }
-
-        /**
-         * Get the generateTrailerFields property.
-         *
-         * @return Returns the generateTrailerFields.
-         * @since TODO
-         */
-        public boolean isGenerateTrailerFields() {
-
-            return generateTrailerFields;
-        }
-
-        /**
-         * Set the generateTrailerFields property.
-         *
-         * @param generateTrailerFields The generateTrailerFields to set.
-         * @since TODO
-         */
-        public void setGenerateTrailerFields(boolean generateTrailerFields) {
-
-            this.generateTrailerFields = generateTrailerFields;
-        }
-
-        public void setTransformDirectory(File schemaDirectory) {
-
-            this.transformDirectory = schemaDirectory;
-        }
-
-        public void setDecimalGenerated(boolean useDecimal) {
-
-            this.useDecimal = useDecimal;
-        }
-
-        public boolean isDecimalGenerated() {
-
-            return useDecimal;
-        }
+        getLog().error(msg, e);
     }
 }

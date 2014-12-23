@@ -220,6 +220,10 @@ public class AcceptanceTestSuite extends TestSuite {
     }
 
     private boolean isTestSkipped(File file) {
+
+        //       return !file.getName().contains("MessageResent");
+        //        return (file.getName().contains("NoDataSentDuringHeartBtInt") || file.getName().contains(
+        //                "SendTestRequest"));
         return skipSlowTests
                 && (file.getName().contains("NoDataSentDuringHeartBtInt") || file.getName()
                         .contains("SendTestRequest"));

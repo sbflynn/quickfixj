@@ -26,22 +26,21 @@ import java.util.concurrent.CountDownLatch;
 import javax.swing.JFrame;
 import javax.swing.UIManager;
 
-import org.quickfixj.MessageBuilderFactory;
-import org.quickfixj.jmx.JmxExporter;
-import org.quickfixj.spi.MessageBuilderServiceLoader;
+import org.quickfixj.engine.FIXEngine;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.engine.LogFactory;
+import org.quickfixj.engine.MessageStoreFactory;
+import org.quickfixj.jmx.mbean.JmxExporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import quickfix.DefaultEngine;
 import quickfix.FileStoreFactory;
 import quickfix.Initiator;
-import quickfix.LogFactory;
-import quickfix.MessageStoreFactory;
 import quickfix.ScreenLogFactory;
-import quickfix.Session;
-import quickfix.SessionID;
 import quickfix.SessionSettings;
-import quickfix.SocketInitiator;
 import quickfix.examples.banzai.ui.BanzaiFrame;
+import quickfix.mina.initiator.SocketInitiator;
 
 /**
  * Entry point for the Banzai application.
@@ -54,6 +53,8 @@ public class Banzai {
     private boolean initiatorStarted = false;
     private Initiator initiator = null;
     private JFrame frame = null;
+
+    private FIXEngine engine;
 
     public Banzai(String[] args) throws Exception {
         InputStream inputStream = null;
@@ -71,22 +72,20 @@ public class Banzai {
 
         boolean logHeartbeats = Boolean.valueOf(System.getProperty("logHeartbeats", "true"));
 
-        OrderTableModel orderTableModel = new OrderTableModel();
-        ExecutionTableModel executionTableModel = new ExecutionTableModel();
-        BanzaiApplication application = new BanzaiApplication(orderTableModel, executionTableModel);
+        engine = DefaultEngine.getDefaultEngine();
+
+        BanzaiApplication application = new BanzaiApplication(engine);
         MessageStoreFactory messageStoreFactory = new FileStoreFactory(settings);
         LogFactory logFactory = new ScreenLogFactory(true, true, true, logHeartbeats);
-        MessageBuilderFactory messageFactory = MessageBuilderServiceLoader
-                .getMessageBuilderFactory();
 
         initiator = new SocketInitiator(application, messageStoreFactory, settings, logFactory,
-                messageFactory);
+                engine);
+
+        frame = new BanzaiFrame(application);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         JmxExporter exporter = new JmxExporter();
         exporter.register(initiator);
-
-        frame = new BanzaiFrame(orderTableModel, executionTableModel, application);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     }
 
     public synchronized void logon() {
@@ -98,15 +97,15 @@ public class Banzai {
                 log.error("Logon failed", e);
             }
         } else {
-            for (SessionID sessionId : initiator.getSessions()) {
-                Session.lookupSession(sessionId).logon();
+            for (FIXSessionID sessionId : initiator.getSessions()) {
+                engine.lookupSession(sessionId).logon();
             }
         }
     }
 
     public void logout() {
-        for (SessionID sessionId : initiator.getSessions()) {
-            Session.lookupSession(sessionId).logout("user requested");
+        for (FIXSessionID sessionId : initiator.getSessions()) {
+            engine.lookupSession(sessionId).logout();
         }
     }
 

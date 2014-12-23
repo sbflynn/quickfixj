@@ -31,8 +31,6 @@ import javax.swing.JMenuItem;
 
 import quickfix.examples.banzai.Banzai;
 import quickfix.examples.banzai.BanzaiApplication;
-import quickfix.examples.banzai.ExecutionTableModel;
-import quickfix.examples.banzai.OrderTableModel;
 
 /**
  * Main application window
@@ -44,8 +42,7 @@ public class BanzaiFrame extends JFrame {
      */
     private static final long serialVersionUID = 1L;
 
-    public BanzaiFrame(OrderTableModel orderTableModel, ExecutionTableModel executionTableModel,
-            final BanzaiApplication application) {
+    public BanzaiFrame(BanzaiApplication application) {
         super();
         setTitle("Banzai!");
         setSize(600, 400);
@@ -53,8 +50,7 @@ public class BanzaiFrame extends JFrame {
         if (System.getProperties().containsKey("openfix")) {
             createMenuBar(application);
         }
-        getContentPane().add(new BanzaiPanel(orderTableModel, executionTableModel, application),
-                BorderLayout.CENTER);
+        getContentPane().add(new BanzaiPanel(application), BorderLayout.CENTER);
         setVisible(true);
     }
 

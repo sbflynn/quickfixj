@@ -43,6 +43,7 @@ import javax.naming.NamingException;
 import javax.sql.DataSource;
 
 import org.quickfixj.FIXBeginString;
+import org.quickfixj.engine.MessageStoreFactory;
 
 public class JdbcStoreTest extends AbstractMessageStoreTest {
     private String initialContextFactory;

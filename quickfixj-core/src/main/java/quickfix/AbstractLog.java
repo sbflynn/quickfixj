@@ -22,6 +22,8 @@ package quickfix;
 import java.io.Closeable;
 import java.io.IOException;
 
+import org.quickfixj.engine.Log;
+
 abstract class AbstractLog implements Log, Closeable {
     private boolean logHeartbeats;
 

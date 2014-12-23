@@ -4,12 +4,16 @@ import java.util.ArrayList;
 
 import javax.management.ObjectName;
 
-import quickfix.FixTags;
-import quickfix.Message;
+import org.quickfixj.FIXMessage;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.engine.FIXTag;
+import org.quickfixj.engine.SessionNotFoundException;
+import org.quickfixj.jmx.mbean.SessionAdmin;
+import org.quickfixj.jmx.mbean.SessionAdminMBean;
+
+import quickfix.MessageUtils;
 import quickfix.Session;
 import quickfix.SessionFactoryTestSupport;
-import quickfix.SessionID;
-import quickfix.SessionNotFound;
 import junit.framework.TestCase;
 
 /**
@@ -25,18 +29,18 @@ public class SessionAdminTest extends TestCase {
         MockSessionAdmin admin = new MockSessionAdmin(session, null, null);
         admin.resetSequence(25);
         assertEquals(1, admin.sentMessages.size());
-        assertEquals(25, admin.sentMessages.get(0).getInt(FixTags.NEW_SEQ_NO));
+        assertEquals(25, MessageUtils.coerceToInt(admin.sentMessages.get(0), FIXTag.NEW_SEQ_NO));
     }
 
     private class MockSessionAdmin extends SessionAdmin {
-        ArrayList<Message> sentMessages = new ArrayList<Message>();
+        ArrayList<FIXMessage> sentMessages = new ArrayList<FIXMessage>();
 
         public MockSessionAdmin(Session session, ObjectName connectorName, ObjectName settingsName) {
             super(session, connectorName, settingsName);
         }
 
         @Override
-        protected void doSend(Message message, SessionID sessionID) throws SessionNotFound {
+        protected void doSend(FIXMessage message, FIXSessionID sessionID) throws SessionNotFoundException {
             sentMessages.add(message);
         }
     }

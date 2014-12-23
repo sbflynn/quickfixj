@@ -30,18 +30,24 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 import org.quickfixj.FIXBeginString;
-import org.quickfixj.spi.MessageBuilderServiceLoader;
+import org.quickfixj.FIXMessage;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.engine.MessageStoreFactory;
+import org.quickfixj.engine.SessionNotFoundException;
+import org.quickfixj.messages.bd.fix42.TestRequest;
+import org.quickfixj.messages.bd.fix42.field.BeginString;
+import org.quickfixj.messages.bd.fix42.field.MsgType;
+import org.quickfixj.messages.bd.fix42.field.TestReqID;
 
-import quickfix.fix42.TestRequest;
-import quickfix.fix42.field.BeginString;
-import quickfix.fix42.field.MsgType;
-import quickfix.fix42.field.TestReqID;
 import quickfix.mina.ProtocolFactory;
+import quickfix.mina.acceptor.SocketAcceptor;
+import quickfix.mina.initiator.SocketInitiator;
 import junit.framework.TestCase;
 
 public class SessionDisconnectConcurrentlyTest extends TestCase {
     private TestAcceptorApplication testAcceptorApplication;
 
+    @Override
     protected void tearDown() throws Exception {
         super.tearDown();
         testAcceptorApplication.tearDown();
@@ -72,7 +78,7 @@ public class SessionDisconnectConcurrentlyTest extends TestCase {
         }
     }
 
-    private void doSessionDispatchingTest(int i) throws SessionNotFound, FieldNotFound {
+    private void doSessionDispatchingTest(int i) throws SessionNotFoundException, FieldNotFound {
         TestRequest message = new TestRequest();
         message.setTestReqID(new TestReqID("TEST" + i));
 
@@ -94,7 +100,7 @@ public class SessionDisconnectConcurrentlyTest extends TestCase {
     }
 
     private static class TestAcceptorApplication extends ApplicationAdapter {
-        private final HashMap<SessionID, Message> sessionMessages = new HashMap<SessionID, Message>();
+        private final HashMap<FIXSessionID, FIXMessage> sessionMessages = new HashMap<FIXSessionID, FIXMessage>();
         private final CountDownLatch logonLatch;
         private CountDownLatch messageLatch;
 
@@ -103,13 +109,13 @@ public class SessionDisconnectConcurrentlyTest extends TestCase {
         }
 
         @Override
-        public void onLogon(SessionID sessionId) {
+        public void onLogon(FIXSessionID sessionId) {
             super.onLogon(sessionId);
             logonLatch.countDown();
         }
 
         @Override
-        public void fromAdmin(Message message, SessionID sessionId) throws FieldNotFound,
+        public void fromAdmin(FIXMessage message, FIXSessionID sessionId) throws FieldNotFound,
                 IncorrectDataFormat, IncorrectTagValue, RejectLogon {
             sessionMessages.put(sessionId, message);
             if (messageLatch != null) {
@@ -119,9 +125,10 @@ public class SessionDisconnectConcurrentlyTest extends TestCase {
 
         public void assertTestRequestOnSession(String text, SessionID sessionID)
                 throws FieldNotFound {
-            Message testRequest = sessionMessages.get(sessionID);
+            FIXMessage testRequest = sessionMessages.get(sessionID);
             assertNotNull("no message", testRequest);
-            assertEquals("wrong message", text, testRequest.getString(TestReqID.TAG));
+            assertEquals("wrong message", text, testRequest.getField(TestReqID.TAG).getCharacters()
+                    .toString());
         }
 
         public void waitForLogon() {
@@ -167,9 +174,9 @@ public class SessionDisconnectConcurrentlyTest extends TestCase {
         configureInitiatorForSession(settings, 1, 10001);
 
         MessageStoreFactory factory = new MemoryStoreFactory();
-        quickfix.LogFactory logFactory = new ScreenLogFactory(true, true, true);
-        return new SocketInitiator(new ApplicationAdapter() {
-        }, factory, settings, logFactory, MessageBuilderServiceLoader.getMessageBuilderFactory());
+        org.quickfixj.engine.LogFactory logFactory = new ScreenLogFactory(true, true, true);
+        return new SocketInitiator(new ApplicationAdapter(), factory, settings, logFactory,
+                DefaultEngine.getDefaultEngine());
     }
 
     private void configureInitiatorForSession(SessionSettings settings, int i, int port) {
@@ -195,9 +202,9 @@ public class SessionDisconnectConcurrentlyTest extends TestCase {
         configureAcceptorForSession(settings, 1, 10001);
 
         MessageStoreFactory factory = new MemoryStoreFactory();
-        quickfix.LogFactory logFactory = new ScreenLogFactory(true, true, true);
+        org.quickfixj.engine.LogFactory logFactory = new ScreenLogFactory(true, true, true);
         return new SocketAcceptor(testAcceptorApplication, factory, settings, logFactory,
-                MessageBuilderServiceLoader.getMessageBuilderFactory());
+                DefaultEngine.getDefaultEngine());
     }
 
     private void configureAcceptorForSession(SessionSettings settings, int i, int port) {

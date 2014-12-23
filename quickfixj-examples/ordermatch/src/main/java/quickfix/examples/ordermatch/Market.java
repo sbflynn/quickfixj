@@ -24,9 +24,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import quickfix.fix42.field.OrdType;
-import quickfix.fix42.field.Side;
-import quickfix.fix42.field.Symbol;
+import org.quickfixj.messages.bd.fix42.field.OrdType;
+import org.quickfixj.messages.bd.fix42.field.Side;
+import org.quickfixj.messages.bd.fix42.field.Symbol;
 
 public class Market {
 
@@ -66,10 +66,10 @@ public class Market {
 
     private void match(Order bid, Order ask) {
 
-        double price = OrdType.LIMIT.equals(ask.getType()) ? ask.getPrice()
-                : bid.getPrice();
-        long quantity = bid.getOpenQuantity() >= ask.getOpenQuantity() ? ask
-                .getOpenQuantity() : bid.getOpenQuantity();
+        double price = OrdType.LIMIT.equals(ask.getType()) ? ask.getPrice() : bid.getPrice();
+        long quantity = bid.getOpenQuantity() >= ask.getOpenQuantity()
+                ? ask.getOpenQuantity()
+                : bid.getOpenQuantity();
 
         bid.execute(price, quantity);
         ask.execute(price, quantity);
@@ -77,8 +77,8 @@ public class Market {
 
     public boolean insert(Order order) {
 
-        return Side.BUY.equals(order.getSide()) ? insert(order, true, bidOrders)
-                : insert(order, false, askOrders);
+        return Side.BUY.equals(order.getSide()) ? insert(order, true, bidOrders) : insert(order,
+                false, askOrders);
     }
 
     private boolean insert(Order order, boolean descending, List<Order> orders) {
@@ -90,8 +90,7 @@ public class Market {
         } else {
             for (int i = 0; i < orders.size(); i++) {
                 Order o = orders.get(i);
-                if ((descending ? order.getPrice() > o.getPrice() : order
-                        .getPrice() < o.getPrice())
+                if ((descending ? order.getPrice() > o.getPrice() : order.getPrice() < o.getPrice())
                         && order.getEntryTime() < o.getEntryTime()) {
                     orders.add(i, order);
                 }
@@ -104,11 +103,9 @@ public class Market {
     public void erase(Order order) {
 
         if (order.getSide() == Side.BUY) {
-            bidOrders.remove(find(bidOrders, order.getClientOrderId()
-                    .getValue()));
+            bidOrders.remove(find(bidOrders, order.getClientOrderId().getValue()));
         } else {
-            askOrders.remove(find(askOrders, order.getClientOrderId()
-                    .getValue()));
+            askOrders.remove(find(askOrders, order.getClientOrderId().getValue()));
         }
     }
 
@@ -141,9 +138,9 @@ public class Market {
         System.out.println(title + ":\n----");
         for (int i = 0; i < orders.size(); i++) {
             Order order = orders.get(i);
-            System.out.println("  $" + priceFormat.format(order.getPrice())
-                    + " " + qtyFormat.format(order.getOpenQuantity()) + " "
-                    + order.getOwner() + " " + new Date(order.getEntryTime()));
+            System.out.println("  $" + priceFormat.format(order.getPrice()) + " "
+                    + qtyFormat.format(order.getOpenQuantity()) + " " + order.getOwner() + " "
+                    + new Date(order.getEntryTime()));
         }
     }
 }

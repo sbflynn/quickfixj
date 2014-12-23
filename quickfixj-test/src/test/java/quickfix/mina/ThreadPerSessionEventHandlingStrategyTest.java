@@ -35,15 +35,22 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 import org.quickfixj.FIXBeginString;
+import org.quickfixj.FIXMessage;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.field.UtcTimestampConverter;
+import org.quickfixj.messages.bd.fix40.Logon;
+import org.quickfixj.messages.bd.fix40.field.BeginString;
+import org.quickfixj.messages.bd.fix40.field.EncryptMethod;
+import org.quickfixj.messages.bd.fix40.field.HeartBtInt;
+import org.quickfixj.messages.bd.fix40.field.MsgType;
+import org.quickfixj.messages.bd.fix40.field.SendingTime;
 
 import quickfix.ConfigError;
 import quickfix.DefaultSessionFactory;
 import quickfix.FieldNotFound;
-import quickfix.FixTags;
 import quickfix.IncorrectDataFormat;
 import quickfix.IncorrectTagValue;
 import quickfix.MemoryStoreFactory;
-import quickfix.Message;
 import quickfix.RejectLogon;
 import quickfix.Responder;
 import quickfix.ScreenLogFactory;
@@ -52,10 +59,6 @@ import quickfix.SessionFactory;
 import quickfix.SessionID;
 import quickfix.SessionSettings;
 import quickfix.UnitTestApplication;
-import quickfix.field.converter.UtcTimestampConverter;
-import quickfix.fix40.Logon;
-import quickfix.fix40.field.BeginString;
-import quickfix.fix40.field.MsgType;
 
 public class ThreadPerSessionEventHandlingStrategyTest {
 
@@ -74,11 +77,11 @@ public class ThreadPerSessionEventHandlingStrategyTest {
         @Override
         protected void startDispatcherThread(
                 ThreadPerSessionEventHandlingStrategy.MessageDispatchingThread dispatcher) {
-
+            // no-op
         }
 
         @Override
-        protected Message getNextMessage(BlockingQueue<Message> messages)
+        protected FIXMessage getNextMessage(BlockingQueue<FIXMessage> messages)
                 throws InterruptedException {
 
             if (getMessageCount-- == 0) {
@@ -109,7 +112,7 @@ public class ThreadPerSessionEventHandlingStrategyTest {
         final UnitTestApplication application = new UnitTestApplication() {
 
             @Override
-            public void fromAdmin(Message message, SessionID sessionId) throws FieldNotFound,
+            public void fromAdmin(FIXMessage message, FIXSessionID sessionId) throws FieldNotFound,
                     IncorrectDataFormat, IncorrectTagValue, RejectLogon {
 
                 super.fromAdmin(message, sessionId);
@@ -117,15 +120,19 @@ public class ThreadPerSessionEventHandlingStrategyTest {
             }
         };
 
-        final Session session = setUpSession(sessionID, application);
+        Session session = setUpSession(sessionID, application);
 
-        final Message message = new Logon();
-        message.getHeader().setString(FixTags.SENDER_COMP_ID, "ISLD");
-        message.getHeader().setString(FixTags.TARGET_COMP_ID, "TW");
-        message.getHeader().setString(FixTags.SENDING_TIME,
-                UtcTimestampConverter.convert(new Date(), false));
-        message.getHeader().setInt(FixTags.MSG_SEQ_NUM, 1);
-        message.setInt(FixTags.HEART_BT_INT, 30);
+        Logon message = new org.quickfixj.messages.bd.fix40.Logon();
+
+        message.getHeader()
+                .setField(new org.quickfixj.messages.bd.fix40.field.SenderCompID("ISLD"));
+        message.getHeader().setField(new org.quickfixj.messages.bd.fix40.field.TargetCompID("TW"));
+        message.getHeader().setField(
+                new org.quickfixj.messages.bd.fix40.field.SendingTime(UtcTimestampConverter
+                        .convert(new Date(), false)));
+        message.getHeader().setField(new org.quickfixj.messages.bd.fix40.field.MsgSeqNum(1));
+        message.setEncryptMethod(EncryptMethod.NONE_OTHER);
+        message.setHeartBtInt(new org.quickfixj.messages.bd.fix40.field.HeartBtInt(30));
 
         // Added - TODO these should be acquired via a MessageBuilder
         message.getHeader().setField(MsgType.LOGON);
@@ -143,7 +150,7 @@ public class ThreadPerSessionEventHandlingStrategyTest {
 
         assertEquals(1, application.fromAdminMessages.size());
 
-        final Thread[] threads = new Thread[1024];
+        Thread[] threads = new Thread[1024];
         Thread.enumerate(threads);
 
         Thread dispatcherThread = null;
@@ -186,7 +193,7 @@ public class ThreadPerSessionEventHandlingStrategyTest {
         final UnitTestApplication application = new UnitTestApplication() {
 
             @Override
-            public void fromAdmin(Message message, SessionID sessionId) throws FieldNotFound,
+            public void fromAdmin(FIXMessage message, FIXSessionID sessionId) throws FieldNotFound,
                     IncorrectDataFormat, IncorrectTagValue, RejectLogon {
 
                 super.fromAdmin(message, sessionId);
@@ -196,13 +203,16 @@ public class ThreadPerSessionEventHandlingStrategyTest {
 
         final Session session = setUpSession(sessionID, application);
 
-        final Message message = new Logon();
-        message.getHeader().setString(FixTags.SENDER_COMP_ID, "ISLD");
-        message.getHeader().setString(FixTags.TARGET_COMP_ID, "TW");
-        message.getHeader().setString(FixTags.SENDING_TIME,
-                UtcTimestampConverter.convert(new Date(), false));
-        message.getHeader().setInt(FixTags.MSG_SEQ_NUM, 1);
-        message.setInt(FixTags.HEART_BT_INT, 30);
+        Logon message = new Logon();
+        message.getHeader()
+                .setField(new org.quickfixj.messages.bd.fix40.field.SenderCompID("ISLD"));
+        message.getHeader().setField(new org.quickfixj.messages.bd.fix40.field.TargetCompID("TW"));
+        message.getHeader().setField(
+                new SendingTime(UtcTimestampConverter.convert(new Date(), false)));
+        message.getHeader().setField(new org.quickfixj.messages.bd.fix40.field.MsgSeqNum(1));
+
+        message.setEncryptMethod(EncryptMethod.NONE_OTHER);
+        message.setHeartBtInt(new HeartBtInt(30));
 
         // Added - TODO these should be acquired via a MessageBuilder
         message.getHeader().setField(MsgType.LOGON);
@@ -268,8 +278,8 @@ public class ThreadPerSessionEventHandlingStrategyTest {
 
         final SessionID sessionID = new SessionID(FIXBeginString.FIX40, "TW", "ISLD");
         final Session session = setUpSession(sessionID);
-        final Message message = new Logon();
-        message.setInt(FixTags.HEART_BT_INT, 30);
+        FIXMessage message = new Logon();
+        message.setField(new HeartBtInt(30));
         final ThreadPerSessionEventHandlingStrategyUnderTest strategy = new ThreadPerSessionEventHandlingStrategyUnderTest();
 
         strategy.onMessage(session, message);
@@ -280,11 +290,11 @@ public class ThreadPerSessionEventHandlingStrategyTest {
     @Test
     public void testEventHandlingRuntimeException() throws Exception {
 
-        final SessionID sessionID = new SessionID(FIXBeginString.FIX40, "TW", "ISLD");
-        final Session session = setUpSession(sessionID);
-        final Message message = new Logon();
-        message.setInt(FixTags.HEART_BT_INT, 30);
-        final ThreadPerSessionEventHandlingStrategyUnderTest strategy = new ThreadPerSessionEventHandlingStrategyUnderTest();
+        SessionID sessionID = new SessionID(FIXBeginString.FIX40, "TW", "ISLD");
+        Session session = setUpSession(sessionID);
+        FIXMessage message = new Logon();
+        message.setField(new HeartBtInt(30));
+        ThreadPerSessionEventHandlingStrategyUnderTest strategy = new ThreadPerSessionEventHandlingStrategyUnderTest();
 
         strategy.onMessage(session, message);
         strategy.getNextMessageException = new NullPointerException("TEST");

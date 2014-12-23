@@ -27,8 +27,8 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 
 import org.quickfixj.CharsetSupport;
-
-import quickfix.field.converter.UtcTimestampConverter;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.field.UtcTimestampConverter;
 
 /**
  * File log implementation. THIS CLASS IS PUBLIC ONLY TO MAINTAIN COMPATIBILITY
@@ -57,7 +57,7 @@ public class FileLog extends AbstractLog {
     private boolean includeMillis;
     private boolean includeTimestampForMessages;
 
-    FileLog(String path, SessionID sessionID, boolean includeMillis,
+    FileLog(String path, FIXSessionID sessionID, boolean includeMillis,
             boolean includeTimestampForMessages, boolean logHeartbeats)
             throws FileNotFoundException {
         String sessionName = FileUtil.sessionIdFileName(sessionID);

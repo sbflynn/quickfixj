@@ -20,6 +20,17 @@
 package org.quickfixj.codegenerator;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+
+import javax.xml.XMLConstants;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.bind.helpers.DefaultValidationEventHandler;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -28,6 +39,9 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.FileUtils;
+import org.quickfixj.xml.dictionary.DataDictionaryConfig;
+import org.quickfixj.xml.dictionary.Engine;
+import org.quickfixj.xml.dictionary.ObjectFactory;
 
 /**
  * A mojo that uses the quickfix code generator to generate Java source files
@@ -42,16 +56,21 @@ public class GenerateMojo extends AbstractMojo {
     /**
      * The dictionary file to use for mapping messages to java.
      */
-    @Parameter(
-            defaultValue = "${basedir}/src/main/resources/META-INF/dictionary.xml")
-    private File dictFile;
+    @Parameter(required = true)
+    private String resource;
+
+    /**
+     * The source directory containing *.xsd files.
+     */
+    @Parameter(defaultValue = "${basedir}/src/main/resources")
+    private File resourceDirectory;
 
     /**
      * The source directory containing *.xsd files.
      */
     @Parameter(
             defaultValue = "${basedir}/src/resources/quickfixj/codegenerator")
-    private File schemaDirectory;
+    private File transformDirectory;
 
     /**
      * The directory to output the generated sources to.
@@ -60,63 +79,17 @@ public class GenerateMojo extends AbstractMojo {
     private File outputDirectory;
 
     /**
-     * Enable BigDecimal representation.
-     */
-    @Parameter(defaultValue = "false")
-    private boolean decimal;
-
-    /**
-     * Enable BigDecimal representation.
-     */
-    @Parameter(defaultValue = "true")
-    private boolean validate;
-
-    /**
-     * Enable orderedFields.
-     */
-    @Parameter(defaultValue = "false")
-    private boolean orderedFields;
-
-    /**
-     * Enable orderedFields.
-     */
-    @Parameter(defaultValue = "false")
-    private boolean generateHeaderFields;
-
-    /**
-     * Enable orderedFields.
-     */
-    @Parameter(defaultValue = "false")
-    private boolean generateTrailerFields;
-
-    /**
-     * The package for the generated source.
-     */
-    @Parameter
-    private String packaging;
-
-    /**
-     * The base field class to use.
-     */
-    @Parameter
-    private String fieldPackage;
-
-    /**
-     * The base field class to use.
-     */
-    @Parameter
-    private String componentPackage;
-
-    /**
      * The Maven project to act upon.
      */
     @Parameter(property = "project", required = true)
     private MavenProject project;
 
+    private Schema schema;
+
     /**
      * {@link MessageCodeGenerator} instance used for code generation.
      */
-    private MavenMessageCodeGenerator generator;
+    private MessageCodeGenerator generator;
 
     /**
      * {@inheritDoc}
@@ -136,44 +109,21 @@ public class GenerateMojo extends AbstractMojo {
         }
 
         try {
-            generator = new MavenMessageCodeGenerator();
-            if (getLog().isInfoEnabled()) {
-                getLog().info(
-                        "Successfully created an instance of the QuickFIX source generator");
-            }
-            generator.setLog(getLog());
 
-            MessageCodeGenerator.Task task = new MessageCodeGenerator.Task();
-            if (getLog().isInfoEnabled()) {
-                getLog().info("Initialising code generator task");
-            }
+            SchemaFactory schemaFactory = SchemaFactory
+                    .newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
 
-            if (dictFile != null && dictFile.exists()) {
-                task.setSpecification(dictFile);
-            } else {
-                getLog().error("Cannot find file " + dictFile);
-            }
+            schema = schemaFactory.newSchema(getClass().getResource(
+                    "/META-INF/xsd/fix-dictionary.xsd"));
 
-            log("Processing " + dictFile);
+            Engine directives = getDirectives();
+            DataDictionaryConfig dictionary = getDictionary(directives);
 
-            task.setName(dictFile.getName());
-            task.setTransformDirectory(schemaDirectory);
-            task.setPackaging(packaging);
-            task.setOutputBaseDirectory(outputDirectory);
-            task.setFieldPackage(fieldPackage);
-            task.setComponentPackage(componentPackage);
-            task.setOverwrite(true);
-            task.setOrderedFields(orderedFields);
-            task.setDecimalGenerated(decimal);
-            task.setValidate(isValidate());
-            task.setGenerateHeaderFields(isGenerateHeaderFields());
-            task.setGenerateTrailerFields(isGenerateTrailerFields());
+            generator = new MessageCodeGenerator(this,
+                    directives.getMessageFactory(), dictionary);
 
-            generator.generate(task);
+            generator.generate();
 
-        } catch (Exception e) {
-            throw new MojoExecutionException(
-                    "QuickFIX code generator execution failed", e);
         } catch (Throwable t) {
             throw new MojoExecutionException(
                     "QuickFIX code generator execution failed", t);
@@ -185,13 +135,69 @@ public class GenerateMojo extends AbstractMojo {
     }
 
     /**
-     * Logs a message to the logger.
+     * Get the resource property.
      *
-     * @param msg The message ot be logged.
+     * @return Returns the resource.
+     * @since 2.0
      */
-    private void log(final String msg) {
+    public String getResource() {
 
-        getLog().info(msg);
+        return resource;
+    }
+
+    /**
+     * Set the resource property.
+     *
+     * @param resource The resource to set.
+     * @since 2.0
+     */
+    public void setResource(String resource) {
+
+        this.resource = resource;
+    }
+
+    /**
+     * Get the resourceDirectory property.
+     *
+     * @return Returns the resourceDirectory.
+     * @since 2.0
+     */
+    public File getResourceDirectory() {
+
+        return resourceDirectory;
+    }
+
+    /**
+     * Set the resourceDirectory property.
+     *
+     * @param resourceDirectory The resourceDirectory to set.
+     * @since 2.0
+     */
+    public void setResourceDirectory(File resourceDirectory) {
+
+        this.resourceDirectory = resourceDirectory;
+    }
+
+    /**
+     * Get the transformDirectory property.
+     *
+     * @return Returns the transformDirectory.
+     * @since 2.0
+     */
+    public File getTransformDirectory() {
+
+        return transformDirectory;
+    }
+
+    /**
+     * Set the transformDirectory property.
+     *
+     * @param transformDirectory The transformDirectory to set.
+     * @since 2.0
+     */
+    public void setTransformDirectory(File transformDirectory) {
+
+        this.transformDirectory = transformDirectory;
     }
 
     /**
@@ -213,26 +219,6 @@ public class GenerateMojo extends AbstractMojo {
     public void setOutputDirectory(final File outputDirectory) {
 
         this.outputDirectory = outputDirectory;
-    }
-
-    /**
-     * Returns the default package to be used during code generation.
-     *
-     * @return the default package to be used during code generation.
-     */
-    public String getPackaging() {
-
-        return packaging;
-    }
-
-    /**
-     * Sets the default package to be used during code generation.
-     *
-     * @param packaging the default package to be used during code generation.
-     */
-    public void setPackaging(final String packaging) {
-
-        this.packaging = packaging;
     }
 
     /**
@@ -260,34 +246,13 @@ public class GenerateMojo extends AbstractMojo {
     }
 
     /**
-     * Returns the dictionary file for which code generation should be executed.
-     *
-     * @return the dictionary file for which code generation should be executed.
-     */
-    public File getDictFile() {
-
-        return dictFile;
-    }
-
-    /**
-     * Sets the dictionary file for which code generation should be executed.
-     *
-     * @param dictFile the dictionary file for which code generation should be
-     *        executed.
-     */
-    public void setDictFile(File dictFile) {
-
-        this.dictFile = dictFile;
-    }
-
-    /**
      * Returns the directory containing schemas for code generation.
      *
      * @return the directory containing schemas for code generation.
      */
     public File getSchemaDirectory() {
 
-        return schemaDirectory;
+        return transformDirectory;
     }
 
     /**
@@ -298,72 +263,60 @@ public class GenerateMojo extends AbstractMojo {
      */
     public void setSchemaDirectory(File schemaDirectory) {
 
-        this.schemaDirectory = schemaDirectory;
+        this.transformDirectory = schemaDirectory;
     }
 
-    /**
-     * Get the validate property.
-     *
-     * @return Returns the validate.
-     * @since 2.0
-     */
-    public boolean isValidate() {
+    private DataDictionaryConfig getDictionary(Engine directives)
+            throws IOException, JAXBException {
 
-        return validate;
+        File buildFile;
+
+        buildFile = new File(resourceDirectory, "META-INF/quickfix");
+        buildFile = new File(buildFile, getResource());
+
+        URL url = new URL(buildFile.toURI().toURL(), directives.getDictionary()
+                .get(0).getLocation());
+        getLog().info("Data dictionary url : " + url);
+
+        JAXBContext jc = JAXBContext.newInstance(ObjectFactory.class);
+
+        Unmarshaller unmarshaller = jc.createUnmarshaller();
+
+        unmarshaller.setSchema(schema);
+        unmarshaller.setEventHandler(new DefaultValidationEventHandler());
+
+        return unmarshaller.unmarshal(new StreamSource(url.openStream()),
+                DataDictionaryConfig.class).getValue();
     }
 
-    /**
-     * Set the validate property.
-     *
-     * @param validate The validate to set.
-     * @since 2.0
-     */
-    public void setValidate(boolean validate) {
+    private Engine getDirectives() throws JAXBException {
 
-        this.validate = validate;
-    }
+        if (getProject().getProperties().containsKey("FIXENGINE")) {
+            // use directive created by build engine mojo
+            getLog().info("Found built engine");
+            return (Engine) getProject().getProperties().get("FIXENGINE");
+        }
 
-    /**
-     * Get the generateHeaderFields property.
-     *
-     * @return Returns the generateHeaderFields.
-     * @since 2.0
-     */
-    public boolean isGenerateHeaderFields() {
+        File buildFile;
 
-        return generateHeaderFields;
-    }
+        buildFile = new File(resourceDirectory, "META-INF/quickfix");
+        buildFile = new File(buildFile, getResource());
 
-    /**
-     * Set the generateHeaderFields property.
-     *
-     * @param generateHeaderFields The generateHeaderFields to set.
-     * @since 2.0
-     */
-    public void setGenerateHeaderFields(boolean generateHeaderFields) {
+        getLog().info("Factory url : " + buildFile);
 
-        this.generateHeaderFields = generateHeaderFields;
-    }
+        if (!buildFile.exists()) {
+            throw new RuntimeException("Build file not found");
+        }
 
-    /**
-     * Get the generateTrailerFields property.
-     *
-     * @return Returns the generateTrailerFields.
-     * @since 2.0
-     */
-    public boolean isGenerateTrailerFields() {
+        JAXBContext jc = JAXBContext.newInstance(ObjectFactory.class);
 
-        return generateTrailerFields;
-    }
+        Unmarshaller unmarshaller = jc.createUnmarshaller();
 
-    /**
-     * Set the generateTrailerFields property.
-     *
-     * @param generateTrailerFields The generateTrailerFields to set.
-     * @since 2.0
-     */
-    public void setGenerateTrailerFields(boolean generateTrailerFields) {
+        unmarshaller.setSchema(schema);
+        unmarshaller.setEventHandler(new DefaultValidationEventHandler());
 
-        this.generateTrailerFields = generateTrailerFields;
+        return unmarshaller
+                .unmarshal(new StreamSource(buildFile), Engine.class)
+                .getValue();
     }
 }

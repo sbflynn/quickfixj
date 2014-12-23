@@ -20,16 +20,18 @@
 package quickfix;
 
 import java.net.InetAddress;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 
 import org.quickfixj.FIXApplication;
 import org.quickfixj.FIXBeginString;
-import org.quickfixj.MessageBuilderFactory;
-import org.quickfixj.spi.MessageBuilderServiceLoader;
+import org.quickfixj.engine.FIXEngine;
+import org.quickfixj.engine.FIXMessageBuilderFactory;
+import org.quickfixj.engine.FIXMessageDictionaryFactory;
+import org.quickfixj.engine.LogFactory;
+import org.quickfixj.engine.MessageStoreFactory;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.engine.Validator;
+import org.quickfixj.field.FieldConversionException;
 
 /**
  * Factory for creating sessions. Used by the communications code (acceptors,
@@ -37,15 +39,13 @@ import org.quickfixj.spi.MessageBuilderServiceLoader;
  */
 public class DefaultSessionFactory implements SessionFactory {
 
-    private static final Map<String, DataDictionary> dictionaryCache = new Hashtable<String, DataDictionary>();
-
     private final Application application;
 
     private final MessageStoreFactory messageStoreFactory;
 
     private final LogFactory logFactory;
 
-    private final MessageBuilderFactory messageFactory;
+    private final FIXEngine engine;
 
     public DefaultSessionFactory(Application application, MessageStoreFactory messageStoreFactory,
             LogFactory logFactory) {
@@ -53,20 +53,20 @@ public class DefaultSessionFactory implements SessionFactory {
         this.application = application;
         this.messageStoreFactory = messageStoreFactory;
         this.logFactory = logFactory;
-        this.messageFactory = MessageBuilderServiceLoader.getMessageBuilderFactory();
+        this.engine = DefaultEngine.getDefaultEngine();
     }
 
     public DefaultSessionFactory(Application application, MessageStoreFactory messageStoreFactory,
-            LogFactory logFactory, MessageBuilderFactory messageFactory) {
+            LogFactory logFactory, FIXEngine engine) {
 
         this.application = application;
         this.messageStoreFactory = messageStoreFactory;
         this.logFactory = logFactory;
-        this.messageFactory = messageFactory;
+        this.engine = engine;
     }
 
     @Override
-    public Session create(SessionID sessionID, SessionSettings settings) throws ConfigError {
+    public Session create(FIXSessionID sessionID, SessionSettings settings) throws ConfigError {
 
         try {
             String connectionType = null;
@@ -106,7 +106,7 @@ public class DefaultSessionFactory implements SessionFactory {
 
             FIXApplication senderDefaultApplVerID = null;
 
-            if (sessionID.isFIXT()) {
+            if (sessionID.getBeginString() == FIXBeginString.FIXT11) {
                 if (!settings.isSetting(sessionID, Session.SETTING_DEFAULT_APPL_VER_ID)) {
                     throw new ConfigError(Session.SETTING_DEFAULT_APPL_VER_ID
                             + " is required for FIXT transport");
@@ -115,21 +115,21 @@ public class DefaultSessionFactory implements SessionFactory {
                         Session.SETTING_DEFAULT_APPL_VER_ID));
             }
 
+            Validator validator = new DefaultValidator(sessionID, settings);
+
             boolean useDataDictionary = true;
             if (settings.isSetting(sessionID, Session.SETTING_USE_DATA_DICTIONARY)) {
                 useDataDictionary = settings
                         .getBool(sessionID, Session.SETTING_USE_DATA_DICTIONARY);
             }
 
-            DefaultDataDictionaryProvider dataDictionaryProvider = null;
-            if (useDataDictionary) {
-                dataDictionaryProvider = new DefaultDataDictionaryProvider();
-                if (sessionID.isFIXT()) {
-                    processFixtDataDictionaries(sessionID, settings, dataDictionaryProvider);
-                } else {
-                    processPreFixtDataDictionary(sessionID, settings, dataDictionaryProvider);
-                }
-            }
+            FIXMessageBuilderFactory messageBuilderFactory;
+            FIXMessageDictionaryFactory dataDictionary;
+
+            messageBuilderFactory = engine.getMessageBuilderFactory(sessionID.getBeginString(),
+                    "org.quickfixj.messages.bd");
+            dataDictionary = engine.getMessageDictionaryFactory(sessionID.getBeginString(),
+                    "org.quickfixj.messages.bd");
 
             int heartbeatInterval = 0;
             if (connectionType.equals(SessionFactory.INITIATOR_CONNECTION_TYPE)) {
@@ -203,13 +203,13 @@ public class DefaultSessionFactory implements SessionFactory {
             final Set<InetAddress> allowedRemoteAddresses = getInetAddresses(settings, sessionID);
 
             final Session session = new Session(application, messageStoreFactory, sessionID,
-                    dataDictionaryProvider, new SessionSchedule(settings, sessionID), logFactory,
-                    messageFactory, heartbeatInterval, checkLatency, maxLatency, millisInTimestamp,
-                    resetOnLogon, resetOnLogout, resetOnDisconnect, refreshAtLogon, checkCompID,
-                    redundantResentRequestAllowed, persistMessages, useClosedIntervalForResend,
-                    testRequestDelayMultiplier, senderDefaultApplVerID, validateSequenceNumbers,
-                    logonIntervals, resetOnError, disconnectOnError, disableHeartBeatCheck,
-                    rejectInvalidMessage, rejectMessageOnUnhandledException,
+                    dataDictionary, new SessionSchedule(settings, sessionID), logFactory,
+                    messageBuilderFactory, validator, heartbeatInterval, checkLatency, maxLatency,
+                    millisInTimestamp, resetOnLogon, resetOnLogout, resetOnDisconnect,
+                    refreshAtLogon, checkCompID, redundantResentRequestAllowed, persistMessages,
+                    useClosedIntervalForResend, testRequestDelayMultiplier, senderDefaultApplVerID,
+                    validateSequenceNumbers, logonIntervals, resetOnError, disconnectOnError,
+                    disableHeartBeatCheck, rejectInvalidMessage, rejectMessageOnUnhandledException,
                     requiresOrigSendingTime, forceResendWhenCorruptedStore, allowedRemoteAddresses,
                     validateIncomingMessage, resendRequestChunkSize, enableNextExpectedMsgSeqNum,
                     enableLastMsgSeqNumProcessed);
@@ -227,135 +227,23 @@ public class DefaultSessionFactory implements SessionFactory {
             application.onCreate(sessionID);
 
             return session;
-        } catch (final FieldConvertError e) {
+        } catch (final FieldConversionException e) {
             throw new ConfigError(e.getMessage());
-        }
-    }
-
-    private void processPreFixtDataDictionary(SessionID sessionID, SessionSettings settings,
-            DefaultDataDictionaryProvider dataDictionaryProvider) throws ConfigError,
-            FieldConvertError {
-
-        final DataDictionary dataDictionary = createDataDictionary(sessionID, settings,
-                Session.SETTING_DATA_DICTIONARY, sessionID.getBeginString());
-        dataDictionaryProvider.addTransportDictionary(sessionID.getBeginString(), dataDictionary);
-        dataDictionaryProvider.addApplicationDictionary(
-                MessageUtils.toApplVerID(sessionID.getBeginString()), dataDictionary);
-    }
-
-    private DataDictionary createDataDictionary(SessionID sessionID, SessionSettings settings,
-            String settingsKey, FIXBeginString beginString) throws ConfigError, FieldConvertError {
-
-        final String path = getDictionaryPath(sessionID, settings, settingsKey, beginString);
-        final DataDictionary dataDictionary = getDataDictionary(path);
-
-        if (settings.isSetting(sessionID, Session.SETTING_VALIDATE_FIELDS_OUT_OF_ORDER)) {
-            dataDictionary.setCheckFieldsOutOfOrder(settings.getBool(sessionID,
-                    Session.SETTING_VALIDATE_FIELDS_OUT_OF_ORDER));
-        }
-
-        if (settings.isSetting(sessionID, Session.SETTING_VALIDATE_FIELDS_HAVE_VALUES)) {
-            dataDictionary.setCheckFieldsHaveValues(settings.getBool(sessionID,
-                    Session.SETTING_VALIDATE_FIELDS_HAVE_VALUES));
-        }
-
-        if (settings.isSetting(sessionID, Session.SETTING_VALIDATE_UNORDERED_GROUP_FIELDS)) {
-            dataDictionary.setCheckUnorderedGroupFields(settings.getBool(sessionID,
-                    Session.SETTING_VALIDATE_UNORDERED_GROUP_FIELDS));
-        }
-
-        if (settings.isSetting(sessionID, Session.SETTING_VALIDATE_UNORDERED_GROUP_FIELDS)) {
-            dataDictionary.setCheckUnorderedGroupFields(settings.getBool(sessionID,
-                    Session.SETTING_VALIDATE_UNORDERED_GROUP_FIELDS));
-        }
-
-        if (settings.isSetting(sessionID, Session.SETTING_VALIDATE_USER_DEFINED_FIELDS)) {
-            dataDictionary.setCheckUserDefinedFields(settings.getBool(sessionID,
-                    Session.SETTING_VALIDATE_USER_DEFINED_FIELDS));
-        }
-
-        if (settings.isSetting(sessionID, Session.SETTING_ALLOW_UNKNOWN_MSG_FIELDS)) {
-            dataDictionary.setAllowUnknownMessageFields(settings.getBool(sessionID,
-                    Session.SETTING_ALLOW_UNKNOWN_MSG_FIELDS));
-        }
-
-        return dataDictionary;
-    }
-
-    private void processFixtDataDictionaries(SessionID sessionID, SessionSettings settings,
-            DefaultDataDictionaryProvider dataDictionaryProvider) throws ConfigError,
-            FieldConvertError {
-
-        dataDictionaryProvider.addTransportDictionary(
-                sessionID.getBeginString(),
-                createDataDictionary(sessionID, settings,
-                        Session.SETTING_TRANSPORT_DATA_DICTIONARY, sessionID.getBeginString()));
-
-        final Properties sessionProperties = settings.getSessionProperties(sessionID);
-        final Enumeration<?> keys = sessionProperties.propertyNames();
-        while (keys.hasMoreElements()) {
-            final String key = (String) keys.nextElement();
-            if (key.startsWith(Session.SETTING_APP_DATA_DICTIONARY)) {
-                if (key.equals(Session.SETTING_APP_DATA_DICTIONARY)) {
-                    final FIXApplication applVerID = toApplVerID(settings.getString(sessionID,
-                            Session.SETTING_DEFAULT_APPL_VER_ID));
-                    final DataDictionary dd = createDataDictionary(sessionID, settings,
-                            Session.SETTING_APP_DATA_DICTIONARY, sessionID.getBeginString());
-                    dataDictionaryProvider.addApplicationDictionary(applVerID, dd);
-                } else {
-                    // Process qualified app data dictionary properties
-                    final int offset = key.indexOf('.');
-                    if (offset == -1) {
-                        throw new ConfigError("Malformed " + Session.SETTING_APP_DATA_DICTIONARY
-                                + ": " + key);
-                    }
-
-                    final FIXBeginString beginStringQualifier = FIXBeginString.parse(key
-                            .substring(offset + 1));
-                    final DataDictionary dd = createDataDictionary(sessionID, settings, key,
-                            beginStringQualifier);
-                    dataDictionaryProvider.addApplicationDictionary(
-                            MessageUtils.toApplVerID(beginStringQualifier), dd);
-                }
-            }
         }
     }
 
     private FIXApplication toApplVerID(String value) {
 
-        return FIXApplication.parse(value);
-    }
+        FIXApplication application = FIXApplication.parse(value);
 
-    private String getDictionaryPath(SessionID sessionID, SessionSettings settings,
-            String settingsKey, FIXBeginString beginString) throws ConfigError, FieldConvertError {
-
-        String path;
-        if (settings.isSetting(sessionID, settingsKey)) {
-            path = settings.getString(sessionID, settingsKey);
-        } else {
-            path = toDictionaryPath(beginString);
+        if (application == null) {
+            application = FIXApplication.parseId(value);
         }
-        return path;
+
+        return application;
     }
 
-    private String toDictionaryPath(FIXBeginString beginString) {
-
-        return beginString.getValue().replaceAll("\\.", "") + ".xml";
-    }
-
-    private DataDictionary getDataDictionary(String path) throws ConfigError {
-
-        synchronized (dictionaryCache) {
-            DataDictionary dataDictionary = dictionaryCache.get(path);
-            if (dataDictionary == null) {
-                dataDictionary = new DataDictionary(path);
-                dictionaryCache.put(path, dataDictionary);
-            }
-            return dataDictionary;
-        }
-    }
-
-    private int[] getLogonIntervalsInSeconds(SessionSettings settings, SessionID sessionID)
+    private int[] getLogonIntervalsInSeconds(SessionSettings settings, FIXSessionID sessionID)
             throws ConfigError {
 
         if (settings.isSetting(sessionID, Initiator.SETTING_RECONNECT_INTERVAL)) {
@@ -372,7 +260,7 @@ public class DefaultSessionFactory implements SessionFactory {
         return new int[] { 5 }; // default value
     }
 
-    private Set<InetAddress> getInetAddresses(SessionSettings settings, SessionID sessionID)
+    private Set<InetAddress> getInetAddresses(SessionSettings settings, FIXSessionID sessionID)
             throws ConfigError {
 
         if (settings.isSetting(sessionID, Session.SETTING_ALLOWED_REMOTE_ADDRESSES)) {
@@ -387,22 +275,22 @@ public class DefaultSessionFactory implements SessionFactory {
         return null; // default value
     }
 
-    private boolean getSetting(SessionSettings settings, SessionID sessionID, String key,
-            boolean defaultValue) throws ConfigError, FieldConvertError {
+    private boolean getSetting(SessionSettings settings, FIXSessionID sessionID, String key,
+            boolean defaultValue) throws ConfigError, FieldConversionException {
 
         return settings.isSetting(sessionID, key) ? settings.getBool(sessionID, key) : defaultValue;
     }
 
-    private int getSetting(SessionSettings settings, SessionID sessionID, String key,
-            int defaultValue) throws ConfigError, FieldConvertError {
+    private int getSetting(SessionSettings settings, FIXSessionID sessionID, String key,
+            int defaultValue) throws ConfigError, FieldConversionException {
 
         return settings.isSetting(sessionID, key)
                 ? (int) settings.getLong(sessionID, key)
                 : defaultValue;
     }
 
-    private double getSetting(SessionSettings settings, SessionID sessionID, String key,
-            double defaultValue) throws ConfigError, FieldConvertError {
+    private double getSetting(SessionSettings settings, FIXSessionID sessionID, String key,
+            double defaultValue) throws ConfigError, FieldConversionException {
 
         return settings.isSetting(sessionID, key) ? Double.parseDouble(settings.getString(
                 sessionID, key)) : defaultValue;

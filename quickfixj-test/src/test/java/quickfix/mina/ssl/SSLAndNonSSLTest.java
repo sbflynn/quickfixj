@@ -28,25 +28,25 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 import org.quickfixj.FIXBeginString;
-import org.quickfixj.spi.MessageBuilderServiceLoader;
+import org.quickfixj.engine.MessageStoreFactory;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import quickfix.ApplicationAdapter;
 import quickfix.ConfigError;
-import quickfix.FixVersions;
+import quickfix.DefaultEngine;
 import quickfix.Initiator;
 import quickfix.MemoryStoreFactory;
-import quickfix.MessageStoreFactory;
 import quickfix.ScreenLogFactory;
 import quickfix.Session;
 import quickfix.SessionID;
 import quickfix.SessionSettings;
-import quickfix.SocketAcceptor;
 import quickfix.SystemTime;
-import quickfix.ThreadedSocketInitiator;
 import quickfix.mina.ProtocolFactory;
 import quickfix.mina.acceptor.AbstractSocketAcceptor;
+import quickfix.mina.acceptor.SocketAcceptor;
+import quickfix.mina.initiator.ThreadedSocketInitiator;
 import quickfix.test.acceptance.ATApplication;
 
 public class SSLAndNonSSLTest {
@@ -79,8 +79,7 @@ public class SSLAndNonSSLTest {
             ClientApplication clientApplication = new ClientApplication();
 
             ThreadedSocketInitiator initiator = new ThreadedSocketInitiator(clientApplication,
-                    new MemoryStoreFactory(), settings,
-                    MessageBuilderServiceLoader.getMessageBuilderFactory());
+                    new MemoryStoreFactory(), settings, DefaultEngine.getDefaultEngine());
 
             try {
                 log.info("Do login");
@@ -113,7 +112,7 @@ public class SSLAndNonSSLTest {
         defaults.put("FileStorePath", "target/data/client");
         defaults.put("ValidateUserDefinedFields", "Y");
         settings.set(defaults);
-        settings.setString(clientSessionID, "BeginString", FixVersions.BEGINSTRING_FIX42);
+        settings.setString(clientSessionID, "BeginString", FIXBeginString.FIX42.getValue());
         settings.setString(clientSessionID, "DataDictionary", "FIX42.xml");
         return settings;
     }
@@ -135,7 +134,7 @@ public class SSLAndNonSSLTest {
         }
 
         @Override
-        public void onLogon(SessionID sessionId) {
+        public void onLogon(FIXSessionID sessionId) {
             if (logonLatch != null) {
                 log.info("Releasing logon latch");
                 logonLatch.countDown();
@@ -195,7 +194,7 @@ public class SSLAndNonSSLTest {
                 SessionID sessionID1 = new SessionID(FIXBeginString.FIX42, "ISLD", "TW1");
                 settings.setString(sessionID1, "SenderCompID", "ISLD");
                 settings.setString(sessionID1, "TargetCompID", "TW1");
-                settings.setString(sessionID1, "BeginString", FixVersions.BEGINSTRING_FIX42);
+                settings.setString(sessionID1, "BeginString", FIXBeginString.FIX42.getValue());
                 settings.setString(sessionID1, "SocketAcceptPort", "9887");
                 settings.setString(sessionID1, SSLSupport.SETTING_USE_SSL, "Y");
 
@@ -203,15 +202,15 @@ public class SSLAndNonSSLTest {
                 SessionID sessionID2 = new SessionID(FIXBeginString.FIX42, "ISLD", "TW2");
                 settings.setString(sessionID2, "SenderCompID", "ISLD");
                 settings.setString(sessionID2, "TargetCompID", "TW2");
-                settings.setString(sessionID2, "BeginString", FixVersions.BEGINSTRING_FIX42);
+                settings.setString(sessionID2, "BeginString", FIXBeginString.FIX42.getValue());
                 settings.setString(sessionID2, "SocketAcceptPort", "9888");
                 settings.setString(sessionID2, SSLSupport.SETTING_USE_SSL, "N");
 
                 ATApplication application = new ATApplication();
                 MessageStoreFactory factory = new MemoryStoreFactory();
-                quickfix.LogFactory logFactory = new ScreenLogFactory(true, true, true);
+                org.quickfixj.engine.LogFactory logFactory = new ScreenLogFactory(true, true, true);
                 acceptor = new SocketAcceptor(application, factory, settings, logFactory,
-                        MessageBuilderServiceLoader.getMessageBuilderFactory());
+                        DefaultEngine.getDefaultEngine());
 
                 acceptor.start();
 

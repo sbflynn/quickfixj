@@ -21,6 +21,10 @@ package quickfix;
 
 import java.io.IOException;
 
+import org.quickfixj.engine.MessageStore;
+import org.quickfixj.engine.MessageStoreFactory;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+
 /**
  * Creates a message store that stores all data in memory.
  *
@@ -29,7 +33,7 @@ import java.io.IOException;
 public class MemoryStoreFactory implements MessageStoreFactory {
 
     @Override
-    public MessageStore create(SessionID sessionID) {
+    public MessageStore create(FIXSessionID sessionID) {
         try {
             return new MemoryStore();
         } catch (IOException e) {

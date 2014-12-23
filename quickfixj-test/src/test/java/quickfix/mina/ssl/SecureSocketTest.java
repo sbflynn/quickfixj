@@ -28,21 +28,21 @@ import org.apache.mina.core.filterchain.IoFilterChain;
 import org.apache.mina.core.filterchain.IoFilterChainBuilder;
 import org.apache.mina.core.session.IoSession;
 import org.quickfixj.FIXBeginString;
-import org.quickfixj.spi.MessageBuilderServiceLoader;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import quickfix.ApplicationAdapter;
 import quickfix.ConfigError;
-import quickfix.FixVersions;
+import quickfix.DefaultEngine;
 import quickfix.Initiator;
 import quickfix.MemoryStoreFactory;
 import quickfix.Session;
 import quickfix.SessionID;
 import quickfix.SessionSettings;
 import quickfix.SystemTime;
-import quickfix.ThreadedSocketInitiator;
 import quickfix.mina.ProtocolFactory;
+import quickfix.mina.initiator.ThreadedSocketInitiator;
 import quickfix.test.acceptance.ATServer;
 import quickfix.test.util.ExpectedTestFailure;
 import junit.framework.TestCase;
@@ -67,8 +67,7 @@ public class SecureSocketTest extends TestCase {
             SessionSettings settings = getClientSessionSettings(clientSessionID);
             ClientApplication clientApplication = new ClientApplication();
             ThreadedSocketInitiator initiator = new ThreadedSocketInitiator(clientApplication,
-                    new MemoryStoreFactory(), settings,
-                    MessageBuilderServiceLoader.getMessageBuilderFactory());
+                    new MemoryStoreFactory(), settings, DefaultEngine.getDefaultEngine());
             final CountDownLatch exceptionCaught = new CountDownLatch(1);
             initiator.setIoFilterChainBuilder(new IoFilterChainBuilder() {
 
@@ -123,8 +122,7 @@ public class SecureSocketTest extends TestCase {
         settings.setString(SSLSupport.SETTING_KEY_STORE_PWD, "bogus-pwd");
         ClientApplication clientApplication = new ClientApplication();
         final ThreadedSocketInitiator initiator = new ThreadedSocketInitiator(clientApplication,
-                new MemoryStoreFactory(), settings,
-                MessageBuilderServiceLoader.getMessageBuilderFactory());
+                new MemoryStoreFactory(), settings, DefaultEngine.getDefaultEngine());
 
         log.info("Start initator and try logon");
         new ExpectedTestFailure(ConfigError.class, "Can't create SSLContext") {
@@ -147,8 +145,7 @@ public class SecureSocketTest extends TestCase {
             SessionSettings settings = getClientSessionSettings(clientSessionID);
             ClientApplication clientApplication = new ClientApplication();
             ThreadedSocketInitiator initiator = new ThreadedSocketInitiator(clientApplication,
-                    new MemoryStoreFactory(), settings,
-                    MessageBuilderServiceLoader.getMessageBuilderFactory());
+                    new MemoryStoreFactory(), settings, DefaultEngine.getDefaultEngine());
 
             try {
                 log.info("Do login");
@@ -180,7 +177,7 @@ public class SecureSocketTest extends TestCase {
         defaults.put("FileStorePath", "target/data/client");
         defaults.put("ValidateUserDefinedFields", "Y");
         settings.set(defaults);
-        settings.setString(clientSessionID, "BeginString", FixVersions.BEGINSTRING_FIX42);
+        settings.setString(clientSessionID, "BeginString", FIXBeginString.FIX42.getValue());
         settings.setString(clientSessionID, "DataDictionary", "FIX42.xml");
         return settings;
     }
@@ -207,7 +204,7 @@ public class SecureSocketTest extends TestCase {
         }
 
         @Override
-        public void onLogon(SessionID sessionId) {
+        public void onLogon(FIXSessionID sessionId) {
             if (logonLatch != null) {
                 log.info("Releasing logon latch");
                 logonLatch.countDown();

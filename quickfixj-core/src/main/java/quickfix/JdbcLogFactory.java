@@ -21,6 +21,10 @@ package quickfix;
 
 import javax.sql.DataSource;
 
+import org.quickfixj.engine.Log;
+import org.quickfixj.engine.LogFactory;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+
 /**
  * Creates a generic JDBC logger.
  */
@@ -34,7 +38,7 @@ public class JdbcLogFactory implements LogFactory {
      * @param sessionID the sessionID for the message store.
      */
     @Override
-    public Log create(SessionID sessionID) {
+    public Log create(FIXSessionID sessionID) {
         try {
             return new JdbcLog(settings, sessionID, dataSource);
         } catch (Exception e) {

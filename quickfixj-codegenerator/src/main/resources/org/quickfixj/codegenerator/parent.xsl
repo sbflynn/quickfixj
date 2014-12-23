@@ -143,7 +143,7 @@
 				<xsl:text>Field</xsl:text>
 			</xsl:when>
 			<xsl:when test="@type='UTCTIMESTAMP'">
-				<xsl:text>org.quickfixj.field.UtcTimeStampField</xsl:text>
+				<xsl:text>org.quickfixj.field.UtcTimestampField</xsl:text>
 			</xsl:when>
 			<xsl:when test="@type='UTCTIMEONLY'">
 				<xsl:text>org.quickfixj.field.UtcTimeOnlyField</xsl:text>

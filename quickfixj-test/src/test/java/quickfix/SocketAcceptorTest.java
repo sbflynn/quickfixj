@@ -25,11 +25,13 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 import org.quickfixj.FIXBeginString;
-import org.quickfixj.spi.MessageBuilderServiceLoader;
+import org.quickfixj.engine.MessageStoreFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import quickfix.mina.ProtocolFactory;
+import quickfix.mina.acceptor.SocketAcceptor;
+import quickfix.mina.initiator.SocketInitiator;
 import junit.framework.TestCase;
 
 /**
@@ -126,9 +128,9 @@ public class SocketAcceptorTest extends TestCase {
         settings.set(defaults);
 
         MessageStoreFactory factory = new MemoryStoreFactory();
-        quickfix.LogFactory logFactory = new ScreenLogFactory(true, true, true);
+        org.quickfixj.engine.LogFactory logFactory = new ScreenLogFactory(true, true, true);
         return new SocketAcceptor(testAcceptorApplication, factory, settings, logFactory,
-                MessageBuilderServiceLoader.getMessageBuilderFactory());
+                DefaultEngine.getDefaultEngine());
     }
 
     private Initiator createInitiator() throws ConfigError {
@@ -149,9 +151,8 @@ public class SocketAcceptorTest extends TestCase {
         settings.set(defaults);
 
         MessageStoreFactory factory = new MemoryStoreFactory();
-        quickfix.LogFactory logFactory = new ScreenLogFactory(true, true, true);
-        return new SocketInitiator(new ApplicationAdapter() {
-        }, factory, settings, logFactory, MessageBuilderServiceLoader.getMessageBuilderFactory());
+        org.quickfixj.engine.LogFactory logFactory = new ScreenLogFactory(true, true, true);
+        return new SocketInitiator(new ApplicationAdapter(), factory, settings, logFactory,
+                DefaultEngine.getDefaultEngine());
     }
-
 }

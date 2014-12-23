@@ -21,11 +21,21 @@
 	</properties>
 
 	<dependencies>
+
+		<!-- Provided artifacts -->
+		<dependency>
+			<groupId>org.apache.mina</groupId>
+			<artifactId>mina-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+		</dependency>
+
+		<!-- Test scoped artifacts -->
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<version>4.5</version>
-			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.mockito</groupId>
@@ -59,17 +69,6 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.apache.mina</groupId>
-			<artifactId>mina-core</artifactId>
-			<version>2.0.7</version>
-		</dependency>
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-api</artifactId>
-			<version>1.6.3</version>
-		</dependency>
-
-		<dependency>
 			<groupId>com.cloudhopper.proxool</groupId>
 			<artifactId>proxool</artifactId>
 			<version>0.9.1</version>
@@ -95,16 +94,10 @@
 			<scope>runtime</scope>
 			<optional>true</optional>
 		</dependency>
-		<dependency>
-			<groupId>berkeleydb</groupId>
-			<artifactId>je</artifactId>
-			<version>2.1.30</version>
-			<optional>true</optional>
-		</dependency>
+
 	</dependencies>
 
 	<build>
-
 		<plugins>
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
@@ -122,60 +115,6 @@
 						</goals>
 					</execution>
 				</executions>
-			</plugin>
-			<plugin>
-				<artifactId>maven-jar-plugin</artifactId>
-				<configuration>
-					<includes>
-						<include>quickfix/**</include>
-						<include>org/**</include>
-						<include>quickfix/field/converter/*</include>
-						<include>FIX*.xml</include>
-					</includes>
-					<excludes>
-						<exclude>quickfix/field/*</exclude>
-						<exclude>quickfix/fix*/**</exclude>
-					</excludes>
-				</configuration>
-			</plugin>
-			<plugin>
-				<artifactId>maven-source-plugin</artifactId>
-				<configuration>
-					<includes>
-						<include>quickfix/**</include>
-						<include>org/**</include>
-						<include>quickfix/field/converter/*</include>
-						<include>FIX*.xml</include>
-					</includes>
-					<excludes>
-						<exclude>quickfix/field/*</exclude>
-						<exclude>quickfix/fix*/**</exclude>
-					</excludes>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.felix</groupId>
-				<artifactId>maven-bundle-plugin</artifactId>
-				<configuration>
-					<instructions>
-						<Export-Package>quickfix,quickfix.field.*,quickfix.mina.*,org.quickfixj.*</Export-Package>
-						<Import-Package>
-							<!-- add dynamically-loaded version-specific message factories (optional) -->
-							quickfix.fix40;resolution:=optional,
-							quickfix.fix41;resolution:=optional,
-							quickfix.fix42;resolution:=optional,
-							quickfix.fix43;resolution:=optional,
-							quickfix.fix44;resolution:=optional,
-							quickfix.fix50;resolution:=optional,
-							quickfix.fix50sp1;resolution:=optional,
-							quickfix.fix50sp2;resolution:=optional,
-							quickfix.fixt11;resolution:=optional,
-							<!-- add the required imports -->
-							quickfix,quickfix.field,*
-						</Import-Package>
-						<Private-Package />
-					</instructions>
-				</configuration>
 			</plugin>
 		</plugins>
 	</build>

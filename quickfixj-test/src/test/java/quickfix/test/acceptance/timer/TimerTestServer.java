@@ -26,31 +26,31 @@ import java.util.concurrent.CountDownLatch;
 
 import org.apache.mina.util.AvailablePortFinder;
 import org.quickfixj.FIXBeginString;
-import org.quickfixj.spi.MessageBuilderServiceLoader;
+import org.quickfixj.FIXMessage;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.engine.MessageStoreFactory;
+import org.quickfixj.engine.SessionNotFoundException;
+import org.quickfixj.messages.bd.fix44.ListStatusRequest;
+import org.quickfixj.messages.bd.fix44.Logon;
+import org.quickfixj.messages.bd.fix44.field.ListID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import quickfix.Application;
+import quickfix.DefaultEngine;
 import quickfix.DoNotSend;
 import quickfix.FieldNotFound;
-import quickfix.FixVersions;
 import quickfix.IncorrectDataFormat;
 import quickfix.IncorrectTagValue;
 import quickfix.MemoryStoreFactory;
-import quickfix.Message;
 import quickfix.MessageCracker;
-import quickfix.MessageStoreFactory;
 import quickfix.RejectLogon;
 import quickfix.ScreenLogFactory;
 import quickfix.Session;
 import quickfix.SessionID;
-import quickfix.SessionNotFound;
 import quickfix.SessionSettings;
-import quickfix.SocketAcceptor;
 import quickfix.UnsupportedMessageType;
-import quickfix.fix44.ListStatusRequest;
-import quickfix.fix44.Logon;
-import quickfix.fix44.field.ListID;
+import quickfix.mina.acceptor.SocketAcceptor;
 
 /**
  * @author <a href="mailto:jhensley@bonddesk.com">John Hensley</a>
@@ -63,9 +63,9 @@ public class TimerTestServer extends MessageCracker implements Application, Runn
     private final CountDownLatch shutdownLatch = new CountDownLatch(1);
 
     private class DelayedTestRequest extends TimerTask {
-        SessionID session;
+        FIXSessionID session;
 
-        DelayedTestRequest(SessionID sessionID) {
+        DelayedTestRequest(FIXSessionID sessionID) {
             this.session = sessionID;
         }
 
@@ -75,14 +75,14 @@ public class TimerTestServer extends MessageCracker implements Application, Runn
                 log.info("Sending offset message");
                 ListStatusRequest lsr = new ListStatusRequest(new ListID("somelist"));
                 Session.sendToTarget(lsr, this.session);
-            } catch (SessionNotFound sessionNotFound) {
+            } catch (SessionNotFoundException sessionNotFound) {
                 // not going to happen
             }
         }
     }
 
     @Override
-    public void fromAdmin(Message message, SessionID sessionId) throws FieldNotFound,
+    public void fromAdmin(FIXMessage message, FIXSessionID sessionId) throws FieldNotFound,
             IncorrectDataFormat, IncorrectTagValue, RejectLogon {
         // sleep to move our timer off from the client's
         if (message instanceof Logon) {
@@ -91,23 +91,23 @@ public class TimerTestServer extends MessageCracker implements Application, Runn
     }
 
     @Override
-    public void fromApp(Message message, SessionID sessionId) throws FieldNotFound,
+    public void fromApp(FIXMessage message, FIXSessionID sessionId) throws FieldNotFound,
             IncorrectDataFormat, IncorrectTagValue, UnsupportedMessageType {
         //no-op
     }
 
     @Override
-    public void onCreate(SessionID sessionId) {
+    public void onCreate(FIXSessionID sessionId) {
         //no-op
     }
 
     @Override
-    public void onLogon(SessionID sessionId) {
+    public void onLogon(FIXSessionID sessionId) {
         //no-op
     }
 
     @Override
-    public void onLogout(SessionID sessionId) {
+    public void onLogout(FIXSessionID sessionId) {
         log.info("logout");
         shutdownLatch.countDown();
     }
@@ -129,13 +129,13 @@ public class TimerTestServer extends MessageCracker implements Application, Runn
             settings.set(defaults);
 
             SessionID sessionID = new SessionID(FIXBeginString.FIX44, "ISLD", "TW");
-            settings.setString(sessionID, "BeginString", FixVersions.BEGINSTRING_FIX44);
-            settings.setString(sessionID, "DataDictionary",
-                    FixVersions.BEGINSTRING_FIX44.replaceAll("\\.", "") + ".xml");
+            settings.setString(sessionID, "BeginString", FIXBeginString.FIX44.getValue());
+            settings.setString(sessionID, "DataDictionary", FIXBeginString.FIX44.getValue()
+                    .replaceAll("\\.", "") + ".xml");
 
             MessageStoreFactory factory = new MemoryStoreFactory();
             acceptor = new SocketAcceptor(this, factory, settings, new ScreenLogFactory(settings),
-                    MessageBuilderServiceLoader.getMessageBuilderFactory());
+                    DefaultEngine.getDefaultEngine());
             acceptor.start();
             try {
                 //acceptor.waitForInitialization();
@@ -158,12 +158,12 @@ public class TimerTestServer extends MessageCracker implements Application, Runn
     }
 
     @Override
-    public void toAdmin(Message message, SessionID sessionId) {
+    public void toAdmin(FIXMessage message, FIXSessionID sessionId) {
         //no-op
     }
 
     @Override
-    public void toApp(Message message, SessionID sessionId) throws DoNotSend {
+    public void toApp(FIXMessage message, FIXSessionID sessionId) throws DoNotSend {
         //no-op
     }
 

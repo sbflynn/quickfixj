@@ -1,0 +1,12 @@
+<engine xmlns="http://quickfixj.org/xml/dictionary">
+
+	<dictionary id="FIX:44:CUSTOM" location="FIX44_Custom_Test.xml" />
+
+	<applicationDictionary namespace="CUSTOM" application="FIX.4.4"
+		dictionary="FIX:44:CUSTOM"
+	>
+		<transport namespace="org.quickfixj.messages.bd" beginString="FIX.4.4" />
+		<transport namespace="org.quickfixj.messages.fixt" beginString="FIXT.1.1" />
+	</applicationDictionary>
+
+</engine>

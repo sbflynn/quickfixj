@@ -29,6 +29,9 @@ import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.quickfixj.FIXMessage;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+
 /**
  * Helper class for delegating message types for various FIX versions to
  * type-safe onMessage methods.
@@ -94,8 +97,9 @@ public class MessageCracker {
         int modifiers = method.getModifiers();
         Class<?>[] parameterTypes = method.getParameterTypes();
         return !Modifier.isPrivate(modifiers) && matchesConventionOrAnnotation(method)
-                && parameterTypes.length == 2 && Message.class.isAssignableFrom(parameterTypes[0])
-                && parameterTypes[1] == SessionID.class;
+                && parameterTypes.length == 2
+                && FIXMessage.class.isAssignableFrom(parameterTypes[0])
+                && FIXSessionID.class == parameterTypes[1];
     }
 
     private boolean matchesConventionOrAnnotation(Method method) {
@@ -115,8 +119,8 @@ public class MessageCracker {
             return method;
         }
 
-        public void Invoke(Message message, SessionID sessionID) throws IllegalArgumentException,
-                IllegalAccessException, InvocationTargetException {
+        public void invoke(FIXMessage message, FIXSessionID sessionID)
+                throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {
             method.invoke(target, message, sessionID);
         }
     }
@@ -124,12 +128,12 @@ public class MessageCracker {
     /**
      * Process ("crack") a FIX message and call the registered handlers for that type, if any
      */
-    public void crack(quickfix.Message message, SessionID sessionID) throws UnsupportedMessageType,
+    public void crack(FIXMessage message, FIXSessionID sessionID) throws UnsupportedMessageType,
             FieldNotFound, IncorrectTagValue {
         Invoker invoker = invokers.get(message.getClass());
         if (invoker != null) {
             try {
-                invoker.Invoke(message, sessionID);
+                invoker.invoke(message, sessionID);
             } catch (InvocationTargetException ite) {
                 try {
                     throw ite.getTargetException();
@@ -162,8 +166,13 @@ public class MessageCracker {
 
     /**
      * Fallback method that is called if no invokers are found.
+     * 
+     * @param message
+     * @param sessionID
+     * @throws UnsupportedMessageType
+     * @since 2.0
      */
-    protected void onMessage(quickfix.Message message, SessionID sessionID)
+    protected void onMessage(FIXMessage message, FIXSessionID sessionID)
             throws UnsupportedMessageType {
         throw new UnsupportedMessageType();
     }

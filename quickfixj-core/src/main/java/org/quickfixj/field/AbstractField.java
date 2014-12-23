@@ -22,22 +22,22 @@ package org.quickfixj.field;
 import java.io.IOException;
 import java.io.Serializable;
 
-import org.quickfixj.CharsetSupport;
 import org.quickfixj.FIXField;
-
-import quickfix.MessageUtils;
 
 /**
  * Base class for FIX message fields. This class should be
  * abstract but that would break compatibility with the QF JNI
  * classes.
  */
-public abstract class AbstractField<T extends Serializable> implements FIXField<T>, Serializable {
+public abstract class AbstractField<T extends Serializable> implements FIXField<T>, Serializable,
+        Cloneable {
 
     /**
      * The serialVersionUID property.
      */
     private static final long serialVersionUID = 1L;
+
+    private static final char FIELD_SEPARATOR = '\001';
 
     /**
      * {@inheritDoc}
@@ -72,43 +72,6 @@ public abstract class AbstractField<T extends Serializable> implements FIXField<
         return false;
     }
 
-    /**
-     * Returns the length of this field's FIX-encoded bytes (tag=value),
-     * including the trailing SOH byte.
-     *
-     * @return the length of this field's encoded bytes
-     */
-    @Override
-    public int getLength() {
-
-        StringBuilder buffer = new StringBuilder();
-
-        buffer.append(getTagCharacters());
-        buffer.append('=');
-        buffer.append(getCharacters());
-
-        return MessageUtils.length(CharsetSupport.getCharsetInstance(), buffer.toString()) + 1;
-    }
-
-    /**
-     * Returns the checksum of this field's FIX-encoded bytes (tag=value),
-     * including the trailing SOH byte.
-     *
-     * @return the checksum of this field's encoded bytes
-     */
-    @Override
-    public int getChecksum() {
-
-        StringBuilder buffer = new StringBuilder();
-
-        buffer.append(getTagCharacters());
-        buffer.append('=');
-        buffer.append(getCharacters());
-
-        return (MessageUtils
-                .checksum(CharsetSupport.getCharsetInstance(), buffer.toString(), false) + 1) & 0xFF;
-    }
-
     @Override
     public int hashCode() {
 
@@ -118,24 +81,40 @@ public abstract class AbstractField<T extends Serializable> implements FIXField<
 
     /**
      * {@inheritDoc}
-     * @throws IOException 
      *
      * @since 2.0
      */
     @Override
-    public Appendable serialize(Appendable appendable) throws IOException {
+    public Appendable serialize(Appendable appendable) {
 
-        // subclasses might overwrite to improve performance
-        // may be able to rework integer serialization as well
-        appendable.append(getTagCharacters());
-        appendable.append('=');
-        appendable.append(getCharacters());
+        try {
 
-        return appendable;
+            // subclasses might overwrite to improve performance
+            // may be able to rework integer serialization as well
+            appendable.append(getTagCharacters());
+            appendable.append('=');
+            appendable.append(getCharacters());
+            appendable.append(FIELD_SEPARATOR);
+
+            return appendable;
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     protected CharSequence getTagCharacters() {
         // subclasses might overwrite to improve performance
         return String.valueOf(getTag());
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @since 2.0
+     */
+    @Override
+    public FIXField<T> clone() {
+        return this;
     }
 }

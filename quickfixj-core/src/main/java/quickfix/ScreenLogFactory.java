@@ -19,6 +19,11 @@
 
 package quickfix;
 
+import org.quickfixj.engine.Log;
+import org.quickfixj.engine.LogFactory;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.field.FieldConversionException;
+
 /**
  * Creates a logger that logs messages to to System.out. TThe logged message
  * categories (incoming, outgoing, events) can be controlled using
@@ -117,7 +122,7 @@ public class ScreenLogFactory implements LogFactory {
     }
 
     @Override
-    public Log create(SessionID sessionID) {
+    public Log create(FIXSessionID sessionID) {
         try {
             incoming = getBooleanSetting(sessionID, ScreenLogFactory.SETTING_LOG_INCOMING, incoming);
             outgoing = getBooleanSetting(sessionID, ScreenLogFactory.SETTING_LOG_OUTGOING, outgoing);
@@ -128,15 +133,15 @@ public class ScreenLogFactory implements LogFactory {
                     ScreenLogFactory.SETTING_INCLUDE_MILLIS_IN_TIMESTAMP, false);
             return new ScreenLog(incoming, outgoing, events, heartBeats, includeMillis, sessionID,
                     System.out);
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             throw new RuntimeError(e);
         } catch (ConfigError e) {
             throw new RuntimeError(e);
         }
     }
 
-    private boolean getBooleanSetting(SessionID sessionID, String key, boolean incoming)
-            throws ConfigError, FieldConvertError {
+    private boolean getBooleanSetting(FIXSessionID sessionID, String key, boolean incoming)
+            throws ConfigError, FieldConversionException {
         if (settings != null && settings.isSetting(sessionID, key)) {
             incoming = settings.getBool(sessionID, key);
         }

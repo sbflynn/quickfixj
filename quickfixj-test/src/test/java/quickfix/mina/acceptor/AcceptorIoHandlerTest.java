@@ -33,20 +33,23 @@ import org.apache.mina.core.session.IoSession;
 import org.junit.Test;
 import org.quickfixj.FIXApplication;
 import org.quickfixj.FIXBeginString;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.messages.bd.fix44.Logout;
+import org.quickfixj.messages.bd.fix44.field.BeginString;
+import org.quickfixj.messages.bd.fix44.field.MsgType;
+import org.quickfixj.messages.fixt11.Logon;
+import org.quickfixj.messages.fixt11.field.DefaultApplVerID;
+import org.quickfixj.messages.fixt11.field.EncryptMethod;
+import org.quickfixj.messages.fixt11.field.HeartBtInt;
+import org.quickfixj.messages.fixt11.field.MsgSeqNum;
+import org.quickfixj.messages.fixt11.field.SenderCompID;
+import org.quickfixj.messages.fixt11.field.SendingTime;
+import org.quickfixj.messages.fixt11.field.TargetCompID;
 
-import quickfix.FixTags;
 import quickfix.Session;
 import quickfix.SessionFactoryTestSupport;
 import quickfix.SessionID;
 import quickfix.UnitTestApplication;
-import quickfix.fix44.Logout;
-import quickfix.fix44.field.BeginString;
-import quickfix.fix44.field.MsgType;
-import quickfix.fixt11.Logon;
-import quickfix.fixt11.field.DefaultApplVerID;
-import quickfix.fixt11.field.EncryptMethod;
-import quickfix.fixt11.field.HeartBtInt;
-import quickfix.fixt11.field.SendingTime;
 import quickfix.mina.EventHandlingStrategy;
 import quickfix.mina.NetworkingOptions;
 import quickfix.mina.acceptor.AbstractSocketAcceptor.StaticAcceptorSessionProvider;
@@ -72,7 +75,7 @@ public class AcceptorIoHandlerTest {
                                                                        // a new
                                                                        // Session
 
-        final HashMap<SessionID, Session> acceptorSessions = new HashMap<SessionID, Session>();
+        final HashMap<FIXSessionID, Session> acceptorSessions = new HashMap<FIXSessionID, Session>();
         acceptorSessions.put(sessionID, session);
         final StaticAcceptorSessionProvider sessionProvider = createSessionProvider(acceptorSessions);
 
@@ -83,10 +86,10 @@ public class AcceptorIoHandlerTest {
                 String.valueOf(FIXApplication.FIX50SP2.getId()));
         final Logon message = new Logon(EncryptMethod.NONE_OTHER, new HeartBtInt(30),
                 defaultApplVerID);
-        message.getHeader().setString(FixTags.TARGET_COMP_ID, sessionID.getSenderCompID());
-        message.getHeader().setString(FixTags.SENDER_COMP_ID, sessionID.getTargetCompID());
+        message.getHeader().setField(new TargetCompID(sessionID.getSenderCompID()));
+        message.getHeader().setField(new SenderCompID(sessionID.getTargetCompID()));
         message.getHeader().setField(new SendingTime(new Date()));
-        message.getHeader().setInt(FixTags.MSG_SEQ_NUM, 1);
+        message.getHeader().setField(new MsgSeqNum(1));
 
         // Added - TODO these should be acquired via a MessageBuilder
         message.getHeader().setField(MsgType.LOGON);
@@ -105,7 +108,7 @@ public class AcceptorIoHandlerTest {
 
         EventHandlingStrategy mockEventHandlingStrategy = mock(EventHandlingStrategy.class);
 
-        HashMap<SessionID, Session> acceptorSessions = new HashMap<SessionID, Session>();
+        HashMap<FIXSessionID, Session> acceptorSessions = new HashMap<FIXSessionID, Session>();
 
         AcceptorIoHandler handler = new AcceptorIoHandler(createSessionProvider(acceptorSessions),
                 new NetworkingOptions(new Properties()), mockEventHandlingStrategy);
@@ -123,7 +126,7 @@ public class AcceptorIoHandlerTest {
     }
 
     private StaticAcceptorSessionProvider createSessionProvider(
-            HashMap<SessionID, Session> acceptorSessions) {
+            HashMap<FIXSessionID, Session> acceptorSessions) {
 
         return new AbstractSocketAcceptor.StaticAcceptorSessionProvider(acceptorSessions);
     }
@@ -139,12 +142,14 @@ public class AcceptorIoHandlerTest {
         EventHandlingStrategy mockEventHandlingStrategy = mock(EventHandlingStrategy.class);
 
         Logout logout = new Logout();
-        logout.getHeader().setString(FixTags.SENDER_COMP_ID,
-                qfSession.getSessionID().getSenderCompID());
-        logout.getHeader().setString(FixTags.TARGET_COMP_ID,
-                qfSession.getSessionID().getTargetCompID());
+        logout.getHeader().setField(
+                new org.quickfixj.messages.bd.fix44.field.SenderCompID(qfSession.getSessionID()
+                        .getSenderCompID()));
+        logout.getHeader().setField(
+                new org.quickfixj.messages.bd.fix44.field.TargetCompID(qfSession.getSessionID()
+                        .getTargetCompID()));
 
-        HashMap<SessionID, Session> acceptorSessions = new HashMap<SessionID, Session>();
+        HashMap<FIXSessionID, Session> acceptorSessions = new HashMap<FIXSessionID, Session>();
 
         AcceptorIoHandler handler = new AcceptorIoHandler(createSessionProvider(acceptorSessions),
                 new NetworkingOptions(new Properties()), mockEventHandlingStrategy);
@@ -167,10 +172,12 @@ public class AcceptorIoHandlerTest {
         Session qfSession = SessionFactoryTestSupport.createSession();
 
         Logout logout = new Logout();
-        logout.getHeader().setString(FixTags.SENDER_COMP_ID,
-                qfSession.getSessionID().getSenderCompID());
-        logout.getHeader().setString(FixTags.TARGET_COMP_ID,
-                qfSession.getSessionID().getTargetCompID());
+        logout.getHeader().setField(
+                new org.quickfixj.messages.bd.fix44.field.SenderCompID(qfSession.getSessionID()
+                        .getSenderCompID()));
+        logout.getHeader().setField(
+                new org.quickfixj.messages.bd.fix44.field.TargetCompID(qfSession.getSessionID()
+                        .getTargetCompID()));
 
         // Added - TODO these should be acquired via a MessageBuilder
         logout.getHeader().setField(MsgType.LOGOUT);
@@ -179,7 +186,7 @@ public class AcceptorIoHandlerTest {
         // Expect that onMessage will not be called
         // mockEventHandlingStrategy.onMessage(qfSession, logout);
 
-        HashMap<SessionID, Session> acceptorSessions = new HashMap<SessionID, Session>();
+        HashMap<FIXSessionID, Session> acceptorSessions = new HashMap<FIXSessionID, Session>();
         acceptorSessions.put(qfSession.getSessionID(), qfSession);
         AcceptorIoHandler handler = new AcceptorIoHandler(createSessionProvider(acceptorSessions),
                 new NetworkingOptions(new Properties()), mockEventHandlingStrategy);

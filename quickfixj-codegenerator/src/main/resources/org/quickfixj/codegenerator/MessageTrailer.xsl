@@ -38,21 +38,6 @@
 
 		<xsl:call-template name="emit-serial-version" />
 
-		<xsl:value-of select="$NEW_LINE" />
-		<xsl:value-of select="$NEW_LINE_INDENT" />
-		<xsl:text>public MessageTrailer() {</xsl:text>
-		<xsl:value-of select="$NEW_LINE_INDENT2" />
-		<xsl:text>this(null);</xsl:text>
-		<xsl:value-of select="$NEW_LINE_INDENT" />
-		<xsl:text>}</xsl:text>
-
-		<xsl:value-of select="$NEW_LINE_INDENT" />
-		<xsl:text>protected MessageTrailer(int[] fieldOrder) {</xsl:text>
-		<xsl:value-of select="$NEW_LINE_INDENT2" />
-		<xsl:text>super(fieldOrder); </xsl:text>
-		<xsl:value-of select="$NEW_LINE_INDENT" />
-		<xsl:text>}</xsl:text>
-
 		<xsl:apply-templates select="fix:trailer/fix:field" mode="field-accessors-concrete" />
 
 		<xsl:text>}</xsl:text>

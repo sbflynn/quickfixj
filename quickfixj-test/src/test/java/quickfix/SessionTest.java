@@ -31,30 +31,52 @@ import org.junit.AfterClass;
 import org.junit.Test;
 import org.quickfixj.FIXApplication;
 import org.quickfixj.FIXBeginString;
-import org.quickfixj.spi.MessageBuilderServiceLoader;
+import org.quickfixj.FIXFieldGraph;
+import org.quickfixj.FIXMessage;
+import org.quickfixj.engine.FIXEngine;
+import org.quickfixj.engine.FIXMessageBuilderFactory;
+import org.quickfixj.engine.FIXMessageDictionaryFactory;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.engine.FIXTag;
+import org.quickfixj.engine.Log;
+import org.quickfixj.engine.LogFactory;
+import org.quickfixj.engine.MessageStore;
+import org.quickfixj.engine.MessageStoreFactory;
+import org.quickfixj.field.FieldConversionException;
+import org.quickfixj.field.GenericField;
+import org.quickfixj.field.UtcTimestampConverter;
+import org.quickfixj.messages.bd.fix42.field.PossDupFlag;
+import org.quickfixj.messages.bd.fix44.Heartbeat;
+import org.quickfixj.messages.bd.fix44.Logon;
+import org.quickfixj.messages.bd.fix44.Logout;
+import org.quickfixj.messages.bd.fix44.News;
+import org.quickfixj.messages.bd.fix44.News.LinesOfText;
+import org.quickfixj.messages.bd.fix44.News.LinesOfTextGroup;
+import org.quickfixj.messages.bd.fix44.Reject;
+import org.quickfixj.messages.bd.fix44.ResendRequest;
+import org.quickfixj.messages.bd.fix44.SequenceReset;
+import org.quickfixj.messages.bd.fix44.TestRequest;
+import org.quickfixj.messages.bd.fix44.field.BeginSeqNo;
+import org.quickfixj.messages.bd.fix44.field.BeginString;
+import org.quickfixj.messages.bd.fix44.field.EncryptMethod;
+import org.quickfixj.messages.bd.fix44.field.EndSeqNo;
+import org.quickfixj.messages.bd.fix44.field.GapFillFlag;
+import org.quickfixj.messages.bd.fix44.field.Headline;
+import org.quickfixj.messages.bd.fix44.field.HeartBtInt;
+import org.quickfixj.messages.bd.fix44.field.MsgSeqNum;
+import org.quickfixj.messages.bd.fix44.field.MsgType;
+import org.quickfixj.messages.bd.fix44.field.NewSeqNo;
+import org.quickfixj.messages.bd.fix44.field.OrigSendingTime;
+import org.quickfixj.messages.bd.fix44.field.RefSeqNum;
+import org.quickfixj.messages.bd.fix44.field.SenderCompID;
+import org.quickfixj.messages.bd.fix44.field.SendingTime;
+import org.quickfixj.messages.bd.fix44.field.TargetCompID;
+import org.quickfixj.messages.bd.fix44.field.TestReqID;
+import org.quickfixj.messages.bd.fix44.field.Text;
+import org.quickfixj.messages.fixt11.field.ApplVerID;
+import org.quickfixj.messages.fixt11.field.DefaultApplVerID;
+import org.quickfixj.messages.fixt11.field.SessionStatus;
 
-import quickfix.field.converter.UtcTimestampConverter;
-import quickfix.fix40.field.Text;
-import quickfix.fix44.Heartbeat;
-import quickfix.fix44.Logon;
-import quickfix.fix44.Logout;
-import quickfix.fix44.News;
-import quickfix.fix44.Reject;
-import quickfix.fix44.ResendRequest;
-import quickfix.fix44.SequenceReset;
-import quickfix.fix44.TestRequest;
-import quickfix.fix44.field.BeginString;
-import quickfix.fix44.field.EncryptMethod;
-import quickfix.fix44.field.Headline;
-import quickfix.fix44.field.MsgSeqNum;
-import quickfix.fix44.field.MsgType;
-import quickfix.fix44.field.SenderCompID;
-import quickfix.fix44.field.SendingTime;
-import quickfix.fix44.field.TargetCompID;
-import quickfix.fix44.field.TestReqID;
-import quickfix.fixt11.field.ApplVerID;
-import quickfix.fixt11.field.DefaultApplVerID;
-import quickfix.fixt11.field.SessionStatus;
 import quickfix.test.util.ReflectionUtil;
 
 /**
@@ -71,6 +93,8 @@ public class SessionTest {
     @Test
     public void testDisposalOfFileResources() throws Exception {
 
+        FIXEngine engine = DefaultEngine.getDefaultEngine();
+
         final Application application = new UnitTestApplication();
 
         final SessionID sessionID = new SessionID(FIXBeginString.FIX44, "SENDER", "TARGET");
@@ -84,10 +108,11 @@ public class SessionTest {
         stub(mockLogFactory.create(sessionID)).toReturn(mockLog);
 
         final Session session = new Session(application, mockMessageStoreFactory, sessionID, null,
-                null, mockLogFactory, MessageBuilderServiceLoader.getMessageBuilderFactory(), 30,
-                false, 30, true, true, false, false, false, false, false, true, false, 1.5, null,
-                true, new int[] { 5 }, false, false, false, true, false, true, false, null, true,
-                0, false, false);
+                null, mockLogFactory, engine.getMessageBuilderFactory(FIXBeginString.FIX44,
+                        "org.quickfixj.messages.bd"), new DefaultValidator(FIXBeginString.FIX44),
+                30, false, 30, true, true, false, false, false, false, false, true, false, 1.5,
+                null, true, new int[] { 5 }, false, false, false, true, false, true, false, null,
+                true, 0, false, false);
 
         // Simulate socket disconnect
         session.setResponder(null);
@@ -112,6 +137,8 @@ public class SessionTest {
     @Test
     public void testNondisposableFileResources() throws Exception {
 
+        FIXEngine engine = DefaultEngine.getDefaultEngine();
+
         final Application application = new UnitTestApplication();
 
         final SessionID sessionID = new SessionID(FIXBeginString.FIX44, "SENDER", "TARGET");
@@ -124,11 +151,13 @@ public class SessionTest {
         final Log mockLog = mock(Log.class);
         stub(mockLogFactory.create(sessionID)).toReturn(mockLog);
 
-        final Session session = new Session(application, mockMessageStoreFactory, sessionID, null,
-                null, mockLogFactory, MessageBuilderServiceLoader.getMessageBuilderFactory(), 30,
-                false, 30, true, true, false, false, false, false, false, true, false, 1.5, null,
-                true, new int[] { 5 }, false, false, false, true, false, true, false, null, true,
-                0, false, false);
+        final Session session = new Session(application, mockMessageStoreFactory, sessionID,
+                engine.getMessageDictionaryFactory(FIXBeginString.FIX44,
+                        "org.quickfixj.messages.bd"), null, mockLogFactory,
+                engine.getMessageBuilderFactory(FIXBeginString.FIX44, "org.quickfixj.messages.bd"),
+                new DefaultValidator(FIXBeginString.FIX44), 30, false, 30, true, true, false,
+                false, false, false, false, true, false, 1.5, null, true, new int[] { 5 }, false,
+                false, false, true, false, true, false, null, true, 0, false, false);
 
         // Simulate socket disconnect
         session.setResponder(null);
@@ -163,24 +192,26 @@ public class SessionTest {
         session.logon();
         session.next();
 
-        final Message logonRequest = new Message(responder.sentMessageData);
+        //  final Message logonRequest = new Message(responder.sentMessageData);
+        FIXMessage logonRequest = MessageUtils.parse(session, responder.sentMessageData);
         session.next(createLogonResponse(sessionID, logonRequest, 1));
 
-        assertEquals(1, application.lastToAdminMessage().getHeader().getInt(FixTags.MSG_SEQ_NUM));
+        assertEquals(1, MessageUtils.coerceToInt(application.lastToAdminMessage().getHeader(),
+                FIXTag.MSG_SEQ_NUM));
         assertEquals(2, session.getStore().getNextTargetMsgSeqNum());
         assertEquals(2, session.getStore().getNextSenderMsgSeqNum());
 
         session.next(createHeartbeatMessage(1002));
         assertFalse(ResendRequest.MSGTYPE.equals(application.lastToAdminMessage().getHeader()
-                .getString(FixTags.MSG_TYPE)));
+                .getFieldValue(FIXTag.MSG_TYPE)));
 
         session.next(createHeartbeatMessage(1003));
         assertFalse(ResendRequest.MSGTYPE.equals(application.lastToAdminMessage().getHeader()
-                .getString(FixTags.MSG_TYPE)));
+                .getFieldValue(FIXTag.MSG_TYPE)));
 
         session.next(createHeartbeatMessage(1001));
         assertFalse(ResendRequest.MSGTYPE.equals(application.lastToAdminMessage().getHeader()
-                .getString(FixTags.MSG_TYPE)));
+                .getFieldValue(FIXTag.MSG_TYPE)));
 
         session.close();
     }
@@ -191,7 +222,7 @@ public class SessionTest {
 
         // test default behaviour, i.e. that the message is rejected
         // when not setting 122/OrigSendingTime
-        final SessionID sessionID = new SessionID(FIXBeginString.FIX44, "SENDER", "TARGET");
+        SessionID sessionID = new SessionID(FIXBeginString.FIX44, "SENDER", "TARGET");
         UnitTestApplication application = new UnitTestApplication();
         Session session = createSession(sessionID, application, true, true, true);
         UnitTestResponder responder = new UnitTestResponder();
@@ -200,18 +231,19 @@ public class SessionTest {
         session.logon();
         session.next();
 
-        Message logonRequest = new Message(responder.sentMessageData);
+        FIXMessage logonRequest = MessageUtils.parse(session, responder.sentMessageData);
         session.next(createLogonResponse(sessionID, logonRequest, 1));
 
-        assertEquals(1, application.lastToAdminMessage().getHeader().getInt(FixTags.MSG_SEQ_NUM));
+        assertEquals(1, MessageUtils.coerceToInt(application.lastToAdminMessage().getHeader(),
+                FIXTag.MSG_SEQ_NUM));
         assertEquals(2, session.getStore().getNextTargetMsgSeqNum());
         assertEquals(2, session.getStore().getNextSenderMsgSeqNum());
 
         News newsMessage = createAppMessage(2);
-        newsMessage.getHeader().setBoolean(FixTags.POSS_DUP_FLAG, true);
+        newsMessage.getHeader().setField(new PossDupFlag(true));
         session.next(newsMessage);
         assertTrue(Reject.MSGTYPE.equals(application.lastToAdminMessage().getHeader()
-                .getString(FixTags.MSG_TYPE)));
+                .getFieldValue(FIXTag.MSG_TYPE)));
         assertNull(application.lastFromAppMessage());
 
         // test that the message is NOT rejected when
@@ -227,21 +259,22 @@ public class SessionTest {
         session.logon();
         session.next();
 
-        logonRequest = new Message(responder.sentMessageData);
+        logonRequest = MessageUtils.parse(session, responder.sentMessageData);
         session.next(createLogonResponse(sessionID, logonRequest, 1));
 
-        assertEquals(1, application.lastToAdminMessage().getHeader().getInt(FixTags.MSG_SEQ_NUM));
+        assertEquals(1, MessageUtils.coerceToInt(application.lastToAdminMessage().getHeader(),
+                FIXTag.MSG_SEQ_NUM));
         assertEquals(2, session.getStore().getNextTargetMsgSeqNum());
         assertEquals(2, session.getStore().getNextSenderMsgSeqNum());
 
         newsMessage = createAppMessage(2);
-        newsMessage.getHeader().setBoolean(FixTags.POSS_DUP_FLAG, true);
+        newsMessage.getHeader().setField(new PossDupFlag(true));
         session.next(newsMessage);
         assertTrue(Logon.MSGTYPE.equals(application.lastToAdminMessage().getHeader()
-                .getString(FixTags.MSG_TYPE)));
+                .getFieldValue(FIXTag.MSG_TYPE)));
         assertNull(application.lastToAppMessage());
         assertTrue(News.MSGTYPE.equals(application.lastFromAppMessage().getHeader()
-                .getString(FixTags.MSG_TYPE)));
+                .getFieldValue(FIXTag.MSG_TYPE)));
 
         session.close();
     }
@@ -260,7 +293,7 @@ public class SessionTest {
         session.logon();
         session.next();
 
-        final Message logonRequest = new Message(responder.sentMessageData);
+        FIXMessage logonRequest = MessageUtils.parse(session, responder.sentMessageData);
         session.next(createLogonResponse(sessionID, logonRequest, 2));
 
         assertTrue("Should not infer a reset when the sequence number is not one",
@@ -283,8 +316,8 @@ public class SessionTest {
         session.logon();
         session.next();
 
-        final Message logonRequest = new Message(responder.sentMessageData);
-        final Message logonResponse = createLogonResponse(sessionID, logonRequest, 1);
+        final FIXMessage logonRequest = MessageUtils.parse(session, responder.sentMessageData);
+        final FIXMessage logonResponse = createLogonResponse(sessionID, logonRequest, 1);
         session.next(logonResponse);
 
         assertFalse("Should not disconnect when an accepted reset is inferred",
@@ -307,20 +340,21 @@ public class SessionTest {
         session.logon();
         session.next();
 
-        final Message logonRequest = new Message(responder.sentMessageData);
-        final Message logonResponse = createLogonResponse(sessionID, logonRequest, 1);
+        FIXMessage logonRequest = MessageUtils.parse(session, responder.sentMessageData);
+        FIXMessage logonResponse = createLogonResponse(sessionID, logonRequest, 1);
         session.next(logonResponse);
 
         final News newsMessage = createAppMessage(2);
         // set a BeginString unsupported by the session
-        newsMessage.getHeader().setString(FixTags.BEGIN_STRING, FixVersions.BEGINSTRING_FIX40);
+        newsMessage.getHeader().setField(
+                new GenericField(FIXTag.BEGIN_STRING, FIXBeginString.FIX40.getValue()));
         session.next(newsMessage);
-        final Message lastToAdminMessage = application.lastToAdminMessage();
+        final FIXMessage lastToAdminMessage = application.lastToAdminMessage();
         assertEquals(FixMessageTypes.LOGOUT,
-                lastToAdminMessage.getHeader().getString(FixTags.MSG_TYPE));
+                lastToAdminMessage.getHeader().getFieldValue(FIXTag.MSG_TYPE));
         assertEquals(
                 "Incorrect BeginString: Message version 'FIX.4.0' does not match the session version 'FIX.4.4'",
-                lastToAdminMessage.getString(quickfix.fix44.field.Text.TAG));
+                lastToAdminMessage.getFieldValue(org.quickfixj.messages.bd.fix44.field.Text.TAG));
         assertTrue(responder.disconnectCalled);
 
         session.close();
@@ -348,7 +382,7 @@ public class SessionTest {
         assertEquals(3, state.getNextSenderMsgSeqNum());
         assertEquals(3, state.getNextTargetMsgSeqNum());
 
-        testRequest.getHeader().removeField(FixTags.MSG_SEQ_NUM);
+        testRequest.getHeader().removeField(FIXTag.MSG_SEQ_NUM);
         // this should disconnect the session due to the missing MsgSeqNum
         session.next(testRequest);
         assertFalse("Session should be disconnected", session.isLoggedOn());
@@ -468,7 +502,7 @@ public class SessionTest {
         // we should only answer with a Logon message
         assertEquals(1, application.toAdminMessages.size());
         assertEquals(FixMessageTypes.LOGON, application.toAdminMessages.get(0).getHeader()
-                .getString(FixTags.MSG_TYPE));
+                .getFieldValue(FIXTag.MSG_TYPE));
 
         // no reset should have been triggered by QF/J after the Logon attempt
         assertEquals(0, application.sessionResets);
@@ -512,7 +546,7 @@ public class SessionTest {
         // we should only answer with a Logon message
         assertEquals(1, application.toAdminMessages.size());
         assertEquals(FixMessageTypes.LOGON, application.toAdminMessages.get(0).getHeader()
-                .getString(FixTags.MSG_TYPE));
+                .getFieldValue(FIXTag.MSG_TYPE));
 
         // no reset should have been triggered by QF/J after the Logon attempt
         assertEquals(0, application.sessionResets);
@@ -617,11 +651,11 @@ public class SessionTest {
         session.next();
         // we should have sent a Logon since the StartTime has been reached now
         assertEquals(1, application.toAdminMessages.size());
-        Message logon = application.toAdminMessages.get(0);
-        assertEquals(FixMessageTypes.LOGON, logon.getHeader().getString(FixTags.MSG_TYPE));
+        FIXMessage logon = application.toAdminMessages.get(0);
+        assertEquals(FixMessageTypes.LOGON, logon.getHeader().getFieldValue(FIXTag.MSG_TYPE));
         assertEquals(2, state.getNextSenderMsgSeqNum());
         assertEquals(1, state.getNextTargetMsgSeqNum());
-        Message createLogonResponse = createLogonResponse(new SessionID(FIXBeginString.FIX44,
+        FIXMessage createLogonResponse = createLogonResponse(new SessionID(FIXBeginString.FIX44,
                 "TARGET", "SENDER"), logon, 1);
         session.next(createLogonResponse);
         assertTrue(session.isLoggedOn());
@@ -630,8 +664,8 @@ public class SessionTest {
         // increase time to be out of session time
         systemTimeSource.increment(1900000);
         session.next();
-        Message logout = application.lastToAdminMessage();
-        assertEquals(FixMessageTypes.LOGOUT, logout.getHeader().getString(FixTags.MSG_TYPE));
+        FIXMessage logout = application.lastToAdminMessage();
+        assertEquals(FixMessageTypes.LOGOUT, logout.getHeader().getFieldValue(FIXTag.MSG_TYPE));
         assertFalse(session.isLoggedOn());
         assertEquals(1, state.getNextSenderMsgSeqNum());
         assertEquals(1, state.getNextTargetMsgSeqNum());
@@ -682,7 +716,7 @@ public class SessionTest {
         // we should have sent a Logon since we are inside of the SessionTime
         assertEquals(1, application.toAdminMessages.size());
         assertEquals(FixMessageTypes.LOGON, application.toAdminMessages.get(0).getHeader()
-                .getString(FixTags.MSG_TYPE));
+                .getFieldValue(FIXTag.MSG_TYPE));
         // no reset should have been triggered by QF/J
         assertEquals(0, application.sessionResets);
 
@@ -727,9 +761,9 @@ public class SessionTest {
         // we should only answer with a Logout message
         assertEquals(1, application.toAdminMessages.size());
         assertEquals(FixMessageTypes.LOGOUT, application.toAdminMessages.get(0).getHeader()
-                .getString(FixTags.MSG_TYPE));
+                .getFieldValue(FIXTag.MSG_TYPE));
         assertFalse("Session should not be connected", session.isLoggedOn());
-        assertTrue(application.toAdminMessages.get(0).getString(Text.TAG)
+        assertTrue(application.toAdminMessages.get(0).getFieldValue(Text.TAG)
                 .contains("Logon attempt not within session time"));
         // Normally, next() is called periodically; we only do it here to reset
         // the seqNums.
@@ -745,7 +779,7 @@ public class SessionTest {
 
     // QFJ-357
     private void setupFileStoreForQFJ357(final SessionID sessionID, final SessionSettings settings)
-            throws ConfigError, FieldConvertError, FileNotFoundException, IOException {
+            throws ConfigError, FieldConversionException, FileNotFoundException, IOException {
 
         // construct the path to the filestore (mostly c&p from FileStore class)
         settings.setString(FileStoreFactory.SETTING_FILE_STORE_PATH,
@@ -792,7 +826,7 @@ public class SessionTest {
         final Application application = new UnitTestApplication() {
 
             @Override
-            public void fromAdmin(Message message, SessionID sessionId) throws FieldNotFound,
+            public void fromAdmin(FIXMessage message, FIXSessionID sessionId) throws FieldNotFound,
                     IncorrectDataFormat, IncorrectTagValue, RejectLogon {
 
                 super.fromAdmin(message, sessionId);
@@ -828,10 +862,10 @@ public class SessionTest {
     public void testRejectLogonWithSessionStatus() throws Exception {
 
         // Create application that rejects all logons
-        Application application = new UnitTestApplication() {
+        UnitTestApplication application = new UnitTestApplication() {
 
             @Override
-            public void fromAdmin(Message message, SessionID sessionId) throws FieldNotFound,
+            public void fromAdmin(FIXMessage message, FIXSessionID sessionId) throws FieldNotFound,
                     IncorrectDataFormat, IncorrectTagValue, RejectLogon {
 
                 super.fromAdmin(message, sessionId);
@@ -841,12 +875,12 @@ public class SessionTest {
 
         logonTo(setUpSession(application, false, new UnitTestResponder()));
         assertEquals((int) SessionStatus.SESSION_ACTIVE.getValue(),
-                ((UnitTestApplication) application).lastToAdminMessage().getInt(SessionStatus.TAG));
+                MessageUtils.coerceToInt(application.lastToAdminMessage(), SessionStatus.TAG));
 
         application = new UnitTestApplication() {
 
             @Override
-            public void fromAdmin(Message message, SessionID sessionId) throws FieldNotFound,
+            public void fromAdmin(FIXMessage message, FIXSessionID sessionId) throws FieldNotFound,
                     IncorrectDataFormat, IncorrectTagValue, RejectLogon {
 
                 super.fromAdmin(message, sessionId);
@@ -855,27 +889,28 @@ public class SessionTest {
         };
 
         logonTo(setUpSession(application, false, new UnitTestResponder()));
-        assertFalse(((UnitTestApplication) application).lastToAdminMessage().isFieldSet(
-                FixTags.SESSION_STATUS));
+        assertFalse(application.lastToAdminMessage().isFieldSet(FIXTag.SESSION_STATUS));
     }
 
     @Test
     // QFJ-339
     public void testSendingTimeRejectBeforeLogon() throws Exception {
 
-        final Session session = setUpSession(new UnitTestApplication(), false,
-                new UnitTestResponder());
+        Session session = setUpSession(new UnitTestApplication(), false, new UnitTestResponder());
 
-        final Message message = new Logon();
-        message.getHeader().setString(FixTags.SENDER_COMP_ID, "SENDER");
-        message.getHeader().setString(FixTags.TARGET_COMP_ID, "TARGET");
-        message.getHeader().setString(FixTags.SENDING_TIME,
-                UtcTimestampConverter.convert(new Date(0), false));
-        message.getHeader().setInt(FixTags.MSG_SEQ_NUM, 1);
+        Logon message = new Logon();
+
+        message.getHeader().setField(new SenderCompID("SENDER"));
+        message.getHeader().setField(new TargetCompID("TARGET"));
+        message.getHeader().setField(new SendingTime(new Date(0), false));
+        message.getHeader().setField(new MsgSeqNum(1));
 
         // Added - TODO these should be acquired via a MessageBuilder
         message.getHeader().setField(new BeginString(FIXBeginString.FIX44.getValue()));
         message.getHeader().setField(MsgType.LOGON);
+
+        message.setEncryptMethod(EncryptMethod.NONE_OTHER);
+        message.setHeartBtInt(new HeartBtInt(10));
 
         final SessionStateListener mockStateListener = mock(SessionStateListener.class);
         session.addStateListener(mockStateListener);
@@ -892,19 +927,21 @@ public class SessionTest {
     // QFJ-339
     public void testCorruptLogonReject() throws Exception {
 
-        final Session session = setUpSession(new UnitTestApplication(), false,
-                new UnitTestResponder());
+        Session session = setUpSession(new UnitTestApplication(), false, new UnitTestResponder());
 
-        final Message message = new Logon();
-        message.getHeader().setString(FixTags.SENDER_COMP_ID, "SENDER");
-        message.getHeader().setString(FixTags.TARGET_COMP_ID, "TARGET");
-        message.getHeader().setString(FixTags.SENDING_TIME,
-                UtcTimestampConverter.convert(new Date(), false));
-        message.getHeader().setInt(FixTags.MSG_SEQ_NUM, 100);
+        Logon message = new Logon();
+
+        message.getHeader().setField(new SenderCompID("SENDER"));
+        message.getHeader().setField(new TargetCompID("TARGET"));
+        message.getHeader().setField(new SendingTime(new Date(), false));
+        message.getHeader().setField(new MsgSeqNum(100));
 
         // Added - TODO these should be acquired via a MessageBuilder
         message.getHeader().setField(new BeginString(FIXBeginString.FIX44.getValue()));
         message.getHeader().setField(MsgType.LOGON);
+
+        message.setEncryptMethod(EncryptMethod.NONE_OTHER);
+        message.setHeartBtInt(new HeartBtInt(10));
 
         final SessionStateListener mockStateListener = mock(SessionStateListener.class);
         session.addStateListener(mockStateListener);
@@ -924,7 +961,7 @@ public class SessionTest {
         final Application application = new UnitTestApplication() {
 
             @Override
-            public void fromApp(Message message, SessionID sessionId) throws FieldNotFound,
+            public void fromApp(FIXMessage message, FIXSessionID sessionId) throws FieldNotFound,
                     IncorrectDataFormat, IncorrectTagValue, UnsupportedMessageType {
 
                 super.fromApp(message, sessionId);
@@ -932,11 +969,12 @@ public class SessionTest {
             }
 
             @Override
-            public void fromAdmin(Message message, SessionID sessionId) throws FieldNotFound,
+            public void fromAdmin(FIXMessage message, FIXSessionID sessionId) throws FieldNotFound,
                     IncorrectDataFormat, IncorrectTagValue, RejectLogon {
 
                 super.fromAdmin(message, sessionId);
-                if (message.getHeader().getString(FixTags.MSG_TYPE).equals(FixMessageTypes.LOGON)) {
+                if (message.getHeader().getFieldValue(FIXTag.MSG_TYPE)
+                        .equals(FixMessageTypes.LOGON)) {
                     return;
                 }
                 throw new RuntimeException("TEST");
@@ -1017,7 +1055,7 @@ public class SessionTest {
 
         final Logon logonToSend = new Logon();
         setUpHeader(session.getSessionID(), logonToSend, true, 1);
-        logonToSend.setInt(FixTags.HEART_BT_INT, 30);
+        logonToSend.setHeartBtInt(new HeartBtInt(30));
         logonToSend.setEncryptMethod(EncryptMethod.NONE_OTHER);
         logonToSend.toString(); // calculate length/checksum
 
@@ -1039,16 +1077,17 @@ public class SessionTest {
         final String replace = toString.replace("10=", "10=1");
         state.set(3, replace);
 
-        Message createResendRequest = createResendRequest(2, 1);
+        FIXMessage createResendRequest = createResendRequest(2, 1);
         createResendRequest.toString(); // calculate length/checksum
         processMessage(session, createResendRequest);
 
-        Message createAdminMessage = createAdminMessage(3);
+        FIXMessage createAdminMessage = createAdminMessage(3);
         createAdminMessage.toString(); // calculate length/checksum
         session.next(createAdminMessage);
 
         // all messages should have been resent
-        assertEquals(5, application.lastToAppMessage().getHeader().getInt(FixTags.MSG_SEQ_NUM));
+        assertEquals(5, MessageUtils.coerceToInt(application.lastToAppMessage().getHeader(),
+                FIXTag.MSG_SEQ_NUM));
         assertFalse(state.isResendRequested());
 
         session.close();
@@ -1114,8 +1153,8 @@ public class SessionTest {
     public void testResendRequestMsgSeqNum() throws Exception {
 
         // test seqnum too low
-        final Application application = new UnitTestApplication() {
-        };
+        Application application = new UnitTestApplication();
+
         Session session = setUpSession(application, false, new UnitTestResponder());
         SessionState state = getSessionState(session);
 
@@ -1255,7 +1294,7 @@ public class SessionTest {
         assertEquals(FIXApplication.FIX44, session.getTargetDefaultApplicationVersionID());
         session.next();
         session.next();
-        Message createHeartbeatMessage = createHeartbeatMessage(1);
+        FIXMessage createHeartbeatMessage = createHeartbeatMessage(1);
         createHeartbeatMessage.toString(); // calculate checksum, length
         processMessage(session, createHeartbeatMessage);
         assertEquals(FIXApplication.FIX44, session.getTargetDefaultApplicationVersionID());
@@ -1278,23 +1317,23 @@ public class SessionTest {
         session.setResponder(new UnitTestResponder());
 
         // construct example messages
-        final quickfix.fixt11.Heartbeat heartbeat = new quickfix.fixt11.Heartbeat();
+        final org.quickfixj.messages.fixt11.Heartbeat heartbeat = new org.quickfixj.messages.fixt11.Heartbeat();
         setUpHeader(session.getSessionID(), heartbeat, true, 1);
 
         // Added - TODO these should be acquired via a MessageBuilder
         heartbeat.getHeader().setField(new BeginString(FIXBeginString.FIXT11.getValue()));
-        heartbeat.getHeader().setField(quickfix.fixt11.field.MsgType.HEARTBEAT);
+        heartbeat.getHeader().setField(org.quickfixj.messages.fixt11.field.MsgType.HEARTBEAT);
         heartbeat.toString(); // calculate checksum, length
 
-        final quickfix.fixt11.Logon logon = new quickfix.fixt11.Logon();
+        final org.quickfixj.messages.fixt11.Logon logon = new org.quickfixj.messages.fixt11.Logon();
         setUpHeader(session.getSessionID(), logon, true, 1);
-        logon.setInt(FixTags.HEART_BT_INT, 30);
-        logon.setEncryptMethod(quickfix.fixt11.field.EncryptMethod.NONE_OTHER);
-        logon.setField(new DefaultApplVerID(ApplVerID.FIX50SP2.getCharacters()));
+        logon.setHeartBtInt(new org.quickfixj.messages.fixt11.field.HeartBtInt(30));
+        logon.setEncryptMethod(org.quickfixj.messages.fixt11.field.EncryptMethod.NONE_OTHER);
+        logon.setField(new DefaultApplVerID(ApplVerID.FIX50SP2.getValue()));
 
         // Added - TODO these should be acquired via a MessageBuilder
         logon.getHeader().setField(new BeginString(FIXBeginString.FIXT11.getValue()));
-        logon.getHeader().setField(quickfix.fixt11.field.MsgType.LOGON);
+        logon.getHeader().setField(org.quickfixj.messages.fixt11.field.MsgType.LOGON);
 
         logon.toString(); // calculate checksum, length
 
@@ -1318,7 +1357,7 @@ public class SessionTest {
         session.close();
     }
 
-    private void processMessage(Session session, Message message) {
+    private void processMessage(Session session, FIXMessage message) {
 
         try {
             session.next(message);
@@ -1329,13 +1368,14 @@ public class SessionTest {
         }
     }
 
-    private Message createAdminMessage(int sequence) {
+    private FIXMessage createAdminMessage(int sequence) {
 
-        final TestRequest msg = new TestRequest(new TestReqID("ID"));
-        msg.getHeader().setString(FixTags.SENDER_COMP_ID, "TARGET");
-        msg.getHeader().setString(FixTags.TARGET_COMP_ID, "SENDER");
-        msg.getHeader().setInt(FixTags.MSG_SEQ_NUM, sequence);
-        msg.getHeader().setUtcTimeStamp(FixTags.SENDING_TIME, new Date());
+        TestRequest msg = new TestRequest(new TestReqID("ID"));
+
+        msg.getHeader().setField(new SenderCompID("TARGET"));
+        msg.getHeader().setField(new TargetCompID("SENDER"));
+        msg.getHeader().setField(new MsgSeqNum(sequence));
+        msg.getHeader().setField(new SendingTime(new Date()));
 
         // Added - TODO these should be acquired via a MessageBuilder
         msg.getHeader().setField(new BeginString(FIXBeginString.FIX44.getValue()));
@@ -1344,13 +1384,14 @@ public class SessionTest {
         return msg;
     }
 
-    private Message createHeartbeatMessage(int sequence) {
+    private FIXMessage createHeartbeatMessage(int sequence) {
 
-        final Heartbeat msg = new Heartbeat();
-        msg.getHeader().setString(FixTags.SENDER_COMP_ID, "TARGET");
-        msg.getHeader().setString(FixTags.TARGET_COMP_ID, "SENDER");
-        msg.getHeader().setInt(FixTags.MSG_SEQ_NUM, sequence);
-        msg.getHeader().setUtcTimeStamp(FixTags.SENDING_TIME, new Date());
+        Heartbeat msg = new Heartbeat();
+
+        msg.getHeader().setField(new SenderCompID("TARGET"));
+        msg.getHeader().setField(new TargetCompID("SENDER"));
+        msg.getHeader().setField(new MsgSeqNum(sequence));
+        msg.getHeader().setField(new SendingTime(new Date()));
 
         // Added - TODO these should be acquired via a MessageBuilder
         msg.getHeader().setField(new BeginString(FIXBeginString.FIX44.getValue()));
@@ -1359,14 +1400,16 @@ public class SessionTest {
         return msg;
     }
 
-    private Message createReject(int sequence, int refSeqNum) {
+    private FIXMessage createReject(int sequence, int refSeqNum) {
 
-        final Reject msg = new Reject();
-        msg.getHeader().setString(FixTags.SENDER_COMP_ID, "TARGET");
-        msg.getHeader().setString(FixTags.TARGET_COMP_ID, "SENDER");
-        msg.getHeader().setInt(FixTags.MSG_SEQ_NUM, sequence);
-        msg.getHeader().setUtcTimeStamp(FixTags.SENDING_TIME, new Date());
-        msg.setInt(FixTags.REF_SEQ_NUM, refSeqNum);
+        Reject msg = new Reject();
+
+        msg.getHeader().setField(new SenderCompID("TARGET"));
+        msg.getHeader().setField(new TargetCompID("SENDER"));
+        msg.getHeader().setField(new MsgSeqNum(sequence));
+        msg.getHeader().setField(new SendingTime(new Date()));
+
+        msg.setField(new RefSeqNum(refSeqNum));
 
         // Added - TODO these should be acquired via a MessageBuilder
         msg.getHeader().setField(new BeginString(FIXBeginString.FIX44.getValue()));
@@ -1375,15 +1418,17 @@ public class SessionTest {
         return msg;
     }
 
-    private Message createResendRequest(int sequence, int from) {
+    private FIXMessage createResendRequest(int sequence, int from) {
 
-        final ResendRequest msg = new ResendRequest();
-        msg.getHeader().setString(FixTags.SENDER_COMP_ID, "TARGET");
-        msg.getHeader().setString(FixTags.TARGET_COMP_ID, "SENDER");
-        msg.getHeader().setInt(FixTags.MSG_SEQ_NUM, sequence);
-        msg.getHeader().setUtcTimeStamp(FixTags.SENDING_TIME, new Date());
-        msg.setInt(FixTags.BEGIN_SEQ_NO, from);
-        msg.setInt(FixTags.END_SEQ_NO, 0);
+        ResendRequest msg = new ResendRequest();
+
+        msg.getHeader().setField(new SenderCompID("TARGET"));
+        msg.getHeader().setField(new TargetCompID("SENDER"));
+        msg.getHeader().setField(new MsgSeqNum(sequence));
+        msg.getHeader().setField(new SendingTime(new Date()));
+
+        msg.setField(new BeginSeqNo(from));
+        msg.setField(new EndSeqNo(0));
 
         // Added - TODO these should be acquired via a MessageBuilder
         msg.getHeader().setField(new BeginString(FIXBeginString.FIX44.getValue()));
@@ -1392,17 +1437,19 @@ public class SessionTest {
         return msg;
     }
 
-    private Message createSequenceReset(int sequence, int to, boolean gapFill) {
+    private FIXMessage createSequenceReset(int sequence, int to, boolean gapFill) {
 
-        final SequenceReset msg = new SequenceReset();
-        msg.getHeader().setString(FixTags.SENDER_COMP_ID, "TARGET");
-        msg.getHeader().setString(FixTags.TARGET_COMP_ID, "SENDER");
-        msg.getHeader().setInt(FixTags.MSG_SEQ_NUM, sequence);
-        msg.getHeader().setUtcTimeStamp(FixTags.SENDING_TIME, new Date());
-        msg.getHeader().setBoolean(FixTags.POSS_DUP_FLAG, true);
-        msg.getHeader().setUtcTimeStamp(FixTags.ORIG_SENDING_TIME, new Date());
-        msg.setBoolean(FixTags.GAP_FILL_FLAG, gapFill);
-        msg.setInt(FixTags.NEW_SEQ_NO, to);
+        SequenceReset msg = new SequenceReset();
+
+        msg.getHeader().setField(new SenderCompID("TARGET"));
+        msg.getHeader().setField(new TargetCompID("SENDER"));
+        msg.getHeader().setField(new MsgSeqNum(sequence));
+        msg.getHeader().setField(new SendingTime(new Date()));
+        msg.getHeader().setField(new PossDupFlag(true));
+        msg.getHeader().setField(new OrigSendingTime(new Date()));
+
+        msg.setField(new GapFillFlag(gapFill));
+        msg.setField(new NewSeqNo(to));
 
         // Added - TODO these should be acquired via a MessageBuilder
         msg.getHeader().setField(new BeginString(FIXBeginString.FIX44.getValue()));
@@ -1417,7 +1464,7 @@ public class SessionTest {
         final Application application = new UnitTestApplication() {
 
             @Override
-            public void fromApp(Message message, SessionID sessionId) throws FieldNotFound,
+            public void fromApp(FIXMessage message, FIXSessionID sessionId) throws FieldNotFound,
                     IncorrectDataFormat, IncorrectTagValue, UnsupportedMessageType {
 
                 super.fromApp(message, sessionId);
@@ -1459,18 +1506,18 @@ public class SessionTest {
         final UnitTestApplication application = new UnitTestApplication() {
 
             @Override
-            public void fromAdmin(Message message, SessionID sessionId) throws FieldNotFound,
+            public void fromAdmin(FIXMessage message, FIXSessionID sessionId) throws FieldNotFound,
                     IncorrectDataFormat, IncorrectTagValue, RejectLogon {
 
                 super.fromAdmin(message, sessionId);
-                final String msgType = message.getHeader().getString(FixTags.MSG_TYPE);
+                final String msgType = message.getHeader().getFieldValue(FIXTag.MSG_TYPE);
                 if (FixMessageTypes.HEARTBEAT.equals(msgType)) {
                     throw new Error("TESTAdmin");
                 }
             }
 
             @Override
-            public void fromApp(Message message, SessionID sessionId) throws FieldNotFound,
+            public void fromApp(FIXMessage message, FIXSessionID sessionId) throws FieldNotFound,
                     IncorrectDataFormat, IncorrectTagValue, UnsupportedMessageType {
 
                 super.fromApp(message, sessionId);
@@ -1483,30 +1530,33 @@ public class SessionTest {
         logonTo(session);
 
         try {
+
             session.next(createAppMessage(2));
             assertEquals(3, session.getExpectedTargetNum());
             assertEquals(3, session.getExpectedSenderNum());
             assertEquals("B",
-                    application.lastFromAppMessage().getHeader().getString(FixTags.MSG_TYPE));
+                    application.lastFromAppMessage().getHeader().getFieldValue(FIXTag.MSG_TYPE));
             assertEquals(FixMessageTypes.BUSINESS_MESSAGE_REJECT, application.lastToAppMessage()
-                    .getHeader().getString(FixTags.MSG_TYPE));
+                    .getHeader().getFieldValue(FIXTag.MSG_TYPE));
 
             session.next(createHeartbeatMessage(3));
             assertEquals(4, session.getExpectedTargetNum());
             assertEquals(4, session.getExpectedSenderNum());
             assertEquals(FixMessageTypes.HEARTBEAT, application.lastFromAdminMessage().getHeader()
-                    .getString(FixTags.MSG_TYPE));
+                    .getFieldValue(FIXTag.MSG_TYPE));
             assertEquals(FixMessageTypes.REJECT, application.lastToAdminMessage().getHeader()
-                    .getString(FixTags.MSG_TYPE));
+                    .getFieldValue(FIXTag.MSG_TYPE));
 
             session.next(createAdminMessage(4));
             assertEquals(5, session.getExpectedTargetNum());
             assertEquals(5, session.getExpectedSenderNum());
             assertEquals(FixMessageTypes.TEST_REQUEST, application.lastFromAdminMessage()
-                    .getHeader().getString(FixTags.MSG_TYPE));
+                    .getHeader().getFieldValue(FIXTag.MSG_TYPE));
             assertEquals(FixMessageTypes.HEARTBEAT, application.lastToAdminMessage().getHeader()
-                    .getString(FixTags.MSG_TYPE));
+                    .getFieldValue(FIXTag.MSG_TYPE));
+
         } catch (final Throwable t) {
+            t.printStackTrace();
             fail("Error was thrown: " + t.getMessage());
         }
 
@@ -1515,15 +1565,23 @@ public class SessionTest {
 
     private News createAppMessage(int sequence) {
 
-        final News news = new News(new Headline("Headline"));
-        news.getHeader().setString(FixTags.SENDER_COMP_ID, "TARGET");
-        news.getHeader().setString(FixTags.TARGET_COMP_ID, "SENDER");
-        news.getHeader().setInt(FixTags.MSG_SEQ_NUM, sequence);
-        news.getHeader().setUtcTimeStamp(FixTags.SENDING_TIME, new Date());
+        News news = new News(new Headline("Headline"));
+
+        news.getHeader().setField(new SenderCompID("TARGET"));
+        news.getHeader().setField(new TargetCompID("SENDER"));
+        news.getHeader().setField(new SendingTime(new Date()));
+        news.getHeader().setField(new MsgSeqNum(sequence));
 
         // Added - TODO these should be acquired via a MessageBuilder
         news.getHeader().setField(new BeginString(FIXBeginString.FIX44.getValue()));
         news.getHeader().setField(MsgType.NEWS);
+
+        // this had to be added else validation fails in 2.0
+        LinesOfText linesOfText = new LinesOfText();
+        LinesOfTextGroup group = linesOfText.add(new LinesOfTextGroup());
+        group.setText(new Text("SOME TEXT"));
+
+        news.setLinesOfText(linesOfText);
 
         return news;
     }
@@ -1581,8 +1639,8 @@ public class SessionTest {
         resendRequest.getHeader().setField(new TargetCompID(sessionID.getSenderCompID()));
         resendRequest.getHeader().setField(new SendingTime(new Date()));
         resendRequest.getHeader().setField(new MsgSeqNum(200));
-        resendRequest.setBeginSeqNo(new quickfix.fix44.field.BeginSeqNo(1));
-        resendRequest.setEndSeqNo(new quickfix.fix44.field.EndSeqNo(100));
+        resendRequest.setBeginSeqNo(new org.quickfixj.messages.bd.fix44.field.BeginSeqNo(1));
+        resendRequest.setEndSeqNo(new org.quickfixj.messages.bd.fix44.field.EndSeqNo(100));
 
         // Added - TODO these should be acquired via a MessageBuilder
         resendRequest.getHeader().setField(new BeginString(FIXBeginString.FIX44.getValue()));
@@ -1607,12 +1665,12 @@ public class SessionTest {
         session.logout();
         session.next();
 
-        final Message logout = new Logout();
-        logout.getHeader().setString(FixTags.SENDER_COMP_ID, "TARGET");
-        logout.getHeader().setString(FixTags.TARGET_COMP_ID, "SENDER");
-        logout.getHeader().setString(FixTags.SENDING_TIME,
-                UtcTimestampConverter.convert(new Date(), false));
-        logout.getHeader().setInt(FixTags.MSG_SEQ_NUM, 2);
+        FIXMessage logout = new Logout();
+
+        logout.getHeader().setField(new SenderCompID("TARGET"));
+        logout.getHeader().setField(new TargetCompID("SENDER"));
+        logout.getHeader().setField(new SendingTime(new Date(), false));
+        logout.getHeader().setField(new MsgSeqNum(2));
 
         // Added - TODO these should be acquired via a MessageBuilder
         logout.getHeader().setField(new BeginString(FIXBeginString.FIX44.getValue()));
@@ -1623,9 +1681,9 @@ public class SessionTest {
         // session.reset();
         assertFalse(session.isLoggedOn());
         logonTo(session, 3);
-        Message lastToAdminMessage = application.lastToAdminMessage();
-        assertFalse(Logout.MSGTYPE.equals(lastToAdminMessage.getHeader()
-                .getString(FixTags.MSG_TYPE)));
+        FIXMessage lastToAdminMessage = application.lastToAdminMessage();
+        assertFalse(Logout.MSGTYPE.equals(lastToAdminMessage.getHeader().getFieldValue(
+                FIXTag.MSG_TYPE)));
         session.close();
     }
 
@@ -1635,12 +1693,13 @@ public class SessionTest {
 
         final UnitTestApplication application = new UnitTestApplication();
         final Session session = setUpSession(application, false, new UnitTestResponder());
-        final Message logout = new Logout();
-        logout.getHeader().setString(FixTags.SENDER_COMP_ID, "TARGET");
-        logout.getHeader().setString(FixTags.TARGET_COMP_ID, "SENDER");
-        logout.getHeader().setString(FixTags.SENDING_TIME,
-                UtcTimestampConverter.convert(new Date(), false));
-        logout.getHeader().setInt(FixTags.MSG_SEQ_NUM, 2);
+
+        FIXMessage logout = new Logout();
+
+        logout.getHeader().setField(new SenderCompID("TARGET"));
+        logout.getHeader().setField(new TargetCompID("SENDER"));
+        logout.getHeader().setField(new SendingTime(new Date(), false));
+        logout.getHeader().setField(new MsgSeqNum(2));
 
         // Added - TODO these should be acquired via a MessageBuilder
         logout.getHeader().setField(new BeginString(FIXBeginString.FIX44.getValue()));
@@ -1713,8 +1772,10 @@ public class SessionTest {
                 "8=FIX.4.2\0019=0107\00135=z\001115=THEM\00149=THEM\00156=US\001369=177\00152=20100908-17:59:30.551\00134=228\001336=1\001340=2\00176=US\001439=USS\00110=133\001",
                 "8=FIX.4.2\0019=0113\00135=4\00134=223\00143=Y\001122=20100908-17:59:30.642\00149=THEM\00156=US\001369=178\00152=20100908-17:59:30.642\001123=Y\00136=225\00110=110\001",
                 "8=FIX.4.2\0019=0246\00135=8\001115=THEM\00134=225\00143=Y\001122=20100908-17:52:37.920\00149=THEM\00156=US\001369=178\00152=20100908-17:59:30.642\00137=10118506\00111=a00000052.1\00117=17537743\00120=0\001150=4\00139=4\00155=ETFC\00154=1\00138=500000\00144=0.998\00132=0\00131=0\001151=0\00114=0\0016=0\00160=20100908-17:52:37.920\00110=80\001" };
-        for (String message : messages)
+
+        for (String message : messages) {
             session.next(MessageUtils.parse(session, message));
+        }
 
         assertEquals(226, session.getStore().getNextTargetMsgSeqNum());
 
@@ -1725,7 +1786,7 @@ public class SessionTest {
     // QFJ-776
     public void testLogonWithoutTargetCompID() throws Exception {
 
-        final SessionID sessionID = new SessionID(FIXBeginString.FIX44, "SENDER", "TARGET");
+        SessionID sessionID = new SessionID(FIXBeginString.FIX44, "SENDER", "TARGET");
         UnitTestApplication application = new UnitTestApplication();
         SessionSettings sessionSettings = SessionSettingsTest.setUpSession(null);
         SessionFactoryTestSupport factoryTestSupport = new SessionFactoryTestSupport();
@@ -1738,8 +1799,9 @@ public class SessionTest {
         session.next();
         Logon logonRequest = new Logon();
         setUpHeader(session.getSessionID(), logonRequest, true, 1);
-        logonRequest.setInt(FixTags.HEART_BT_INT, 30);
-        logonRequest.getHeader().removeField(FixTags.TARGET_COMP_ID);
+        logonRequest.setHeartBtInt(new HeartBtInt(30));
+        logonRequest.setEncryptMethod(EncryptMethod.NONE_OTHER);
+        logonRequest.getHeader().removeField(FIXTag.TARGET_COMP_ID);
 
         // Added - TODO these should be acquired via a MessageBuilder
         logonRequest.getHeader().setField(new BeginString(FIXBeginString.FIX44.getValue()));
@@ -1756,8 +1818,9 @@ public class SessionTest {
         assertFalse(session.getCheckCompID());
         logonRequest = new Logon();
         setUpHeader(session.getSessionID(), logonRequest, true, 1);
-        logonRequest.setInt(FixTags.HEART_BT_INT, 30);
-        logonRequest.getHeader().removeField(FixTags.TARGET_COMP_ID);
+        logonRequest.setHeartBtInt(new HeartBtInt(30));
+        logonRequest.setEncryptMethod(EncryptMethod.NONE_OTHER);
+        logonRequest.getHeader().removeField(FIXTag.TARGET_COMP_ID);
 
         // Added - TODO these should be acquired via a MessageBuilder
         logonRequest.getHeader().setField(new BeginString(FIXBeginString.FIX44.getValue()));
@@ -1766,7 +1829,8 @@ public class SessionTest {
         session.next(logonRequest);
         assertTrue(session.isLoggedOn());
 
-        assertEquals(1, application.lastToAdminMessage().getHeader().getInt(FixTags.MSG_SEQ_NUM));
+        assertEquals(1, MessageUtils.coerceToInt(application.lastToAdminMessage().getHeader(),
+                FIXTag.MSG_SEQ_NUM));
         assertEquals(2, session.getStore().getNextTargetMsgSeqNum());
         assertEquals(2, session.getStore().getNextSenderMsgSeqNum());
 
@@ -1804,13 +1868,19 @@ public class SessionTest {
     // QFJ-751
     private void testSequenceResetGapFillWithChunkSize(int chunkSize) throws Exception {
 
+        FIXEngine engine = DefaultEngine.getDefaultEngine();
+        FIXMessageBuilderFactory builderFactory = engine.getMessageBuilderFactory(
+                FIXBeginString.FIX44, "org.quickfixj.messages.bd");
+        FIXMessageDictionaryFactory dataDictionary = engine.getMessageDictionaryFactory(
+                FIXBeginString.FIX44, "org.quickfixj.messages.bd");
+
         final SessionID sessionID = new SessionID(FIXBeginString.FIX44, "SENDER", "TARGET");
 
         boolean isInitiator = true, resetOnLogon = false, validateSequenceNumbers = true;
 
         Session session = new Session(new UnitTestApplication(), new MemoryStoreFactory(),
-                sessionID, null, null, new ScreenLogFactory(true, true, true),
-                MessageBuilderServiceLoader.getMessageBuilderFactory(), isInitiator ? 30 : 0,
+                sessionID, dataDictionary, null, new ScreenLogFactory(true, true, true),
+                builderFactory, new DefaultValidator(FIXBeginString.FIX44), isInitiator ? 30 : 0,
                 false, 30, true, resetOnLogon, false, false, false, false, false, true, false, 1.5,
                 null, validateSequenceNumbers, new int[] { 5 }, false, false, false, true, false,
                 true, false, null, true, chunkSize, false, false);
@@ -1824,7 +1894,7 @@ public class SessionTest {
 
         assertEquals(1, session.getStore().getNextTargetMsgSeqNum());
 
-        Message logonRequest = new Message(responder.sentMessageData);
+        FIXMessage logonRequest = MessageUtils.parse(session, responder.sentMessageData);
 
         // Deliver Logon response with too high sequence 20 instead of 1.
         session.next(createLogonResponse(sessionID, logonRequest, 20));
@@ -1867,14 +1937,22 @@ public class SessionTest {
     // QFJ-795
     public void testMsgSeqNumTooHighWithDisconnectOnError() throws Exception {
 
-        final SessionID sessionID = new SessionID(FIXBeginString.FIX44, "SENDER", "TARGET");
-        final boolean isInitiator = true, resetOnLogon = false, validateSequenceNumbers = true;
+        FIXEngine engine = DefaultEngine.getDefaultEngine();
+        FIXMessageBuilderFactory builderFactory = engine.getMessageBuilderFactory(
+                FIXBeginString.FIX44, "org.quickfixj.messages.bd");
+        FIXMessageDictionaryFactory dataDictionary = engine.getMessageDictionaryFactory(
+                FIXBeginString.FIX44, "org.quickfixj.messages.bd");
 
-        final boolean disconnectOnError = true;
+        SessionID sessionID = new SessionID(FIXBeginString.FIX44, "SENDER", "TARGET");
+
+        boolean isInitiator = true;
+        boolean resetOnLogon = false;
+        boolean validateSequenceNumbers = true;
+        boolean disconnectOnError = true;
 
         Session session = new Session(new UnitTestApplication(), new MemoryStoreFactory(),
-                sessionID, null, null, new ScreenLogFactory(true, true, true),
-                MessageBuilderServiceLoader.getMessageBuilderFactory(), isInitiator ? 30 : 0,
+                sessionID, dataDictionary, null, new ScreenLogFactory(true, true, true),
+                builderFactory, new DefaultValidator(FIXBeginString.FIX44), isInitiator ? 30 : 0,
                 false, 30, true, resetOnLogon, false, false, false, false, false, true, false, 1.5,
                 null, validateSequenceNumbers, new int[] { 5 }, false, disconnectOnError, false,
                 true, false, true, false, null, true, 0, false, false);
@@ -1886,7 +1964,7 @@ public class SessionTest {
         session.next();
 
         // Deliver Logon response with too high sequence number 100
-        Message logonRequest = new Message(responder.sentMessageData);
+        FIXMessage logonRequest = MessageUtils.parse(session, responder.sentMessageData);
         session.next(createLogonResponse(sessionID, logonRequest, 100));
 
         // Deliver application message with too high sequence number 101
@@ -1919,7 +1997,8 @@ public class SessionTest {
 
     private Session setUpFileStoreSession(Application application, boolean isInitiator,
             Responder responder, SessionSettings settings, SessionID sessionID)
-            throws NoSuchFieldException, IllegalAccessException, ConfigError, FieldConvertError {
+            throws NoSuchFieldException, IllegalAccessException, ConfigError,
+            FieldConversionException {
 
         final SessionSchedule sessionSchedule = new SessionSchedule(settings, sessionID);
         final Session session = SessionFactoryTestSupport.createFileStoreSession(sessionID,
@@ -1938,19 +2017,25 @@ public class SessionTest {
         return session;
     }
 
-    private Message createLogonResponse(final SessionID sessionID, final Message logonRequest,
-            int responseSequenceNumber) throws FieldNotFound {
+    private FIXMessage createLogonResponse(final SessionID sessionID,
+            final FIXMessage logonRequest, int responseSequenceNumber) throws FieldNotFound {
 
-        final Message logonResponse = MessageBuilderServiceLoader.getMessageBuilderFactory()
-                .getMessageBuilder(sessionID.getBeginString(), FixMessageTypes.LOGON).create();
-        logonResponse.setInt(FixTags.ENCRYPT_METHOD, 0);
-        logonResponse.setInt(FixTags.HEART_BT_INT, logonRequest.getInt(FixTags.HEART_BT_INT));
-        final Message.Header header = logonResponse.getHeader();
-        header.setString(FixTags.BEGIN_STRING, sessionID.getBeginString().getValue());
-        header.setString(FixTags.SENDER_COMP_ID, sessionID.getSenderCompID());
-        header.setString(FixTags.TARGET_COMP_ID, sessionID.getTargetCompID());
-        header.setInt(FixTags.MSG_SEQ_NUM, responseSequenceNumber);
-        header.setUtcTimeStamp(FixTags.SENDING_TIME, SystemTime.getDate(), true);
+        FIXEngine engine = DefaultEngine.getDefaultEngine();
+        FIXMessageBuilderFactory builderFactory = engine.getMessageBuilderFactory(
+                sessionID.getBeginString(), "org.quickfixj.messages.bd");
+        FIXMessage logonResponse = builderFactory.getMessageBuilder(FixMessageTypes.LOGON).create();
+        MessageUtils.set(logonResponse, FIXTag.ENCRYPT_METHOD, 0);
+        MessageUtils.set(logonResponse, FIXTag.HEART_BT_INT,
+                MessageUtils.coerceToInt(logonRequest, FIXTag.HEART_BT_INT));
+
+        FIXFieldGraph header = logonResponse.getHeader();
+        MessageUtils.set(header, FIXTag.BEGIN_STRING, sessionID.getBeginString().getValue());
+        MessageUtils.set(header, FIXTag.MSG_TYPE, FixMessageTypes.LOGON);
+        MessageUtils.set(header, FIXTag.SENDER_COMP_ID, sessionID.getSenderCompID());
+        MessageUtils.set(header, FIXTag.TARGET_COMP_ID, sessionID.getTargetCompID());
+        MessageUtils.set(header, FIXTag.MSG_SEQ_NUM, responseSequenceNumber);
+        MessageUtils.setUtcTimeStamp(header, FIXTag.SENDING_TIME, SystemTime.getDate(), true);
+
         return logonResponse;
     }
 
@@ -1966,7 +2051,8 @@ public class SessionTest {
 
         final Logon receivedLogon = new Logon();
         setUpHeader(session.getSessionID(), receivedLogon, true, sequence);
-        receivedLogon.setInt(FixTags.HEART_BT_INT, 30);
+        receivedLogon.setHeartBtInt(new HeartBtInt(30));
+        receivedLogon.setEncryptMethod(EncryptMethod.NONE_OTHER);
 
         // Added - TODO these should be acquired via a MessageBuilder
         receivedLogon.getHeader().setField(new BeginString(FIXBeginString.FIX44.getValue()));
@@ -1979,7 +2065,7 @@ public class SessionTest {
             IncorrectDataFormat, IncorrectTagValue, UnsupportedMessageType, IOException,
             InvalidMessage {
 
-        final Logout receivedLogout = new Logout();
+        Logout receivedLogout = new Logout();
         setUpHeader(session.getSessionID(), receivedLogout, true, sequence);
 
         // Added - TODO these should be acquired via a MessageBuilder
@@ -1989,14 +2075,19 @@ public class SessionTest {
         session.next(receivedLogout);
     }
 
-    private void setUpHeader(SessionID sessionID, Message message, boolean reversed, int sequence) {
+    private void setUpHeader(FIXSessionID sessionID, FIXMessage message, boolean reversed,
+            int sequence) {
 
-        message.getHeader().setString(FixTags.TARGET_COMP_ID,
-                reversed ? sessionID.getSenderCompID() : sessionID.getTargetCompID());
-        message.getHeader().setString(FixTags.SENDER_COMP_ID,
-                reversed ? sessionID.getTargetCompID() : sessionID.getSenderCompID());
+        message.getHeader().setField(
+                new GenericField(FIXTag.TARGET_COMP_ID, reversed
+                        ? sessionID.getSenderCompID()
+                        : sessionID.getTargetCompID()));
+        message.getHeader().setField(
+                new GenericField(FIXTag.SENDER_COMP_ID, reversed
+                        ? sessionID.getTargetCompID()
+                        : sessionID.getSenderCompID()));
         message.getHeader().setField(new SendingTime(SystemTime.getDate()));
-        message.getHeader().setInt(FixTags.MSG_SEQ_NUM, sequence);
+        message.getHeader().setField(new GenericField(FIXTag.MSG_SEQ_NUM, sequence));
     }
 
     private class UnitTestResponder implements Responder {

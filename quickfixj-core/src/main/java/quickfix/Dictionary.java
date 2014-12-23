@@ -22,6 +22,8 @@ package quickfix;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.quickfixj.field.FieldConversionException;
+
 /**
  * Name/value pairs used for specifying groups of settings.
  *
@@ -68,31 +70,31 @@ public class Dictionary {
         return capitalize ? string.toUpperCase() : string;
     }
 
-    public long getLong(String key) throws ConfigError, FieldConvertError {
+    public long getLong(String key) throws ConfigError, FieldConversionException {
         try {
             return (Long) data.get(key);
         } catch (ClassCastException e) {
-            throw new FieldConvertError("Incorrect data type");
+            throw new FieldConversionException("Incorrect data type");
         } catch (NullPointerException e) {
             throw new ConfigError("No value for key: " + key);
         }
     }
 
-    public double getDouble(String key) throws ConfigError, FieldConvertError {
+    public double getDouble(String key) throws ConfigError, FieldConversionException {
         try {
             return (Double) data.get(key);
         } catch (ClassCastException e) {
-            throw new FieldConvertError("Incorrect data type");
+            throw new FieldConversionException("Incorrect data type");
         } catch (NullPointerException e) {
             throw new ConfigError("No value for key: " + key);
         }
     }
 
-    public boolean getBool(String key) throws ConfigError, FieldConvertError {
+    public boolean getBool(String key) throws ConfigError, FieldConversionException {
         try {
             return (Boolean) data.get(key);
         } catch (ClassCastException e) {
-            throw new FieldConvertError("Incorrect data type");
+            throw new FieldConversionException("Incorrect data type");
         } catch (NullPointerException e) {
             throw new ConfigError("No value for key: " + key);
         }

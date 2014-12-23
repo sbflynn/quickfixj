@@ -24,13 +24,14 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
-import org.quickfixj.spi.MessageBuilderServiceLoader;
+import org.quickfixj.engine.FIXEngine;
+import org.quickfixj.engine.LogFactory;
 
+import quickfix.DefaultEngine;
 import quickfix.FileStoreFactory;
-import quickfix.LogFactory;
 import quickfix.ScreenLogFactory;
 import quickfix.SessionSettings;
-import quickfix.SocketAcceptor;
+import quickfix.mina.acceptor.SocketAcceptor;
 
 public class Main {
 
@@ -39,27 +40,24 @@ public class Main {
         try {
             InputStream inputStream = null;
             if (args.length == 0) {
-                inputStream = OrderMatcher.class
-                        .getResourceAsStream("ordermatch.cfg");
+                inputStream = OrderMatcher.class.getResourceAsStream("ordermatch.cfg");
             } else if (args.length == 1) {
                 inputStream = new FileInputStream(args[0]);
             }
             if (inputStream == null) {
-                System.out.println("usage: " + OrderMatcher.class.getName()
-                        + " [configFile].");
+                System.out.println("usage: " + OrderMatcher.class.getName() + " [configFile].");
                 return;
             }
-            SessionSettings settings = new SessionSettings(inputStream);
 
+            FIXEngine engine = DefaultEngine.getDefaultEngine();
+            SessionSettings settings = new SessionSettings(inputStream);
             Application application = new Application();
             FileStoreFactory storeFactory = new FileStoreFactory(settings);
             LogFactory logFactory = new ScreenLogFactory(settings);
-            SocketAcceptor acceptor = new SocketAcceptor(application,
-                    storeFactory, settings, logFactory,
-                    MessageBuilderServiceLoader.getMessageBuilderFactory());
+            SocketAcceptor acceptor = new SocketAcceptor(application, storeFactory, settings,
+                    logFactory, engine);
 
-            BufferedReader in = new BufferedReader(new InputStreamReader(
-                    System.in));
+            BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
             acceptor.start();
             while (true) {
                 System.out.println("type #quit to quit");
@@ -80,5 +78,4 @@ public class Main {
             e.printStackTrace();
         }
     }
-
 }

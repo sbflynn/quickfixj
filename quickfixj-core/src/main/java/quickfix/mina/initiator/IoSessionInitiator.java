@@ -34,6 +34,7 @@ import org.apache.mina.core.service.IoConnector;
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.filter.ssl.SslFilter;
+import org.quickfixj.engine.FIXSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,7 +86,7 @@ public class IoSessionInitiator {
         private final SocketAddress[] socketAddresses;
         private final SocketAddress localAddress;
         private final IoConnector ioConnector;
-        private final Session fixSession;
+        private final FIXSession fixSession;
         private final long[] reconnectIntervalInMillis;
         private String keyStoreName;
         private String keyStorePassword;
@@ -262,7 +263,7 @@ public class IoSessionInitiator {
             return lastConnectTime;
         }
 
-        public Session getFixSession() {
+        public FIXSession getFixSession() {
             return fixSession;
         }
     }

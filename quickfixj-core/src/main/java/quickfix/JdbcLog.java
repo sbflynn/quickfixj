@@ -38,13 +38,16 @@ import java.util.Map;
 
 import javax.sql.DataSource;
 
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.field.FieldConversionException;
+
 class JdbcLog extends AbstractLog {
     private static final String DEFAULT_MESSAGES_LOG_TABLE = "messages_log";
     private static final String DEFAULT_EVENT_LOG_TABLE = "event_log";
     private final String outgoingMessagesTableName;
     private final String incomingMessagesTableName;
     private final String eventTableName;
-    private final SessionID sessionID;
+    private final FIXSessionID sessionID;
     private final DataSource dataSource;
     private final boolean logHeartbeats;
     private final boolean extendedSessionIdSupported;
@@ -55,8 +58,8 @@ class JdbcLog extends AbstractLog {
     private final Map<String, String> insertItemSqlCache = new HashMap<String, String>();
     private final Map<String, String> deleteItemsSqlCache = new HashMap<String, String>();
 
-    public JdbcLog(SessionSettings settings, SessionID sessionID, DataSource ds)
-            throws SQLException, ConfigError, FieldConvertError {
+    public JdbcLog(SessionSettings settings, FIXSessionID sessionID, DataSource ds)
+            throws SQLException, ConfigError, FieldConversionException {
         this.sessionID = sessionID;
         dataSource = ds == null ? JdbcUtil.getDataSource(settings, sessionID) : ds;
 

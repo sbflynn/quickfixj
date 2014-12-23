@@ -88,7 +88,9 @@ public enum FIXApplication {
     }
 
     public static String print(FIXApplication value) {
-
+        if (value == null) {
+            return null;
+        }
         return value.getValue();
     }
 }

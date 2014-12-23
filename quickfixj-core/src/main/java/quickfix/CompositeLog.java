@@ -19,6 +19,7 @@
 
 package quickfix;
 
+import org.quickfixj.engine.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

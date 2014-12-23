@@ -25,14 +25,16 @@ import java.net.SocketAddress;
 
 import org.apache.mina.core.session.IoSession;
 import org.quickfixj.FIXApplication;
+import org.quickfixj.FIXBeginString;
+import org.quickfixj.FIXMessage;
+import org.quickfixj.engine.FIXSession;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.engine.FIXTag;
+import org.quickfixj.engine.Log;
 
 import quickfix.FixMessageTypes;
-import quickfix.FixTags;
-import quickfix.Log;
-import quickfix.Message;
 import quickfix.MessageUtils;
 import quickfix.Session;
-import quickfix.SessionID;
 import quickfix.mina.AbstractIoHandler;
 import quickfix.mina.EventHandlingStrategy;
 import quickfix.mina.IoSessionResponder;
@@ -62,12 +64,12 @@ class AcceptorIoHandler extends AbstractIoHandler {
     }
 
     @Override
-    protected void processMessage(IoSession protocolSession, Message message) throws Exception {
+    protected void processMessage(IoSession protocolSession, FIXMessage message) throws Exception {
 
         Session qfSession = (Session) protocolSession.getAttribute(SessionConnector.QF_SESSION);
         if (qfSession == null) {
-            if (message.getHeader().getString(FixTags.MSG_TYPE).equals(FixMessageTypes.LOGON)) {
-                final SessionID sessionID = MessageUtils.getReverseSessionID(message);
+            if (message.getHeader().getFieldValue(FIXTag.MSG_TYPE).equals(FixMessageTypes.LOGON)) {
+                final FIXSessionID sessionID = MessageUtils.getReverseSessionID(message);
                 qfSession = sessionProvider.getSession(sessionID,
                         eventHandlingStrategy.getSessionConnector());
                 if (qfSession != null) {
@@ -81,7 +83,8 @@ class AcceptorIoHandler extends AbstractIoHandler {
                     }
                     sessionLog.onEvent("Accepting session " + qfSession.getSessionID() + " from "
                             + protocolSession.getRemoteAddress());
-                    final int heartbeatInterval = message.getInt(FixTags.HEART_BT_INT);
+                    final int heartbeatInterval = MessageUtils.coerceToInt(message,
+                            FIXTag.HEART_BT_INT);
                     qfSession.setHeartBeatInterval(heartbeatInterval);
                     sessionLog.onEvent("Acceptor heartbeat set to " + heartbeatInterval
                             + " seconds");
@@ -90,12 +93,12 @@ class AcceptorIoHandler extends AbstractIoHandler {
                     qfSession.setResponder(new IoSessionResponder(protocolSession,
                             networkingOptions.getSynchronousWrites(), networkingOptions
                                     .getSynchronousWriteTimeout()));
-                    if (sessionID.isFIXT()) { // QFJ-592
-                        if (message.isFieldSet(FixTags.DEFAULT_APPL_VER_ID)) {
-                            final FIXApplication applVerID = FIXApplication.parseId(message
-                                    .getString(FixTags.DEFAULT_APPL_VER_ID));
+                    if (sessionID.getBeginString() == FIXBeginString.FIXT11) { // QFJ-592
+                        if (message.isFieldSet(FIXTag.DEFAULT_APPL_VER_ID)) {
+                            FIXApplication applVerID = FIXApplication.parseId(message
+                                    .getFieldValue(FIXTag.DEFAULT_APPL_VER_ID));
                             qfSession.setTargetDefaultApplicationVersionID(applVerID);
-                            log.info("Setting DefaultApplVerID (" + FixTags.DEFAULT_APPL_VER_ID
+                            log.info("Setting DefaultApplVerID (" + FIXTag.DEFAULT_APPL_VER_ID
                                     + "=" + applVerID.getValue() + ") from Logon");
                         }
                     }
@@ -118,9 +121,9 @@ class AcceptorIoHandler extends AbstractIoHandler {
     }
 
     @Override
-    protected Session findQFSession(IoSession protocolSession, SessionID sessionID) {
+    protected FIXSession findQFSession(IoSession protocolSession, FIXSessionID sessionID) {
 
-        Session s = super.findQFSession(protocolSession, sessionID);
+        FIXSession s = super.findQFSession(protocolSession, sessionID);
         if (s == null) {
             s = sessionProvider.getSession(sessionID, eventHandlingStrategy.getSessionConnector());
         }

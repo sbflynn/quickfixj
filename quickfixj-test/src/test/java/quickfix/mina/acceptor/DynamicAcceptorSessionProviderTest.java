@@ -28,15 +28,17 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.quickfixj.FIXBeginString;
-import org.quickfixj.MessageBuilderFactory;
 import org.quickfixj.QFJException;
-import org.quickfixj.spi.MessageBuilderServiceLoader;
+import org.quickfixj.engine.FIXEngine;
+import org.quickfixj.engine.FIXSession;
+import org.quickfixj.engine.MessageStoreFactory;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.engine.LogFactory;
 
 import quickfix.Application;
 import quickfix.ConfigError;
-import quickfix.LogFactory;
+import quickfix.DefaultEngine;
 import quickfix.MemoryStoreFactory;
-import quickfix.MessageStoreFactory;
 import quickfix.RuntimeError;
 import quickfix.ScreenLogFactory;
 import quickfix.Session;
@@ -56,7 +58,6 @@ public class DynamicAcceptorSessionProviderTest extends TestCase {
     private Application application;
     private MessageStoreFactory messageStoreFactory;
     private LogFactory logFactory;
-    private MessageBuilderFactory messageFactory;
 
     @Override
     protected void setUp() throws Exception {
@@ -65,7 +66,6 @@ public class DynamicAcceptorSessionProviderTest extends TestCase {
         application = new UnitTestApplication();
         messageStoreFactory = new MemoryStoreFactory();
         logFactory = new ScreenLogFactory();
-        messageFactory = MessageBuilderServiceLoader.getMessageBuilderFactory();
 
         SessionID templateId1 = new SessionID(FIXBeginString.FIX42, "ANY", "ANY");
         templateMappings.add(new TemplateMapping(new TemplatePattern(Arrays.asList(FIXBeginString
@@ -84,14 +84,14 @@ public class DynamicAcceptorSessionProviderTest extends TestCase {
         setUpSettings(templateId3, "CheckCompID", "N");
 
         provider = new DynamicAcceptorSessionProvider(settings, templateMappings, application,
-                messageStoreFactory, logFactory, messageFactory);
+                messageStoreFactory, logFactory, DefaultEngine.getDefaultEngine());
     }
 
     public void testSessionCreation() throws Exception {
 
-        Session session1 = provider.getSession(new SessionID(FIXBeginString.FIX42, "SENDER",
+        FIXSession session1 = provider.getSession(new SessionID(FIXBeginString.FIX42, "SENDER",
                 "SENDERSUB", "SENDERLOC", "TARGET", "TARGETSUB", "TARGETLOC", null), null);
-        SessionID sessionID1 = session1.getSessionID();
+        FIXSessionID sessionID1 = session1.getSessionID();
         assertEquals("wrong FIX version", FIXBeginString.FIX42, sessionID1.getBeginString());
         assertEquals("wrong sender", "SENDER", sessionID1.getSenderCompID());
         assertEquals("wrong senderSub", "SENDERSUB", sessionID1.getSenderSubID());
@@ -103,9 +103,9 @@ public class DynamicAcceptorSessionProviderTest extends TestCase {
         assertEquals("wrong setting", false, session1.getRefreshOnLogon());
         assertEquals("wrong setting", false, session1.getCheckCompID());
 
-        Session session2 = provider
-                .getSession(new SessionID(FIXBeginString.FIX44, "S1", "T"), null);
-        SessionID sessionID2 = session2.getSessionID();
+        FIXSession session2 = provider.getSession(new SessionID(FIXBeginString.FIX44, "S1", "T"),
+                null);
+        FIXSessionID sessionID2 = session2.getSessionID();
         assertEquals("wrong FIX version", FIXBeginString.FIX44, sessionID2.getBeginString());
         assertEquals("wrong sender", "S1", sessionID2.getSenderCompID());
         assertEquals("wrong target", "T", sessionID2.getTargetCompID());
@@ -113,8 +113,9 @@ public class DynamicAcceptorSessionProviderTest extends TestCase {
         assertEquals("wrong setting", false, session2.getRefreshOnLogon());
         assertEquals("wrong setting", true, session2.getCheckCompID());
 
-        Session session3 = provider.getSession(new SessionID(FIXBeginString.FIX44, "X", "Y"), null);
-        SessionID sessionID3 = session3.getSessionID();
+        FIXSession session3 = provider.getSession(new SessionID(FIXBeginString.FIX44, "X", "Y"),
+                null);
+        FIXSessionID sessionID3 = session3.getSessionID();
         assertEquals("wrong FIX version", FIXBeginString.FIX44, sessionID3.getBeginString());
         assertEquals("wrong sender", "X", sessionID3.getSenderCompID());
         assertEquals("wrong target", "Y", sessionID3.getTargetCompID());
@@ -145,7 +146,8 @@ public class DynamicAcceptorSessionProviderTest extends TestCase {
 
     public void testSimpleConstructor() throws Exception {
         provider = new DynamicAcceptorSessionProvider(settings, new SessionID(FIXBeginString.FIX42,
-                "ANY", "ANY"), application, messageStoreFactory, logFactory, messageFactory);
+                "ANY", "ANY"), application, messageStoreFactory, logFactory,
+                DefaultEngine.getDefaultEngine());
 
         // Should actually throw an exception if it fails (see previous test)
         assertNotNull(provider.getSession(new SessionID(FIXBeginString.FIX42, "S", "T"), null));
@@ -155,7 +157,8 @@ public class DynamicAcceptorSessionProviderTest extends TestCase {
      * Verify that if a new session comes in it gets added to the list in session connector
      */
     public void testDynamicSessionIsAddedToSessionConnector() throws Exception {
-        MySessionConnector connector = new MySessionConnector(settings, null);
+        MySessionConnector connector = new MySessionConnector(DefaultEngine.getDefaultEngine(),
+                settings, null);
 
         SessionID id1 = new SessionID(FIXBeginString.FIX42, "me", "SENDERSUB", "SENDERLOC", "you",
                 "TARGETSUB", "TARGETLOC", null);
@@ -172,11 +175,11 @@ public class DynamicAcceptorSessionProviderTest extends TestCase {
     }
 
     private static class MySessionConnector extends SessionConnector {
-        private HashMap<SessionID, Session> sessions = new HashMap<SessionID, Session>();
+        private HashMap<FIXSessionID, FIXSession> sessions = new HashMap<FIXSessionID, FIXSession>();
 
-        public MySessionConnector(SessionSettings settings, SessionFactory sessionFactory)
-                throws ConfigError {
-            super(settings, sessionFactory);
+        public MySessionConnector(FIXEngine engine, SessionSettings settings,
+                SessionFactory sessionFactory) throws ConfigError {
+            super(engine, settings, sessionFactory);
         }
 
         @Override
@@ -185,7 +188,7 @@ public class DynamicAcceptorSessionProviderTest extends TestCase {
         }
 
         @Override
-        public void removeDynamicSession(SessionID inSessionID) {
+        public void removeDynamicSession(FIXSessionID inSessionID) {
             sessions.remove(inSessionID);
         }
 

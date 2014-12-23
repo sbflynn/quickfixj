@@ -19,8 +19,9 @@
 
 package quickfix.mina.acceptor;
 
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+
 import quickfix.Session;
-import quickfix.SessionID;
 import quickfix.mina.SessionConnector;
 
 /**
@@ -37,5 +38,5 @@ public interface AcceptorSessionProvider {
      * @return the associated session or null if no session can be
      * associated with the given ID.
      */
-    Session getSession(SessionID sessionID, SessionConnector connector);
+    Session getSession(FIXSessionID sessionID, SessionConnector connector);
 }

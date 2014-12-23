@@ -24,6 +24,7 @@ public class ExpectedTestFailureTest extends TestCase {
     public void testClassSpecified() {
         final RuntimeException ex = new RuntimeException();
         assertEquals(ex, (new ExpectedTestFailure(RuntimeException.class) {
+            @Override
             protected void execute() throws Throwable {
                 throw ex;
             }
@@ -33,16 +34,18 @@ public class ExpectedTestFailureTest extends TestCase {
     public void testMatchSpecified() {
         final RuntimeException rex = new RuntimeException("toli was here");
         assertEquals(rex, (new ExpectedTestFailure(RuntimeException.class, "toli") {
-                protected void execute() throws Throwable {
-                    throw rex;
-                }
-            }).run());
+            @Override
+            protected void execute() throws Throwable {
+                throw rex;
+            }
+        }).run());
         final IllegalArgumentException ex = new IllegalArgumentException("toli was here");
         assertEquals(ex, (new ExpectedTestFailure(IllegalArgumentException.class, "was") {
-                protected void execute() throws Throwable {
-                    throw ex;
-                }
-            }).run());
+            @Override
+            protected void execute() throws Throwable {
+                throw ex;
+            }
+        }).run());
     }
 
     /**
@@ -50,12 +53,19 @@ public class ExpectedTestFailureTest extends TestCase {
      */
     public void testExceptinoHasNoMessageButHasString() throws Exception {
         final Exception ex = new Exception() {
+            /**
+             * The serialVersionUID property.
+             */
+            private static final long serialVersionUID = 1L;
+
+            @Override
             public String toString() {
                 return "internal message 32";
             }
         };
 
         assertEquals(ex, new ExpectedTestFailure(Exception.class, "message 32") {
+            @Override
             protected void execute() throws Throwable {
                 throw ex;
             }

@@ -27,7 +27,6 @@ import java.sql.Statement;
 import javax.sql.DataSource;
 
 import org.quickfixj.FIXBeginString;
-import org.quickfixj.spi.MessageBuilderServiceLoader;
 
 import junit.framework.TestCase;
 
@@ -92,8 +91,11 @@ public class JdbcLogTest extends TestCase {
 
         // need to register the session since we are going to log errors through LogUtil
         Session.registerSession(new Session(new UnitTestApplication(), new MemoryStoreFactory(),
-                sessionID, new DefaultDataDictionaryProvider(), null, logFactory,
-                MessageBuilderServiceLoader.getMessageBuilderFactory(), 0));
+                sessionID, DefaultEngine.getDefaultEngine().getMessageDictionaryFactory(
+                        FIXBeginString.FIXT11, "org.quickfixj.messages.bd"), null, logFactory,
+                DefaultEngine.getDefaultEngine().getMessageBuilderFactory(FIXBeginString.FIXT11,
+                        "org.quickfixj.messages.bd"), new DefaultValidator(FIXBeginString.FIXT11),
+                0));
 
         // remove the messages and events tables
         dropTable(log.getIncomingMessagesTableName());

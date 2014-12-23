@@ -27,23 +27,24 @@ import java.util.Observer;
 
 import javax.swing.SwingUtilities;
 
+import org.quickfixj.FIXApplication;
 import org.quickfixj.FIXBeginString;
-import org.quickfixj.MessageBuilderFactory;
-import org.quickfixj.spi.MessageBuilderServiceLoader;
+import org.quickfixj.FIXMessage;
+import org.quickfixj.engine.FIXEngine;
+import org.quickfixj.engine.FIXMessageBuilderFactory;
+import org.quickfixj.engine.FIXSession;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.engine.FIXTag;
 
 import quickfix.Application;
 import quickfix.DoNotSend;
-import quickfix.FieldNotFound;
-import quickfix.FixTags;
-import quickfix.IncorrectDataFormat;
-import quickfix.IncorrectTagValue;
-import quickfix.RejectLogon;
-import quickfix.SessionID;
-import quickfix.UnsupportedMessageType;
 
 public class BanzaiApplication implements Application {
-    private MessageBuilderFactory messageFactory = MessageBuilderServiceLoader
-            .getMessageBuilderFactory();
+
+    private final FIXEngine engine;
+    private final OrderTableModel orderTableModel;
+    private final ExecutionTableModel executionTableModel;
+
     private ObservableOrder observableOrder = new ObservableOrder();
     private ObservableLogon observableLogon = new ObservableLogon();
     private boolean isAvailable = true;
@@ -51,57 +52,53 @@ public class BanzaiApplication implements Application {
 
     static private Map<FIXBeginString, BanzaiHandler> handlers = new HashMap<FIXBeginString, BanzaiHandler>();
 
-    public BanzaiApplication(OrderTableModel orderTableModel,
-            ExecutionTableModel executionTableModel) {
+    public BanzaiApplication(FIXEngine engine) {
 
-        handlers.put(FIXBeginString.FIX40, new BanzaiHandler40(this, orderTableModel,
-                executionTableModel));
-        handlers.put(FIXBeginString.FIX41, new BanzaiHandler41(this, orderTableModel,
-                executionTableModel));
-        handlers.put(FIXBeginString.FIX42, new BanzaiHandler42(this, orderTableModel,
-                executionTableModel));
-        handlers.put(FIXBeginString.FIX43, new BanzaiHandler43(this, orderTableModel,
-                executionTableModel));
-        handlers.put(FIXBeginString.FIX44, new BanzaiHandler44(this, orderTableModel,
-                executionTableModel));
-        handlers.put(FIXBeginString.FIXT11, new BanzaiHandler50(this, orderTableModel,
-                executionTableModel));
+        this.engine = engine;
+
+        this.orderTableModel = new OrderTableModel();
+        this.executionTableModel = new ExecutionTableModel();
+
+        handlers.put(FIXBeginString.FIX40, new BanzaiHandler40(this));
+        handlers.put(FIXBeginString.FIX41, new BanzaiHandler41(this));
+        handlers.put(FIXBeginString.FIX42, new BanzaiHandler42(this));
+        handlers.put(FIXBeginString.FIX43, new BanzaiHandler43(this));
+        handlers.put(FIXBeginString.FIX44, new BanzaiHandler44(this));
+        handlers.put(FIXBeginString.FIXT11, new BanzaiHandler50(this));
     }
 
     @Override
-    public void onCreate(SessionID sessionID) {
+    public void onCreate(FIXSessionID sessionID) {
         //no-op
     }
 
     @Override
-    public void onLogon(SessionID sessionID) {
+    public void onLogon(FIXSessionID sessionID) {
         observableLogon.logon(sessionID);
     }
 
     @Override
-    public void onLogout(SessionID sessionID) {
+    public void onLogout(FIXSessionID sessionID) {
         observableLogon.logoff(sessionID);
     }
 
     @Override
-    public void toAdmin(quickfix.Message message, SessionID sessionID) {
+    public void toAdmin(FIXMessage message, FIXSessionID sessionID) {
         //no-op
     }
 
     @Override
-    public void toApp(quickfix.Message message, SessionID sessionID) throws DoNotSend {
+    public void toApp(FIXMessage message, FIXSessionID sessionID) throws DoNotSend {
         //no-op
     }
 
     @Override
-    public void fromAdmin(quickfix.Message message, SessionID sessionID) throws FieldNotFound,
-            IncorrectDataFormat, IncorrectTagValue, RejectLogon {
+    public void fromAdmin(FIXMessage message, FIXSessionID sessionID) {
         //no-op
     }
 
     @Override
-    public void fromApp(quickfix.Message message, SessionID sessionID) throws FieldNotFound,
-            IncorrectDataFormat, IncorrectTagValue, UnsupportedMessageType {
+    public void fromApp(FIXMessage message, FIXSessionID sessionID) {
         SwingUtilities.invokeLater(new MessageProcessor(message, sessionID));
     }
 
@@ -151,16 +148,16 @@ public class BanzaiApplication implements Application {
     }
 
     private static class ObservableLogon extends Observable {
-        private HashSet<SessionID> set = new HashSet<SessionID>();
+        private HashSet<FIXSessionID> set = new HashSet<FIXSessionID>();
 
-        public void logon(SessionID sessionID) {
+        public void logon(FIXSessionID sessionID) {
             set.add(sessionID);
             setChanged();
             notifyObservers(new LogonEvent(sessionID, true));
             clearChanged();
         }
 
-        public void logoff(SessionID sessionID) {
+        public void logoff(FIXSessionID sessionID) {
             set.remove(sessionID);
             setChanged();
             notifyObservers(new LogonEvent(sessionID, false));
@@ -185,20 +182,56 @@ public class BanzaiApplication implements Application {
     }
 
     /**
+     * Get the engine property.
+     *
+     * @return Returns the engine.
+     * @since 2.0
+     */
+    public FIXEngine getEngine() {
+        return engine;
+    }
+
+    /**
+     * Get the orderTableModel property.
+     *
+     * @return Returns the orderTableModel.
+     * @since 2.0
+     */
+    public OrderTableModel getOrderTableModel() {
+        return orderTableModel;
+    }
+
+    /**
+     * Get the executionTableModel property.
+     *
+     * @return Returns the executionTableModel.
+     * @since 2.0
+     */
+    public ExecutionTableModel getExecutionTableModel() {
+        return executionTableModel;
+    }
+
+    /**
      * Get the messageFactory property.
      *
      * @return Returns the messageFactory.
      * @since 2.0
      */
-    public MessageBuilderFactory getMessageFactory() {
-        return messageFactory;
+    public FIXMessageBuilderFactory getMessageFactory(FIXSessionID sessionID) {
+        FIXSession session = engine.lookupSession(sessionID);
+        return session.getMessageFactory();
+    }
+
+    public FIXMessage createMessage(FIXSessionID sessionID, FIXApplication application,
+            String msgType) {
+        return getMessageFactory(sessionID).getMessageBuilder(application, msgType).create();
     }
 
     public class MessageProcessor implements Runnable {
-        private quickfix.Message message;
-        private SessionID sessionID;
+        private FIXMessage message;
+        private FIXSessionID sessionID;
 
-        public MessageProcessor(quickfix.Message message, SessionID sessionID) {
+        public MessageProcessor(FIXMessage message, FIXSessionID sessionID) {
             this.message = message;
             this.sessionID = sessionID;
         }
@@ -207,8 +240,8 @@ public class BanzaiApplication implements Application {
         public void run() {
             try {
 
-                FIXBeginString beginString = FIXBeginString.parse(message.getHeader().getString(
-                        FixTags.BEGIN_STRING));
+                FIXBeginString beginString = FIXBeginString.parse(message.getHeader()
+                        .getFieldValue(FIXTag.BEGIN_STRING));
 
                 if (handlers.containsKey(beginString)) {
                     handlers.get(beginString).process(message, sessionID);

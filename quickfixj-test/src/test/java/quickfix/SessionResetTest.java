@@ -16,10 +16,17 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.junit.Test;
 import org.quickfixj.FIXBeginString;
-
-import quickfix.fix44.TestRequest;
-import quickfix.fix44.field.MsgType;
-import quickfix.fix44.field.TestReqID;
+import org.quickfixj.FIXMessage;
+import org.quickfixj.FIXMessageHeader;
+import org.quickfixj.engine.FIXTag;
+import org.quickfixj.field.GenericField;
+import org.quickfixj.messages.bd.fix44.TestRequest;
+import org.quickfixj.messages.bd.fix44.field.MsgSeqNum;
+import org.quickfixj.messages.bd.fix44.field.MsgType;
+import org.quickfixj.messages.bd.fix44.field.SenderCompID;
+import org.quickfixj.messages.bd.fix44.field.SendingTime;
+import org.quickfixj.messages.bd.fix44.field.TargetCompID;
+import org.quickfixj.messages.bd.fix44.field.TestReqID;
 
 public class SessionResetTest {
 
@@ -41,18 +48,20 @@ public class SessionResetTest {
 
         assertFalse(responder.onResetCalled);
 
-        final Message logonRequest = new Message(responder.sentMessageData);
-        final Message logonResponse = new DefaultMessageFactory().create(
-                sessionID.getBeginString(), FixMessageTypes.LOGON);
-        logonResponse.setInt(FixTags.ENCRYPT_METHOD, 0);
-        logonResponse.setInt(FixTags.HEART_BT_INT, logonRequest.getInt(FixTags.HEART_BT_INT));
+        FIXMessage logonRequest = MessageUtils.parse(session, responder.sentMessageData);
+        FIXMessage logonResponse = DefaultEngine.getDefaultEngine()
+                .getMessageBuilderFactory(sessionID.getBeginString(), "org.quickfixj.messages.bd")
+                .getMessageBuilder(FixMessageTypes.LOGON).create();
+        logonResponse.setField(new GenericField(FIXTag.ENCRYPT_METHOD, 0));
+        logonResponse.setField(new GenericField(FIXTag.HEART_BT_INT, MessageUtils.coerceToInt(
+                logonRequest, FIXTag.HEART_BT_INT)));
 
-        final Message.Header header = logonResponse.getHeader();
-        header.setString(FixTags.BEGIN_STRING, sessionID.getBeginString().getValue());
-        header.setString(FixTags.SENDER_COMP_ID, sessionID.getSenderCompID());
-        header.setString(FixTags.TARGET_COMP_ID, sessionID.getTargetCompID());
-        header.setInt(FixTags.MSG_SEQ_NUM, 1);
-        header.setUtcTimeStamp(FixTags.SENDING_TIME, SystemTime.getDate(), true);
+        FIXMessageHeader header = logonResponse.getHeader();
+        header.setField(new GenericField(FIXTag.BEGIN_STRING, sessionID.getBeginString().getValue()));
+        header.setField(new GenericField(FIXTag.SENDER_COMP_ID, sessionID.getSenderCompID()));
+        header.setField(new GenericField(FIXTag.TARGET_COMP_ID, sessionID.getTargetCompID()));
+        header.setField(new GenericField(FIXTag.MSG_SEQ_NUM, 1));
+        MessageUtils.setUtcTimeStamp(header, FIXTag.SENDING_TIME, SystemTime.getDate(), true);
 
         Thread resetThread = new Thread(new Runnable() {
 
@@ -93,14 +102,17 @@ public class SessionResetTest {
         assertTrue("session should have been reset", responder.onResetCalled);
     }
 
-    private Message createAdminMessage(int sequence) {
+    private FIXMessage createAdminMessage(int sequence) {
 
-        final TestRequest msg = new TestRequest(new TestReqID("SessionResetTest"));
+        TestRequest msg = new TestRequest(new TestReqID("SessionResetTest"));
+
         msg.getHeader().setField(MsgType.TEST_REQUEST);
-        msg.getHeader().setString(FixTags.SENDER_COMP_ID, "TARGET");
-        msg.getHeader().setString(FixTags.TARGET_COMP_ID, "SENDER");
-        msg.getHeader().setInt(FixTags.MSG_SEQ_NUM, sequence);
-        msg.getHeader().setUtcTimeStamp(FixTags.SENDING_TIME, new Date());
+
+        msg.getHeader().setField(new SenderCompID("TARGET"));
+        msg.getHeader().setField(new TargetCompID("SENDER"));
+        msg.getHeader().setField(new SendingTime(new Date()));
+        msg.getHeader().setField(new MsgSeqNum(sequence));
+
         return msg;
     }
 

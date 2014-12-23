@@ -35,9 +35,9 @@ public abstract class IntField extends AbstractField<Integer> {
         this.value = value;
     }
 
-    protected IntField(CharSequence charSequence) {
+    protected IntField(char[] value, int offset, int count) {
 
-        this.value = Integer.parseInt(charSequence.toString());
+        this.value = Integer.parseInt(new String(value, offset, count));
     }
 
     @Override

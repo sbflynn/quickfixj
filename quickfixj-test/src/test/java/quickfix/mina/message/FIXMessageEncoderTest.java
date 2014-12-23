@@ -23,12 +23,10 @@ import java.io.UnsupportedEncodingException;
 
 import org.apache.mina.filter.codec.ProtocolCodecException;
 import org.quickfixj.CharsetSupport;
+import org.quickfixj.FIXMessage;
+import org.quickfixj.messages.bd.fix44.News;
+import org.quickfixj.messages.bd.fix44.field.Headline;
 
-import quickfix.FixTags;
-import quickfix.Message;
-import quickfix.fix40.Logon;
-import quickfix.fix44.News;
-import quickfix.fix44.field.Headline;
 import junit.framework.ComparisonFailure;
 import junit.framework.TestCase;
 
@@ -44,9 +42,13 @@ public class FIXMessageEncoderTest extends TestCase {
     public void testEncoding() throws Exception {
 
         FIXMessageEncoder encoder = new FIXMessageEncoder();
-        Message message = new Logon();
-        message.getHeader().setString(FixTags.SENDER_COMP_ID, "TW");
-        message.getHeader().setString(FixTags.TARGET_COMP_ID, "ISLD");
+
+        FIXMessage message = new org.quickfixj.messages.bd.fix40.Logon();
+
+        message.getHeader().setField(new org.quickfixj.messages.bd.fix40.field.SenderCompID("TW"));
+        message.getHeader()
+                .setField(new org.quickfixj.messages.bd.fix40.field.TargetCompID("ISLD"));
+
         ProtocolEncoderOutputForTest protocolEncoderOutputForTest = new ProtocolEncoderOutputForTest();
         encoder.encode(null, message, protocolEncoderOutputForTest);
         assertTrue(protocolEncoderOutputForTest.buffer.limit() > 0);

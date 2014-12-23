@@ -30,9 +30,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.quickfixj.CharsetSupport;
 import org.quickfixj.FIXBeginString;
-import org.quickfixj.spi.MessageBuilderServiceLoader;
-
-import quickfix.field.converter.UtcTimestampConverter;
+import org.quickfixj.field.UtcTimestampConverter;
 
 public class FileLogTest {
 
@@ -210,8 +208,10 @@ public class FileLogTest {
         FileLogFactory factory = new FileLogFactory(settings);
 
         Session session = new Session(new UnitTestApplication(), new MemoryStoreFactory(),
-                sessionID, new DefaultDataDictionaryProvider(), null, factory,
-                MessageBuilderServiceLoader.getMessageBuilderFactory(), 0);
+                sessionID, DefaultEngine.getDefaultEngine().getMessageDictionaryFactory(
+                        FIXBeginString.FIX42, "org.quickfixj.messages.bd"), null, factory,
+                DefaultEngine.getDefaultEngine().getMessageBuilderFactory(FIXBeginString.FIX42,
+                        "org.quickfixj.messages.bd"), new DefaultValidator(FIXBeginString.FIX42), 0);
         Session.registerSession(session);
 
         FileLog log = (FileLog) session.getLog();

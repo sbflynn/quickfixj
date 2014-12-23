@@ -8,18 +8,47 @@
  */
 package org.quickfixj;
 
-import java.util.List;
-
 /**
  * FIXGroupField - provides...
  *
  * @author stephen.flynn@jftechnology.com
  * @since 2.0
  */
-public interface FIXGroupField<T extends FIXGroup> extends FIXField<Integer> {
+public interface FIXGroupField<T extends FIXGroup> extends FIXField<Integer>, Iterable<T> {
 
+    /**
+     * @since 2.0
+     */
     int getDelimiterField();
 
-    List<T> getGroups();
+    /**
+     * @since 2.0
+     */
+    T add(T group);
+
+    /**
+     * @since 2.0
+     */
+    void remove(T group);
+
+    /**
+     * @since 2.0
+     */
+    void remove(int index);
+
+    /**
+     * @since 2.0
+     */
+    T get(int index);
+
+    /**
+     * @since 2.0
+     */
+    void set(int index, T group);
+
+    /**
+     * @since 2.0
+     */
+    int size();
 
 }

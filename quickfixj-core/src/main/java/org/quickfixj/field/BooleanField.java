@@ -19,8 +19,6 @@
 
 package org.quickfixj.field;
 
-import quickfix.FieldConvertError;
-
 public abstract class BooleanField extends AbstractField<Boolean> {
 
     /**
@@ -35,9 +33,9 @@ public abstract class BooleanField extends AbstractField<Boolean> {
         this.value = value;
     }
 
-    protected BooleanField(CharSequence charSequence) {
+    protected BooleanField(char[] value, int offset, int count) {
 
-        switch (charSequence.charAt(0)) {
+        switch (value[offset]) {
         case 'Y':
             this.value = true;
             break;
@@ -47,7 +45,8 @@ public abstract class BooleanField extends AbstractField<Boolean> {
 
         default:
             // TODO : throw a more meaningful exception 
-            throw new FieldConvertError("BAD BOOLEAN VALUE " + charSequence);
+            throw new FieldConversionException("BAD BOOLEAN VALUE "
+                    + new String(value, offset, count));
         }
     }
 

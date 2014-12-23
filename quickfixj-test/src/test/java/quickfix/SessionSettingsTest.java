@@ -30,6 +30,8 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.quickfixj.FIXBeginString;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.field.FieldConversionException;
 
 import junit.framework.TestCase;
 
@@ -52,7 +54,7 @@ public class SessionSettingsTest extends TestCase {
 
         final SessionSettings settings = new SessionSettings(new ByteArrayInputStream(
                 settingsString.getBytes()));
-        final SessionID id = settings.sectionIterator().next();
+        final FIXSessionID id = settings.sectionIterator().next();
         assertEquals("Company", id.getSenderCompID());
         assertEquals("FixedIncome", id.getSenderSubID());
         assertEquals("HongKong", id.getSenderLocationID());
@@ -88,7 +90,7 @@ public class SessionSettingsTest extends TestCase {
         try {
             settings.getLong(sessionID1, "TestLong2");
             fail("expected exception");
-        } catch (final FieldConvertError e) {
+        } catch (final FieldConversionException e) {
             // expected
         }
         settings.setLong(sessionID3, "TestLong", 4321);
@@ -98,7 +100,7 @@ public class SessionSettingsTest extends TestCase {
         try {
             settings.getDouble(sessionID1, "TestDouble2");
             fail("expected exception");
-        } catch (final FieldConvertError e) {
+        } catch (final FieldConversionException e) {
             // expected
         }
         settings.setDouble(sessionID3, "TestDouble", 43.21);
@@ -114,7 +116,7 @@ public class SessionSettingsTest extends TestCase {
 
         assertTrue("wrong setting", settings.isSetting(sessionID1, "StartTime"));
 
-        final Iterator<SessionID> sectionIterator = settings.sectionIterator();
+        final Iterator<FIXSessionID> sectionIterator = settings.sectionIterator();
         assertNotNull(sectionIterator.next());
         assertNotNull(sectionIterator.next());
         assertNotNull(sectionIterator.next());
@@ -176,9 +178,9 @@ public class SessionSettingsTest extends TestCase {
 
     public void testSessionKeyIterator() throws Exception {
         final SessionSettings settings = setUpSession();
-        final Iterator<SessionID> itr = settings.sectionIterator();
+        final Iterator<FIXSessionID> itr = settings.sectionIterator();
         while (itr.hasNext()) {
-            final SessionID id = itr.next();
+            final FIXSessionID id = itr.next();
             assertEquals("FIX", id.getBeginString().getValue().substring(0, 3));
             assertEquals("", id.getSessionQualifier());
         }
@@ -329,9 +331,9 @@ public class SessionSettingsTest extends TestCase {
                 actualSettingsString.getBytes()));
         assertSectionEquals(expectedSettings.getDefaultProperties(),
                 actualSettings.getDefaultProperties());
-        final Iterator<SessionID> sessionIDs = expectedSettings.sectionIterator();
+        final Iterator<FIXSessionID> sessionIDs = expectedSettings.sectionIterator();
         while (sessionIDs.hasNext()) {
-            final SessionID sessionID = sessionIDs.next();
+            final FIXSessionID sessionID = sessionIDs.next();
             assertSectionEquals(expectedSettings.getSessionProperties(sessionID),
                     actualSettings.getSessionProperties(sessionID));
         }

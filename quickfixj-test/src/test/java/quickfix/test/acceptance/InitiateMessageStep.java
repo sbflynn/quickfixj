@@ -24,12 +24,12 @@ import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.quickfixj.FIXBeginString;
+import org.quickfixj.field.UtcTimestampConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import quickfix.FixVersions;
 import quickfix.MessageUtils;
-import quickfix.field.converter.UtcTimestampConverter;
 import junit.framework.AssertionFailedError;
 import junit.framework.TestResult;
 
@@ -124,7 +124,7 @@ public class InitiateMessageStep implements TestStep {
                 }
             }
             String beginString = message.substring(2, 9);
-            boolean includeMillis = beginString.compareTo(FixVersions.BEGINSTRING_FIX42) >= 0;
+            boolean includeMillis = beginString.compareTo(FIXBeginString.FIX42.getValue()) >= 0;
             message = matcher.replaceFirst(UtcTimestampConverter.convert(
                     new Date(System.currentTimeMillis() + offset), includeMillis));
             matcher = TIME_PATTERN.matcher(message);

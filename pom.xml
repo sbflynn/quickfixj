@@ -33,6 +33,7 @@
 		<module>quickfixj-codegenerator</module>
 		<module>quickfixj-dictgenerator</module>
 		<module>quickfixj-core</module>
+		<module>quickfixj-core-sleepycat</module>
 		<module>quickfixj-messages</module>
 		<module>quickfixj-test</module>
 		<module>quickfixj-examples</module>
@@ -48,57 +49,145 @@
 	</properties>
 
 	<dependencyManagement>
-		<!-- List own artifacts so users can leverage import scope -->
 		<dependencies>
+			<!-- List own artifacts so users can leverage import scope -->
 			<dependency>
 				<groupId>org.quickfixj</groupId>
 				<artifactId>quickfixj-core</artifactId>
 				<version>${project.version}</version>
+				<scope>provided</scope>
 			</dependency>
 			<dependency>
 				<groupId>org.quickfixj</groupId>
-				<artifactId>quickfixj-messages-fix40</artifactId>
+				<artifactId>quickfixj-core-sleepycat</artifactId>
 				<version>${project.version}</version>
+				<scope>provided</scope>
 			</dependency>
 			<dependency>
-				<groupId>org.quickfixj</groupId>
-				<artifactId>quickfixj-messages-fix41</artifactId>
+				<groupId>org.quickfixj.messages</groupId>
+				<artifactId>org.quickfixj.messages.bd.fix40</artifactId>
 				<version>${project.version}</version>
+				<scope>provided</scope>
 			</dependency>
 			<dependency>
-				<groupId>org.quickfixj</groupId>
-				<artifactId>quickfixj-messages-fix42</artifactId>
+				<groupId>org.quickfixj.messages</groupId>
+				<artifactId>org.quickfixj.messages.fp.fix40</artifactId>
 				<version>${project.version}</version>
+				<scope>provided</scope>
 			</dependency>
 			<dependency>
-				<groupId>org.quickfixj</groupId>
-				<artifactId>quickfixj-messages-fix43</artifactId>
+				<groupId>org.quickfixj.messages</groupId>
+				<artifactId>org.quickfixj.messages.bd.fix41</artifactId>
 				<version>${project.version}</version>
+				<scope>provided</scope>
 			</dependency>
 			<dependency>
-				<groupId>org.quickfixj</groupId>
-				<artifactId>quickfixj-messages-fix44</artifactId>
+				<groupId>org.quickfixj.messages</groupId>
+				<artifactId>org.quickfixj.messages.fp.fix41</artifactId>
 				<version>${project.version}</version>
+				<scope>provided</scope>
 			</dependency>
 			<dependency>
-				<groupId>org.quickfixj</groupId>
-				<artifactId>quickfixj-messages-fix50</artifactId>
+				<groupId>org.quickfixj.messages</groupId>
+				<artifactId>org.quickfixj.messages.bd.fix42</artifactId>
 				<version>${project.version}</version>
+				<scope>provided</scope>
 			</dependency>
 			<dependency>
-				<groupId>org.quickfixj</groupId>
-				<artifactId>quickfixj-messages-fix50sp1</artifactId>
+				<groupId>org.quickfixj.messages</groupId>
+				<artifactId>org.quickfixj.messages.fp.fix42</artifactId>
 				<version>${project.version}</version>
+				<scope>provided</scope>
 			</dependency>
 			<dependency>
-				<groupId>org.quickfixj</groupId>
-				<artifactId>quickfixj-messages-fix50sp2</artifactId>
+				<groupId>org.quickfixj.messages</groupId>
+				<artifactId>org.quickfixj.messages.bd.fix43</artifactId>
 				<version>${project.version}</version>
+				<scope>provided</scope>
 			</dependency>
 			<dependency>
-				<groupId>org.quickfixj</groupId>
-				<artifactId>quickfixj-messages-fixt11</artifactId>
+				<groupId>org.quickfixj.messages</groupId>
+				<artifactId>org.quickfixj.messages.fp.fix43</artifactId>
 				<version>${project.version}</version>
+				<scope>provided</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.quickfixj.messages</groupId>
+				<artifactId>org.quickfixj.messages.bd.fix44</artifactId>
+				<version>${project.version}</version>
+				<scope>provided</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.quickfixj.messages</groupId>
+				<artifactId>org.quickfixj.messages.fp.fix44</artifactId>
+				<version>${project.version}</version>
+				<scope>provided</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.quickfixj.messages</groupId>
+				<artifactId>org.quickfixj.messages.bd.fix50</artifactId>
+				<version>${project.version}</version>
+				<scope>provided</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.quickfixj.messages</groupId>
+				<artifactId>org.quickfixj.messages.fp.fix50</artifactId>
+				<version>${project.version}</version>
+				<scope>provided</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.quickfixj.messages</groupId>
+				<artifactId>org.quickfixj.messages.bd.fix50sp1</artifactId>
+				<version>${project.version}</version>
+				<scope>provided</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.quickfixj.messages</groupId>
+				<artifactId>org.quickfixj.messages.fp.fix50sp1</artifactId>
+				<version>${project.version}</version>
+				<scope>provided</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.quickfixj.messages</groupId>
+				<artifactId>org.quickfixj.messages.bd.fix50sp2</artifactId>
+				<version>${project.version}</version>
+				<scope>provided</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.quickfixj.messages</groupId>
+				<artifactId>org.quickfixj.messages.fp.fix50sp2</artifactId>
+				<version>${project.version}</version>
+				<scope>provided</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.quickfixj.messages</groupId>
+				<artifactId>org.quickfixj.messages.fixt11</artifactId>
+				<version>${project.version}</version>
+				<scope>provided</scope>
+			</dependency>
+
+			<!-- Define SLF4J version and scope for the whole project -->
+			<dependency>
+				<groupId>org.slf4j</groupId>
+				<artifactId>slf4j-api</artifactId>
+				<version>1.6.3</version>
+				<scope>provided</scope>
+			</dependency>
+
+			<!-- Define Mina version and scope for the whole project -->
+			<dependency>
+				<groupId>org.apache.mina</groupId>
+				<artifactId>mina-core</artifactId>
+				<version>2.0.7</version>
+				<scope>provided</scope>
+			</dependency>
+
+			<!-- Define JUnit version and scope for the whole project -->
+			<dependency>
+				<groupId>junit</groupId>
+				<artifactId>junit</artifactId>
+				<version>4.5</version>
+				<scope>test</scope>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
@@ -162,6 +251,12 @@
 					<artifactId>maven-assembly-plugin</artifactId>
 					<version>2.4</version>
 				</plugin>
+				<plugin>
+					<groupId>org.apache.felix</groupId>
+					<artifactId>maven-bundle-plugin</artifactId>
+					<version>2.5.3</version>
+					<extensions>true</extensions>
+				</plugin>
 			</plugins>
 		</pluginManagement>
 
@@ -170,9 +265,8 @@
 			<plugin>
 				<groupId>org.apache.felix</groupId>
 				<artifactId>maven-bundle-plugin</artifactId>
-				<version>2.4.0</version>
-				<extensions>true</extensions>
 			</plugin>
 		</plugins>
+
 	</build>
 </project>

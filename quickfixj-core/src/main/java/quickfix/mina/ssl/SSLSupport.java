@@ -19,9 +19,10 @@
 
 package quickfix.mina.ssl;
 
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.field.FieldConversionException;
+
 import quickfix.ConfigError;
-import quickfix.FieldConvertError;
-import quickfix.SessionID;
 import quickfix.SessionSettings;
 
 public class SSLSupport {
@@ -36,35 +37,35 @@ public class SSLSupport {
     /* package */static final String QUICKFIXJ_CERT = "quickfixj.cert";
     /* package */static final String QUICKFIXJ_PW = "quickfixjpw";
 
-    public static String getKeystoreName(SessionSettings settings, SessionID sessionID) {
+    public static String getKeystoreName(SessionSettings settings, FIXSessionID sessionID) {
         String keyStoreName = QUICKFIXJ_CERT;
         if (settings.isSetting(sessionID, SSLSupport.SETTING_KEY_STORE_NAME)) {
             try {
                 keyStoreName = settings.getString(sessionID, SSLSupport.SETTING_KEY_STORE_NAME);
             } catch (ConfigError ignored) {
                 // ignore
-            } catch (FieldConvertError ignored) {
+            } catch (FieldConversionException ignored) {
                 // ignore
             }
         }
         return keyStoreName;
     }
 
-    public static String getKeystorePasswd(SessionSettings settings, SessionID sessionID) {
+    public static String getKeystorePasswd(SessionSettings settings, FIXSessionID sessionID) {
         String keyStorePassword = QUICKFIXJ_PW;
         if (settings.isSetting(sessionID, SSLSupport.SETTING_KEY_STORE_PWD)) {
             try {
                 keyStorePassword = settings.getString(sessionID, SSLSupport.SETTING_KEY_STORE_PWD);
             } catch (ConfigError ignored) {
                 // ignore
-            } catch (FieldConvertError ignored) {
+            } catch (FieldConversionException ignored) {
                 // ignore
             }
         }
         return keyStorePassword;
     }
 
-    public static String getEnableProtocole(SessionSettings settings, SessionID sessionID) {
+    public static String getEnableProtocole(SessionSettings settings, FIXSessionID sessionID) {
         String strEnableProtocole = null;
         if (settings.isSetting(sessionID, SSLSupport.SETTING_ENABLE_PROTOCOLE)) {
             try {
@@ -72,21 +73,21 @@ public class SSLSupport {
                         SSLSupport.SETTING_ENABLE_PROTOCOLE);
             } catch (ConfigError ignored) {
                 // ignore
-            } catch (FieldConvertError ignored) {
+            } catch (FieldConversionException ignored) {
                 // ignore
             }
         }
         return strEnableProtocole;
     }
 
-    public static String getCipherSuite(SessionSettings settings, SessionID sessionID) {
+    public static String getCipherSuite(SessionSettings settings, FIXSessionID sessionID) {
         String strCipherSuite = null;
         if (settings.isSetting(sessionID, SSLSupport.SETTING_CIPHER_SUITES)) {
             try {
                 strCipherSuite = settings.getString(sessionID, SSLSupport.SETTING_CIPHER_SUITES);
             } catch (ConfigError ignored) {
                 // ignore
-            } catch (FieldConvertError ignored) {
+            } catch (FieldConversionException ignored) {
                 // ignore
             }
         }

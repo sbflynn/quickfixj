@@ -24,13 +24,14 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
-import quickfix.field.converter.BooleanConverter;
-import quickfix.field.converter.CharConverter;
-import quickfix.field.converter.DoubleConverter;
-import quickfix.field.converter.IntConverter;
-import quickfix.field.converter.UtcDateOnlyConverter;
-import quickfix.field.converter.UtcTimeOnlyConverter;
-import quickfix.field.converter.UtcTimestampConverter;
+import org.quickfixj.field.BooleanConverter;
+import org.quickfixj.field.CharConverter;
+import org.quickfixj.field.DoubleConverter;
+import org.quickfixj.field.FieldConversionException;
+import org.quickfixj.field.IntConverter;
+import org.quickfixj.field.UtcDateOnlyConverter;
+import org.quickfixj.field.UtcTimeOnlyConverter;
+import org.quickfixj.field.UtcTimestampConverter;
 
 import junit.framework.TestCase;
 
@@ -44,19 +45,19 @@ public class FieldConvertersTest extends TestCase {
         try {
             IntConverter.convert("abc");
             fail();
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             // expected
         }
         try {
             IntConverter.convert("123.4");
             fail();
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             // expected
         }
         try {
             IntConverter.convert("+200");
             fail();
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             // expected
         }
     }
@@ -82,37 +83,37 @@ public class FieldConvertersTest extends TestCase {
         try {
             DoubleConverter.convert("abc");
             fail();
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             // expected
         }
         try {
             DoubleConverter.convert("+200");
             fail();
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             // expected
         }
         try {
             DoubleConverter.convert("123.A");
             fail();
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             // expected
         }
         try {
             DoubleConverter.convert(".");
             fail();
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             // expected
         }
         try {
             DoubleConverter.convert("1E6");
             fail();
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             // expected
         }
         try {
             DoubleConverter.convert("1e6");
             fail();
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             // expected
         }
         assertEquals("1.500", DoubleConverter.convert(1.5, 3));
@@ -133,13 +134,13 @@ public class FieldConvertersTest extends TestCase {
         try {
             CharConverter.convert("");
             fail();
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             // expected
         }
         try {
             CharConverter.convert("a1");
             fail();
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             // expected
         }
     }
@@ -152,13 +153,13 @@ public class FieldConvertersTest extends TestCase {
         try {
             BooleanConverter.convert("D");
             fail();
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             // expected
         }
         try {
             BooleanConverter.convert("true");
             fail();
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             // expected
         }
     }
@@ -184,31 +185,31 @@ public class FieldConvertersTest extends TestCase {
         try {
             UtcTimestampConverter.convert("2000042x-12:05:06.555");
             fail();
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             // expected
         }
         try {
             UtcTimestampConverter.convert("200004261-2:05:06.555");
             fail();
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             // expected
         }
         try {
             UtcTimestampConverter.convert("20000426-1205:06.555");
             fail();
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             // expected
         }
         try {
             UtcTimestampConverter.convert("20000426-12:0506.555");
             fail();
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             // expected
         }
         try {
             UtcTimestampConverter.convert("20000426-12:05:06555");
             fail();
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             // expected
         }
     }
@@ -234,7 +235,7 @@ public class FieldConvertersTest extends TestCase {
         try {
             UtcTimeOnlyConverter.convert("I2:05:06.555");
             fail();
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             // expected
         }
     }
@@ -257,31 +258,31 @@ public class FieldConvertersTest extends TestCase {
         try {
             UtcDateOnlyConverter.convert("b000042b");
             fail();
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             // expected
         }
         try {
             UtcDateOnlyConverter.convert("2000042");
             fail();
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             // expected
         }
         try {
             UtcDateOnlyConverter.convert("200004268");
             fail();
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             // expected
         }
         try {
             UtcDateOnlyConverter.convert("2000042b");
             fail();
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             // expected
         }
         try {
             UtcDateOnlyConverter.convert("200k0425");
             fail();
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             // expected
         }
     }

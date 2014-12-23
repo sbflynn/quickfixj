@@ -22,8 +22,14 @@ package quickfix;
 import java.lang.reflect.Constructor;
 import java.math.BigDecimal;
 
-import quickfix.fix42.NewOrderSingle;
-import quickfix.fix44.field.Price;
+import org.quickfixj.FIXApplication;
+import org.quickfixj.FIXBeginString;
+import org.quickfixj.FIXMessage;
+import org.quickfixj.messages.bd.fix42.NewOrderSingle;
+import org.quickfixj.messages.bd.fix42.field.BeginString;
+import org.quickfixj.messages.bd.fix42.field.MsgType;
+import org.quickfixj.messages.bd.fix44.field.Price;
+
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
@@ -56,14 +62,20 @@ public class BigDecimalFieldTest extends TestCase {
 
             BigDecimal originalPrice = new BigDecimal("10.3000");
             assertEquals(4, originalPrice.scale());
-            Message message = new NewOrderSingle();
+            FIXMessage message = new NewOrderSingle();
+            // should be added by a message builder
+            message.getHeader().setField(new BeginString(FIXBeginString.FIX42.getValue()));
+            message.getHeader().setField(MsgType.ORDER_SINGLE);
             message.setField(cons.newInstance(new BigDecimal("10.3000")));
-            BigDecimal extractedPrice = message.getDecimal(Price.TAG);
+            BigDecimal extractedPrice = MessageUtils.coerceToBigDecimal(message, Price.TAG);
             assertEquals(4, extractedPrice.scale());
             assertEquals(new BigDecimal("10.3000"), extractedPrice);
             String newOrderString = message.toString();
-            Message rehydratedMessage = new Message(newOrderString);
-            BigDecimal rehydratedPrice = rehydratedMessage.getDecimal(Price.TAG);
+            System.out.println("BigDecimalFieldTest.testBigDecimalRoundTripping() "
+                    + newOrderString);
+            FIXMessage rehydratedMessage = MessageUtils.parse(FIXApplication.FIX42, newOrderString);
+            BigDecimal rehydratedPrice = MessageUtils.coerceToBigDecimal(rehydratedMessage,
+                    Price.TAG);
             assertEquals(new BigDecimal("10.3000"), rehydratedPrice);
             assertEquals(4, rehydratedPrice.scale());
         } catch (NoSuchMethodException ex) {

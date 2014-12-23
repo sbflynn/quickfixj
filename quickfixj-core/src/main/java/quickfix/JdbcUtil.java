@@ -33,6 +33,8 @@ import javax.sql.DataSource;
 
 import org.logicalcobwebs.proxool.ProxoolDataSource;
 import org.quickfixj.FIXBeginString;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.field.FieldConversionException;
 
 class JdbcUtil {
 
@@ -41,8 +43,9 @@ class JdbcUtil {
     private static Map<String, ProxoolDataSource> dataSources = new ConcurrentHashMap<String, ProxoolDataSource>();
     private static int dataSourceCounter = 1;
 
-    static DataSource getDataSource(SessionSettings settings, SessionID sessionID)
-            throws ConfigError, FieldConvertError {
+    static DataSource getDataSource(SessionSettings settings, FIXSessionID sessionID)
+            throws ConfigError, FieldConversionException {
+
         if (settings.isSetting(sessionID, JdbcSetting.SETTING_JDBC_DS_NAME)) {
             String jndiName = settings.getString(sessionID, JdbcSetting.SETTING_JDBC_DS_NAME);
             try {
@@ -50,15 +53,15 @@ class JdbcUtil {
             } catch (NamingException e) {
                 throw new ConfigError(e);
             }
-        } else {
-            String jdbcDriver = settings.getString(sessionID, JdbcSetting.SETTING_JDBC_DRIVER);
-            String connectionURL = settings.getString(sessionID,
-                    JdbcSetting.SETTING_JDBC_CONNECTION_URL);
-            String user = settings.getString(sessionID, JdbcSetting.SETTING_JDBC_USER);
-            String password = settings.getString(sessionID, JdbcSetting.SETTING_JDBC_PASSWORD);
-
-            return getDataSource(jdbcDriver, connectionURL, user, password, true);
         }
+
+        String jdbcDriver = settings.getString(sessionID, JdbcSetting.SETTING_JDBC_DRIVER);
+        String connectionURL = settings.getString(sessionID,
+                JdbcSetting.SETTING_JDBC_CONNECTION_URL);
+        String user = settings.getString(sessionID, JdbcSetting.SETTING_JDBC_USER);
+        String password = settings.getString(sessionID, JdbcSetting.SETTING_JDBC_PASSWORD);
+
+        return getDataSource(jdbcDriver, connectionURL, user, password, true);
     }
 
     /**
@@ -95,7 +98,7 @@ class JdbcUtil {
         return ds;
     }
 
-    static void close(SessionID sessionID, Connection connection) {
+    static void close(FIXSessionID sessionID, Connection connection) {
         if (connection != null) {
             try {
                 connection.close();
@@ -105,7 +108,7 @@ class JdbcUtil {
         }
     }
 
-    static void close(SessionID sessionID, PreparedStatement statement) {
+    static void close(FIXSessionID sessionID, PreparedStatement statement) {
         if (statement != null) {
             try {
                 statement.close();
@@ -115,7 +118,7 @@ class JdbcUtil {
         }
     }
 
-    static void close(SessionID sessionID, ResultSet rs) {
+    static void close(FIXSessionID sessionID, ResultSet rs) {
         if (rs != null) {
             try {
                 rs.close();
@@ -165,7 +168,7 @@ class JdbcUtil {
         return isExtendedSessionID ? "?,?,?,?,?,?,?,?" : "?,?,?,?";
     }
 
-    static int setSessionIdParameters(SessionID sessionID, PreparedStatement query, int offset,
+    static int setSessionIdParameters(FIXSessionID sessionID, PreparedStatement query, int offset,
             boolean isExtendedSessionID, String defaultSqlValue) throws SQLException {
         if (isExtendedSessionID) {
             query.setString(offset++,

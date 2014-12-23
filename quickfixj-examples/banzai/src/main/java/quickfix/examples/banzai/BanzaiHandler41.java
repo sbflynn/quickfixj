@@ -24,71 +24,64 @@ import java.util.HashMap;
 import java.util.HashSet;
 
 import org.quickfixj.FIXApplication;
+import org.quickfixj.FIXMessage;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.engine.FIXTag;
+import org.quickfixj.engine.SessionNotFoundException;
+import org.quickfixj.field.GenericField;
+import org.quickfixj.messages.bd.fix41.ExecutionReport;
+import org.quickfixj.messages.bd.fix41.NewOrderSingle;
+import org.quickfixj.messages.bd.fix41.OrderCancelReplaceRequest;
+import org.quickfixj.messages.bd.fix41.OrderCancelRequest;
+import org.quickfixj.messages.bd.fix41.field.AvgPx;
+import org.quickfixj.messages.bd.fix41.field.ClOrdID;
+import org.quickfixj.messages.bd.fix41.field.CumQty;
+import org.quickfixj.messages.bd.fix41.field.ExecID;
+import org.quickfixj.messages.bd.fix41.field.HandlInst;
+import org.quickfixj.messages.bd.fix41.field.LastShares;
+import org.quickfixj.messages.bd.fix41.field.LeavesQty;
+import org.quickfixj.messages.bd.fix41.field.LocateReqd;
+import org.quickfixj.messages.bd.fix41.field.MsgType;
+import org.quickfixj.messages.bd.fix41.field.OrdStatus;
+import org.quickfixj.messages.bd.fix41.field.OrdType;
+import org.quickfixj.messages.bd.fix41.field.OrderQty;
+import org.quickfixj.messages.bd.fix41.field.OrigClOrdID;
+import org.quickfixj.messages.bd.fix41.field.Price;
+import org.quickfixj.messages.bd.fix41.field.RefSeqNum;
+import org.quickfixj.messages.bd.fix41.field.Side;
+import org.quickfixj.messages.bd.fix41.field.StopPx;
+import org.quickfixj.messages.bd.fix41.field.Symbol;
+import org.quickfixj.messages.bd.fix41.field.Text;
+import org.quickfixj.messages.bd.fix41.field.TimeInForce;
 
 import quickfix.FieldNotFound;
-import quickfix.FixTags;
-import quickfix.Message;
-import quickfix.Session;
-import quickfix.SessionID;
-import quickfix.SessionNotFound;
-import quickfix.fix41.ExecutionReport;
-import quickfix.fix41.NewOrderSingle;
-import quickfix.fix41.OrderCancelReplaceRequest;
-import quickfix.fix41.OrderCancelRequest;
-import quickfix.fix41.field.AvgPx;
-import quickfix.fix41.field.ClOrdID;
-import quickfix.fix41.field.CumQty;
-import quickfix.fix41.field.ExecID;
-import quickfix.fix41.field.HandlInst;
-import quickfix.fix41.field.LastShares;
-import quickfix.fix41.field.LeavesQty;
-import quickfix.fix41.field.LocateReqd;
-import quickfix.fix41.field.MsgType;
-import quickfix.fix41.field.OrdStatus;
-import quickfix.fix41.field.OrdType;
-import quickfix.fix41.field.OrderQty;
-import quickfix.fix41.field.OrigClOrdID;
-import quickfix.fix41.field.Price;
-import quickfix.fix41.field.RefSeqNum;
-import quickfix.fix41.field.Side;
-import quickfix.fix41.field.StopPx;
-import quickfix.fix41.field.Symbol;
-import quickfix.fix41.field.Text;
-import quickfix.fix41.field.TimeInForce;
 
 public class BanzaiHandler41 extends BanzaiHandler {
 
     static private TwoWayMap sideMap = new TwoWayMap();
     static private TwoWayMap typeMap = new TwoWayMap();
     static private TwoWayMap tifMap = new TwoWayMap();
-    static private HashMap<SessionID, HashSet<ExecID>> execIDs = new HashMap<SessionID, HashSet<ExecID>>();
+    static private HashMap<FIXSessionID, HashSet<ExecID>> execIDs = new HashMap<FIXSessionID, HashSet<ExecID>>();
 
-    private final BanzaiApplication application;
-    private final OrderTableModel orderTableModel;
-    private final ExecutionTableModel executionTableModel;
-
-    public BanzaiHandler41(BanzaiApplication application, OrderTableModel orderTableModel,
-            ExecutionTableModel executionTableModel) {
-        this.application = application;
-        this.orderTableModel = orderTableModel;
-        this.executionTableModel = executionTableModel;
+    public BanzaiHandler41(BanzaiApplication application) {
+        super(application);
     }
 
     @Override
-    public void process(quickfix.Message message, SessionID sessionID) {
+    public void process(FIXMessage message, FIXSessionID sessionID) {
         try {
-            if (application.isAvailable()) {
-                if (application.isMissingField()) {
+            if (getApplication().isAvailable()) {
+                if (getApplication().isMissingField()) {
                     // For OpenFIX certification testing
                     sendBusinessReject(sessionID, message, -1,
                             "Conditionally required field missing");
-                } else if (message.getHeader().isFieldSet(FixTags.DELIVER_TO_COMP_ID)) {
+                } else if (message.getHeader().isFieldSet(FIXTag.DELIVER_TO_COMP_ID)) {
                     // This is here to support OpenFIX certification
                     sendSessionReject(message, sessionID);
-                } else if (message.getHeader().getField(FixTags.MSG_TYPE).getValue().equals("8")) {
+                } else if (message.getHeader().getField(FIXTag.MSG_TYPE).getValue().equals("8")) {
                     executionReport((ExecutionReport) message, sessionID);
-                } else if (message.getHeader().getField(FixTags.MSG_TYPE).getValue().equals("9")) {
-                    cancelReject(message, sessionID);
+                } else if (message.getHeader().getField(FIXTag.MSG_TYPE).getValue().equals("9")) {
+                    cancelReject(message);
                 } else {
                     sendBusinessReject(sessionID, message, -1, "Unsupported Message Type");
                 }
@@ -100,48 +93,36 @@ public class BanzaiHandler41 extends BanzaiHandler {
         }
     }
 
-    private void sendSessionReject(Message message, SessionID sessionID) throws FieldNotFound,
-            SessionNotFound {
-        Message reply = createMessage(sessionID, MsgType.REJECT);
+    private void sendSessionReject(FIXMessage message, FIXSessionID sessionID)
+            throws FieldNotFound, SessionNotFoundException {
+        FIXMessage reply = getApplication().createMessage(sessionID, FIXApplication.FIX41,
+                MsgType.REJECT.getValue());
         reverseRoute(message, reply);
-        String refSeqNum = message.getHeader().getString(FixTags.MSG_SEQ_NUM);
-        reply.setString(RefSeqNum.TAG, refSeqNum);
-        Session.sendToTarget(reply);
+        String refSeqNum = message.getHeader().getFieldValue(FIXTag.MSG_SEQ_NUM);
+        reply.setField(new GenericField(RefSeqNum.TAG, refSeqNum));
+        getApplication().getEngine().send(reply, sessionID);
     }
 
     @Override
-    public void sendBusinessReject(SessionID sessionID, Message message, int rejectReason,
+    public void sendBusinessReject(FIXSessionID sessionID, FIXMessage message, int rejectReason,
             String rejectText) {
         //        Message reply = createMessage(sessionID, MsgType.BUSINESS_MESSAGE_REJECT);
         //        reverseRoute(message, reply);
-        //        String refSeqNum = message.getHeader().getString(FixTags.MSG_SEQ_NUM);
+        //        String refSeqNum = message.getHeader().getString(FIXTag.MSG_SEQ_NUM);
         //        reply.setString(RefSeqNum.TAG, refSeqNum);
         //        reply.setString(Text.TAG, rejectText);
         //        Session.sendToTarget(reply);
     }
 
-    private Message createMessage(SessionID sessionID, MsgType msgType) throws FieldNotFound {
-        return application
-                .getMessageFactory()
-                .getMessageBuilder(sessionID.getBeginString(), FIXApplication.FIX41,
-                        msgType.getValue()).create();
-    }
-
-    private void reverseRoute(Message message, Message reply) throws FieldNotFound {
-        reply.getHeader().setString(FixTags.SENDER_COMP_ID,
-                message.getHeader().getString(FixTags.TARGET_COMP_ID));
-        reply.getHeader().setString(FixTags.TARGET_COMP_ID,
-                message.getHeader().getString(FixTags.SENDER_COMP_ID));
-    }
-
-    private void executionReport(ExecutionReport message, SessionID sessionID) throws FieldNotFound {
+    private void executionReport(ExecutionReport message, FIXSessionID sessionID)
+            throws FieldNotFound {
 
         ExecID execID = message.getExecID();
 
         if (alreadyProcessed(execID, sessionID))
             return;
 
-        Order order = orderTableModel.getOrder(message.getClOrdID().getValue());
+        Order order = getOrderTableModel().getOrder(message.getClOrdID().getValue());
         if (order == null) {
             return;
         }
@@ -160,8 +141,8 @@ public class BanzaiHandler41 extends BanzaiHandler {
 
         if (fillSize.compareTo(BigDecimal.ZERO) > 0) {
             order.setOpen(order.getOpen() - (int) Double.parseDouble(fillSize.toPlainString()));
-            order.setExecuted(new Integer(message.getString(CumQty.TAG)));
-            order.setAvgPx(new Double(message.getString(AvgPx.TAG)));
+            order.setExecuted(new Integer(message.getFieldValue(CumQty.TAG)));
+            order.setAvgPx(new Double(message.getFieldValue(AvgPx.TAG)));
         }
 
         OrdStatus ordStatus = message.getOrdStatus();
@@ -184,7 +165,7 @@ public class BanzaiHandler41 extends BanzaiHandler {
             // ignore
         }
 
-        orderTableModel.updateOrder(order, message.getClOrdID().getValue());
+        getOrderTableModel().updateOrder(order, message.getClOrdID().getValue());
         //    observableOrder.update(order);
 
         if (fillSize.compareTo(BigDecimal.ZERO) > 0) {
@@ -198,30 +179,29 @@ public class BanzaiHandler41 extends BanzaiHandler {
             }
             Side side = message.getSide();
             execution.setSide(FIXSideToSide(side));
-            executionTableModel.addExecution(execution);
+            getExecutionTableModel().addExecution(execution);
         }
     }
 
-    private void cancelReject(Message message, SessionID sessionID) throws FieldNotFound {
+    private void cancelReject(FIXMessage message) throws FieldNotFound {
 
-        String id = message.getField(ClOrdID.TAG).getCharacters().toString();
-        Order order = orderTableModel.getOrder(id);
+        String id = message.getFieldValue(ClOrdID.TAG);
+        Order order = getOrderTableModel().getOrder(id);
         if (order == null)
             return;
         if (order.getOriginalID() != null)
-            order = orderTableModel.getOrder(order.getOriginalID());
+            order = getOrderTableModel().getOrder(order.getOriginalID());
 
         try {
-            order.setMessage(message.getField(Text.TAG).getCharacters().toString());
+            order.setMessage(message.getFieldValue(Text.TAG));
         } catch (FieldNotFound e) {
             // ignore
         }
 
-        orderTableModel.updateOrder(order, message.getField(OrigClOrdID.TAG).getCharacters()
-                .toString());
+        getOrderTableModel().updateOrder(order, message.getFieldValue(OrigClOrdID.TAG));
     }
 
-    private boolean alreadyProcessed(ExecID execID, SessionID sessionID) {
+    private boolean alreadyProcessed(ExecID execID, FIXSessionID sessionID) {
         HashSet<ExecID> set = execIDs.get(sessionID);
         if (set == null) {
             set = new HashSet<ExecID>();
@@ -250,7 +230,7 @@ public class BanzaiHandler41 extends BanzaiHandler {
         send(populateOrder(order, newOrderSingle), order.getSessionID());
     }
 
-    public quickfix.Message populateOrder(Order order, quickfix.Message newOrderSingle) {
+    public FIXMessage populateOrder(Order order, FIXMessage newOrderSingle) {
 
         OrderType type = order.getType();
 
@@ -280,7 +260,7 @@ public class BanzaiHandler41 extends BanzaiHandler {
                 new ClOrdID(id), new Symbol(order.getSymbol()), sideToFIXSide(order.getSide()));
         message.setOrderQty(new OrderQty(order.getQuantity()));
 
-        orderTableModel.addID(order, id);
+        getOrderTableModel().addID(order, id);
         send(message, order.getSessionID());
     }
 
@@ -293,11 +273,11 @@ public class BanzaiHandler41 extends BanzaiHandler {
                         order.getSymbol()), sideToFIXSide(order.getSide()),
                 typeToFIXType(order.getType()));
 
-        orderTableModel.addID(order, newOrder.getID());
+        getOrderTableModel().addID(order, newOrder.getID());
         send(populateCancelReplace(order, newOrder, message), order.getSessionID());
     }
 
-    Message populateCancelReplace(Order order, Order newOrder, quickfix.Message message) {
+    FIXMessage populateCancelReplace(Order order, Order newOrder, FIXMessage message) {
 
         if (order.getQuantity() != newOrder.getQuantity())
             message.setField(new OrderQty(newOrder.getQuantity()));

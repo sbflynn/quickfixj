@@ -25,31 +25,28 @@ import java.util.TimerTask;
 import java.util.concurrent.CountDownLatch;
 
 import org.quickfixj.FIXBeginString;
-import org.quickfixj.spi.MessageBuilderServiceLoader;
+import org.quickfixj.FIXMessage;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.engine.MessageStoreFactory;
+import org.quickfixj.messages.bd.fix44.Heartbeat;
+import org.quickfixj.messages.bd.fix44.Logon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import quickfix.Application;
 import quickfix.ConfigError;
+import quickfix.DefaultEngine;
 import quickfix.DoNotSend;
-import quickfix.FieldNotFound;
-import quickfix.FixVersions;
-import quickfix.IncorrectDataFormat;
-import quickfix.IncorrectTagValue;
 import quickfix.Initiator;
 import quickfix.MemoryStoreFactory;
-import quickfix.Message;
 import quickfix.MessageCracker;
-import quickfix.MessageStoreFactory;
 import quickfix.RejectLogon;
 import quickfix.RuntimeError;
 import quickfix.ScreenLogFactory;
 import quickfix.SessionID;
 import quickfix.SessionSettings;
-import quickfix.SocketInitiator;
 import quickfix.UnsupportedMessageType;
-import quickfix.fix44.Heartbeat;
-import quickfix.fix44.Logon;
+import quickfix.mina.initiator.SocketInitiator;
 
 public class ResynchTestClient extends MessageCracker implements Application {
     private final Logger log = LoggerFactory.getLogger(ResynchTestServer.class);
@@ -61,8 +58,7 @@ public class ResynchTestClient extends MessageCracker implements Application {
     private boolean forceResynch = false;
 
     @Override
-    public void fromAdmin(Message message, SessionID sessionId) throws FieldNotFound,
-            IncorrectDataFormat, IncorrectTagValue, RejectLogon {
+    public void fromAdmin(FIXMessage message, FIXSessionID sessionId) throws RejectLogon {
         try {
             crack(message, sessionId);
         } catch (UnsupportedMessageType e) {
@@ -71,31 +67,29 @@ public class ResynchTestClient extends MessageCracker implements Application {
     }
 
     @Override
-    public void fromApp(Message message, SessionID sessionID) throws FieldNotFound,
-            IncorrectDataFormat, IncorrectTagValue, UnsupportedMessageType {
+    public void fromApp(FIXMessage message, FIXSessionID sessionID) {
         crack(message, sessionID);
     }
 
     @Override
-    public void onCreate(SessionID sessionId) {
+    public void onCreate(FIXSessionID sessionId) {
         // no-op
     }
 
     @Override
-    public void onLogon(SessionID sessionId) {
+    public void onLogon(FIXSessionID sessionId) {
         // no-op
     }
 
     @Override
-    public void onLogout(SessionID sessionId) {
+    public void onLogout(FIXSessionID sessionId) {
         if (unsynchMode && !forceResynch) {
             stop(false);
         }
     }
 
     // Cracked
-    public void onMessage(Heartbeat message, SessionID sessionID) throws FieldNotFound,
-            UnsupportedMessageType {
+    public void onMessage(Heartbeat message, FIXSessionID sessionID) {
         log.info("Received Heartbeat: " + message);
         stop(false);
     }
@@ -122,13 +116,12 @@ public class ResynchTestClient extends MessageCracker implements Application {
         settings.set(defaults);
 
         SessionID sessionID = new SessionID(FIXBeginString.FIX44, "TW", "ISLD");
-        settings.setString(sessionID, "BeginString", FixVersions.BEGINSTRING_FIX44);
+        settings.setString(sessionID, "BeginString", FIXBeginString.FIX44.getValue());
         settings.setString(sessionID, "DataDictionary", "FIX44.xml");
 
         MessageStoreFactory storeFactory = new MemoryStoreFactory();
         Initiator initiator = new SocketInitiator(this, storeFactory, settings,
-                new ScreenLogFactory(settings),
-                MessageBuilderServiceLoader.getMessageBuilderFactory());
+                new ScreenLogFactory(settings), DefaultEngine.getDefaultEngine());
         initiator.start();
 
         try {
@@ -157,14 +150,14 @@ public class ResynchTestClient extends MessageCracker implements Application {
     }
 
     @Override
-    public void toAdmin(Message message, SessionID sessionId) {
+    public void toAdmin(FIXMessage message, FIXSessionID sessionId) {
         if (message instanceof Logon) {
             System.out.println("Sending logon message: " + message);
         }
     }
 
     @Override
-    public void toApp(Message message, SessionID sessionId) throws DoNotSend {
+    public void toApp(FIXMessage message, FIXSessionID sessionId) throws DoNotSend {
         // no-op
     }
 

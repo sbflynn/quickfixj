@@ -25,6 +25,8 @@ import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.field.FieldConversionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,8 +41,8 @@ public class SessionSchedule {
     private final boolean nonStopSession;
     protected final static Logger log = LoggerFactory.getLogger(SessionSchedule.class);
 
-    public SessionSchedule(SessionSettings settings, SessionID sessionID) throws ConfigError,
-            FieldConvertError {
+    public SessionSchedule(SessionSettings settings, FIXSessionID sessionID) throws ConfigError,
+            FieldConversionException {
 
         if (settings.isSetting(sessionID, Session.SETTING_NON_STOP_SESSION)) {
             nonStopSession = settings.getBool(sessionID, Session.SETTING_NON_STOP_SESSION);
@@ -72,9 +74,9 @@ public class SessionSchedule {
             log.info("[" + sessionID + "] " + toString());
     }
 
-    private TimeEndPoint getTimeEndPoint(SessionSettings settings, SessionID sessionID,
+    private TimeEndPoint getTimeEndPoint(SessionSettings settings, FIXSessionID sessionID,
             TimeZone defaultTimeZone, String timeSetting, String daySetting) throws ConfigError,
-            FieldConvertError {
+            FieldConversionException {
 
         Matcher matcher = TIME_PATTERN.matcher(settings.getString(sessionID, timeSetting));
         if (!matcher.find()) {
@@ -87,8 +89,8 @@ public class SessionSchedule {
                 Integer.parseInt(matcher.group(3)), getTimeZone(matcher.group(4), defaultTimeZone));
     }
 
-    private TimeZone getDefaultTimeZone(SessionSettings settings, SessionID sessionID)
-            throws ConfigError, FieldConvertError {
+    private TimeZone getDefaultTimeZone(SessionSettings settings, FIXSessionID sessionID)
+            throws ConfigError, FieldConversionException {
         TimeZone sessionTimeZone;
         if (settings.isSetting(sessionID, Session.SETTING_TIMEZONE)) {
             String sessionTimeZoneID = settings.getString(sessionID, Session.SETTING_TIMEZONE);
@@ -355,8 +357,8 @@ public class SessionSchedule {
         }
     }
 
-    private int getDay(SessionSettings settings, SessionID sessionID, String key, int defaultValue)
-            throws ConfigError, FieldConvertError {
+    private int getDay(SessionSettings settings, FIXSessionID sessionID, String key,
+            int defaultValue) throws ConfigError, FieldConversionException {
         return settings.isSetting(sessionID, key) ? DayConverter.toInteger(settings.getString(
                 sessionID, key)) : NOT_SET;
     }

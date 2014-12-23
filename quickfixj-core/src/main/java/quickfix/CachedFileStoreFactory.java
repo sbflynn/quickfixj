@@ -19,6 +19,9 @@
 
 package quickfix;
 
+import org.quickfixj.engine.MessageStore;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+
 /**
  * Creates a message store that stores messages in a file. Compatibility note: The file formats are not compatible with
  * QF C++/JNI. If you upgrading from the QuickFIX JNI, you must delete your old session state files.)
@@ -40,7 +43,7 @@ public class CachedFileStoreFactory extends FileStoreFactory {
      * @param sessionID session ID for the message store.
      */
     @Override
-    public MessageStore create(SessionID sessionID) {
+    public MessageStore create(FIXSessionID sessionID) {
         try {
             boolean syncWrites = false;
             if (settings.isSetting(sessionID, SETTING_FILE_STORE_SYNC)) {

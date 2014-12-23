@@ -22,6 +22,10 @@ package quickfix;
 import java.io.IOException;
 import java.util.Date;
 
+import org.quickfixj.engine.MessageStore;
+import org.quickfixj.engine.MessageStoreFactory;
+import org.quickfixj.field.FieldConversionException;
+
 public class CachedFileStoreTest extends AbstractMessageStoreTest {
 
     @Override
@@ -36,7 +40,7 @@ public class CachedFileStoreTest extends AbstractMessageStoreTest {
     }
 
     @Override
-    protected MessageStoreFactory getMessageStoreFactory() throws ConfigError, FieldConvertError {
+    protected MessageStoreFactory getMessageStoreFactory() throws ConfigError, FieldConversionException {
         SessionSettings settings = new SessionSettings(getConfigurationFileName());
         // Initialize the session settings from the defaults
         settings.setString(getSessionID(), FileStoreFactory.SETTING_FILE_STORE_PATH,

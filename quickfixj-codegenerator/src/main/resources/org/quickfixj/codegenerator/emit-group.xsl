@@ -50,10 +50,8 @@
 		<xsl:text>.TAG, </xsl:text>
 		<xsl:value-of select="$groupFieldName" />
 		<xsl:text>.DELIMITER, </xsl:text>
-		<xsl:text>new int[] {</xsl:text>
-		<xsl:apply-templates select="fix:field|fix:component|fix:group"
-			mode="emit-group-field-numbers" />
-		<xsl:text>0 });</xsl:text>
+		<xsl:value-of select="$groupFieldName" />
+		<xsl:text>.GROUP_FIELDS);</xsl:text>
 		<xsl:value-of select="$NEW_LINE_INDENT2" />
 		<xsl:text>}</xsl:text>
 
@@ -78,7 +76,7 @@
 		<xsl:value-of select="$NEW_LINE" />
 		<xsl:value-of select="$NEW_LINE_INDENT" />
 		<xsl:value-of
-			select="concat('public static class ', @name, ' extends org.quickfixj.field.GroupField&lt;',@name,'Group&gt; {')" />
+			select="concat('public static class ', @name, ' extends org.quickfixj.field.AbstractGroupField&lt;',@name,'Group&gt; {')" />
 
 		<xsl:call-template name="emit-serial-version" />
 
@@ -97,9 +95,17 @@
 
 		<xsl:value-of select="$NEW_LINE" />
 		<xsl:value-of select="$NEW_LINE_INDENT2" />
-		<xsl:value-of select="concat('public ', @name, '(CharSequence value) {')" />
+		<xsl:value-of select="concat('public ', @name, '() {')" />
 		<xsl:value-of select="$NEW_LINE_INDENT3" />
-		<xsl:text>super(value);</xsl:text>
+		<xsl:text>super();</xsl:text>
+		<xsl:value-of select="$NEW_LINE_INDENT2" />
+		<xsl:text>}</xsl:text>
+
+		<xsl:value-of select="$NEW_LINE" />
+		<xsl:value-of select="$NEW_LINE_INDENT2" />
+		<xsl:value-of select="concat('public ', @name, '(char[] value, int offset, int count) {')" />
+		<xsl:value-of select="$NEW_LINE_INDENT3" />
+		<xsl:text>super(value, offset, count);</xsl:text>
 		<xsl:value-of select="$NEW_LINE_INDENT2" />
 		<xsl:text>}</xsl:text>
 
@@ -143,7 +149,7 @@
 	<xsl:template match="fix:component" mode="emit-group-field-numbers">
 		<xsl:variable name="name" select="@name" />
 		<xsl:apply-templates select="/fix:fix/fix:components/fix:component[@name=$name]/*"
-			mode="group-field-numbers" />
+			mode="emit-group-field-numbers" />
 	</xsl:template>
 
 	<!-- Emit a static delimiter value for a group inner class -->

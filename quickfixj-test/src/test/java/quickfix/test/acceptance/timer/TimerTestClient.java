@@ -25,31 +25,31 @@ import java.util.TimerTask;
 import java.util.concurrent.CountDownLatch;
 
 import org.quickfixj.FIXBeginString;
-import org.quickfixj.spi.MessageBuilderServiceLoader;
+import org.quickfixj.FIXMessage;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.engine.MessageStoreFactory;
+import org.quickfixj.messages.bd.fix44.ListStatusRequest;
+import org.quickfixj.messages.bd.fix44.TestRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import quickfix.Application;
 import quickfix.ConfigError;
+import quickfix.DefaultEngine;
 import quickfix.DoNotSend;
 import quickfix.FieldNotFound;
-import quickfix.FixVersions;
 import quickfix.IncorrectDataFormat;
 import quickfix.IncorrectTagValue;
 import quickfix.Initiator;
 import quickfix.MemoryStoreFactory;
-import quickfix.Message;
 import quickfix.MessageCracker;
-import quickfix.MessageStoreFactory;
 import quickfix.RejectLogon;
 import quickfix.RuntimeError;
 import quickfix.ScreenLogFactory;
 import quickfix.SessionID;
 import quickfix.SessionSettings;
-import quickfix.SocketInitiator;
 import quickfix.UnsupportedMessageType;
-import quickfix.fix44.ListStatusRequest;
-import quickfix.fix44.TestRequest;
+import quickfix.mina.initiator.SocketInitiator;
 
 /**
  * @author <a href="mailto:jhensley@bonddesk.com">John Hensley</a>
@@ -61,33 +61,33 @@ public class TimerTestClient extends MessageCracker implements Application {
     private boolean failed;
 
     @Override
-    public void fromAdmin(Message message, SessionID sessionId) throws FieldNotFound,
+    public void fromAdmin(FIXMessage message, FIXSessionID sessionId) throws FieldNotFound,
             IncorrectDataFormat, IncorrectTagValue, RejectLogon {
         // no-op
     }
 
     @Override
-    public void fromApp(Message message, SessionID sessionID) throws FieldNotFound,
+    public void fromApp(FIXMessage message, FIXSessionID sessionID) throws FieldNotFound,
             IncorrectDataFormat, IncorrectTagValue, UnsupportedMessageType {
         crack(message, sessionID);
     }
 
     @Override
-    public void onCreate(SessionID sessionId) {
+    public void onCreate(FIXSessionID sessionId) {
         // no-op
     }
 
     @Override
-    public void onLogon(SessionID sessionId) {
+    public void onLogon(FIXSessionID sessionId) {
         // no-op
     }
 
     @Override
-    public void onLogout(SessionID sessionId) {
+    public void onLogout(FIXSessionID sessionId) {
         // no-op
     }
 
-    public void onMessage(ListStatusRequest message, SessionID sessionID) {
+    public void onMessage(ListStatusRequest message, FIXSessionID sessionID) {
         log.info("got ListStatusRequest");
     }
 
@@ -112,13 +112,12 @@ public class TimerTestClient extends MessageCracker implements Application {
         settings.set(defaults);
 
         SessionID sessionID = new SessionID(FIXBeginString.FIX44, "TW", "ISLD");
-        settings.setString(sessionID, "BeginString", FixVersions.BEGINSTRING_FIX44);
+        settings.setString(sessionID, "BeginString", FIXBeginString.FIX44.getValue());
         settings.setString(sessionID, "DataDictionary", "FIX44.xml");
 
         MessageStoreFactory storeFactory = new MemoryStoreFactory();
         Initiator initiator = new SocketInitiator(this, storeFactory, settings,
-                new ScreenLogFactory(settings),
-                MessageBuilderServiceLoader.getMessageBuilderFactory());
+                new ScreenLogFactory(settings), DefaultEngine.getDefaultEngine());
         initiator.start();
 
         try {
@@ -147,14 +146,14 @@ public class TimerTestClient extends MessageCracker implements Application {
     }
 
     @Override
-    public void toAdmin(Message message, SessionID sessionId) {
+    public void toAdmin(FIXMessage message, FIXSessionID sessionId) {
         if (message instanceof TestRequest) {
             stop(true);
         }
     }
 
     @Override
-    public void toApp(Message message, SessionID sessionId) throws DoNotSend {
+    public void toApp(FIXMessage message, FIXSessionID sessionId) throws DoNotSend {
         // no-op
     }
 

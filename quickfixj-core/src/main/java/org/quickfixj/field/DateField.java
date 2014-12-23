@@ -31,14 +31,18 @@ public abstract class DateField extends AbstractField<Date> {
      */
     private static final long serialVersionUID = 1L;
 
-    private final Date value;
+    private final long value;
 
     protected DateField(Date value) {
+        this(value.getTime());
+    }
+
+    protected DateField(long value) {
         this.value = value;
     }
 
     @Override
     public Date getValue() {
-        return value;
+        return new Date(value);
     }
 }

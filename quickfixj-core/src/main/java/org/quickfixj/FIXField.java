@@ -8,7 +8,6 @@
  */
 package org.quickfixj;
 
-import java.io.IOException;
 import java.io.Serializable;
 
 /**
@@ -43,22 +42,13 @@ public interface FIXField<T extends Serializable> {
     CharSequence getCharacters();
 
     /**
-     *
+     * Write the tag/value pair to the {@link Appendable} target in nn=xxxSOH format. 
      * @since 2.0
      */
-    int getLength();
+    Appendable serialize(Appendable appendable);
 
     /**
-     *
      * @since 2.0
      */
-    int getChecksum();
-
-    /**
-     * Write the tag/value pair to the {@link Appendable} target in nn=xxx format (NB : no ending SOH character). 
-     * @throws IOException 
-     * @since 2.0
-     */
-    Appendable serialize(Appendable appendable) throws IOException;
-
+    FIXField<T> clone();
 }

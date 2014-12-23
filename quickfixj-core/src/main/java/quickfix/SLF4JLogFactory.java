@@ -19,6 +19,9 @@
 
 package quickfix;
 
+import org.quickfixj.engine.Log;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+
 /**
  * Simple Logging Facade for Java (SLF4J) log factory (<a href="http://slfj4.org">slfj.org</a>).
  */
@@ -61,7 +64,7 @@ public class SLF4JLogFactory implements LocationAwareLogFactory {
     }
 
     @Override
-    public Log create(SessionID sessionID) {
+    public Log create(FIXSessionID sessionID) {
         // it's actually code in AbstractLog that makes the final code to Log4J and not SLF4JLog itself
         // so send the AbstractLog here
         return create(sessionID, AbstractLog.class.getName());
@@ -71,7 +74,7 @@ public class SLF4JLogFactory implements LocationAwareLogFactory {
      * This supports use of this log in a CompositeLogFactory.
      */
     @Override
-    public Log create(SessionID sessionID, String callerFQCN) {
+    public Log create(FIXSessionID sessionID, String callerFQCN) {
         String eventCategory = null;
         String errorEventCategory = null;
         String incomingMsgCategory = null;

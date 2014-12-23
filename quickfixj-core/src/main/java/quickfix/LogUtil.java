@@ -22,6 +22,9 @@ package quickfix;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
+import org.quickfixj.engine.FIXSession;
+import org.quickfixj.engine.Log;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,8 +56,8 @@ public class LogUtil {
      * @param message the error message
      * @param t the exception to log
      */
-    public static void logThrowable(SessionID sessionID, String message, Throwable t) {
-        final Session session = Session.lookupSession(sessionID);
+    public static void logThrowable(FIXSessionID sessionID, String message, Throwable t) {
+        FIXSession session = Session.lookupSession(sessionID);
         if (session != null) {
             logThrowable(session.getLog(), message, t);
         } else {

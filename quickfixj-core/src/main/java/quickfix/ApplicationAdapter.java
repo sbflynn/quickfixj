@@ -19,6 +19,9 @@
 
 package quickfix;
 
+import org.quickfixj.FIXMessage;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+
 /**
  * Convenience class with default implementation for application methods
  */
@@ -28,7 +31,7 @@ public class ApplicationAdapter implements Application {
      * @see quickfix.Application#fromAdmin(quickfix.Message, quickfix.SessionID)
      */
     @Override
-    public void fromAdmin(Message message, SessionID sessionId) throws FieldNotFound,
+    public void fromAdmin(FIXMessage message, FIXSessionID sessionId) throws FieldNotFound,
             IncorrectDataFormat, IncorrectTagValue, RejectLogon {
         // EMPTY
     }
@@ -37,7 +40,7 @@ public class ApplicationAdapter implements Application {
      * @see quickfix.Application#fromApp(quickfix.Message, quickfix.SessionID)
      */
     @Override
-    public void fromApp(Message message, SessionID sessionId) throws FieldNotFound,
+    public void fromApp(FIXMessage message, FIXSessionID sessionId) throws FieldNotFound,
             IncorrectDataFormat, IncorrectTagValue, UnsupportedMessageType {
         // EMPTY
     }
@@ -46,7 +49,7 @@ public class ApplicationAdapter implements Application {
      * @see quickfix.Application#onCreate(quickfix.SessionID)
      */
     @Override
-    public void onCreate(SessionID sessionId) {
+    public void onCreate(FIXSessionID sessionId) {
         // EMPTY
     }
 
@@ -54,7 +57,7 @@ public class ApplicationAdapter implements Application {
      * @see quickfix.Application#onLogon(quickfix.SessionID)
      */
     @Override
-    public void onLogon(SessionID sessionId) {
+    public void onLogon(FIXSessionID sessionId) {
         // EMPTY
     }
 
@@ -62,7 +65,7 @@ public class ApplicationAdapter implements Application {
      * @see quickfix.Application#onLogout(quickfix.SessionID)
      */
     @Override
-    public void onLogout(SessionID sessionId) {
+    public void onLogout(FIXSessionID sessionId) {
         // EMPTY
     }
 
@@ -70,7 +73,7 @@ public class ApplicationAdapter implements Application {
      * @see quickfix.Application#toAdmin(quickfix.Message, quickfix.SessionID)
      */
     @Override
-    public void toAdmin(Message message, SessionID sessionId) {
+    public void toAdmin(FIXMessage message, FIXSessionID sessionId) {
         // EMPTY
     }
 
@@ -78,7 +81,7 @@ public class ApplicationAdapter implements Application {
      * @see quickfix.Application#toApp(quickfix.Message, quickfix.SessionID)
      */
     @Override
-    public void toApp(Message message, SessionID sessionId) throws DoNotSend {
+    public void toApp(FIXMessage message, FIXSessionID sessionId) throws DoNotSend {
         // EMPTY
     }
 }

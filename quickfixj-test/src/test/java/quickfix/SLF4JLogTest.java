@@ -27,6 +27,7 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
 import org.quickfixj.FIXBeginString;
+import org.quickfixj.engine.Log;
 import org.slf4j.Marker;
 import org.slf4j.spi.LocationAwareLogger;
 
@@ -230,10 +231,12 @@ public class SLF4JLogTest extends TestCase {
 
         @Override
         public void close() throws SecurityException {
+            // no-op
         }
 
         @Override
         public void flush() {
+            // no-op
         }
 
         @Override

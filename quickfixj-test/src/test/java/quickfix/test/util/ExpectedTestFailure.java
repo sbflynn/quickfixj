@@ -64,17 +64,16 @@ public abstract class ExpectedTestFailure {
      * @param inError throwable to validate
      */
     protected void validateError(Throwable inError) {
-        if ((mThrowable != null) &&
-            (!mThrowable.isAssignableFrom(inError.getClass()))) {
-            Assert.fail("Thrown throwable was of the wrong class: " +
-                        inError.getClass() + ": " + inError);
+        if ((mThrowable != null) && (!mThrowable.isAssignableFrom(inError.getClass()))) {
+            inError.printStackTrace();
+            Assert.fail("Thrown throwable was of the wrong class: " + inError.getClass() + ": "
+                    + inError + " : expected class was " + mThrowable);
         }
-        if ((mContains != null) &&
-            (((inError.getMessage() == null) ||
-             (!inError.getMessage().contains(mContains)))) &&
-             (!inError.toString().contains(mContains))) {
-            Assert.fail("Thrown throwable contained incorrect message: " +
-                        "looking for '" + mContains + "' in '" + inError.getMessage() + "'");
+        if ((mContains != null)
+                && (((inError.getMessage() == null) || (!inError.getMessage().contains(mContains))))
+                && (!inError.toString().contains(mContains))) {
+            Assert.fail("Thrown throwable contained incorrect message: " + "looking for '"
+                    + mContains + "' in '" + inError.getMessage() + "'");
         }
     }
 }

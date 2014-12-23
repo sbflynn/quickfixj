@@ -19,18 +19,18 @@
 
 package quickfix.examples.banzai;
 
-import quickfix.SessionID;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
 
 public class LogonEvent {
-    private SessionID sessionID;
+    private FIXSessionID sessionID;
     private boolean loggedOn;
 
-    public LogonEvent(SessionID sessionID, boolean loggedOn) {
+    public LogonEvent(FIXSessionID sessionID, boolean loggedOn) {
         this.sessionID = sessionID;
         this.loggedOn = loggedOn;
     }
 
-    public SessionID getSessionID() {
+    public FIXSessionID getSessionID() {
         return sessionID;
     }
 

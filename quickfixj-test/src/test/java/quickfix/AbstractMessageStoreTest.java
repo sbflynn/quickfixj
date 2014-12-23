@@ -23,6 +23,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 import org.quickfixj.FIXBeginString;
+import org.quickfixj.engine.MessageStore;
+import org.quickfixj.engine.MessageStoreFactory;
 
 import junit.framework.TestCase;
 
@@ -169,6 +171,10 @@ public abstract class AbstractMessageStoreTest extends TestCase {
         }
     }
 
+    /**
+     * @param store
+     * @throws IOException
+     */
     protected void closeMessageStore(MessageStore store) throws IOException {
         // does nothing, by default
     }

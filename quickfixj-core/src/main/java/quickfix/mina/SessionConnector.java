@@ -37,17 +37,19 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.mina.core.filterchain.IoFilterChainBuilder;
 import org.apache.mina.core.session.IoSession;
+import org.quickfixj.engine.FIXEngine;
+import org.quickfixj.engine.FIXSession;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.field.FieldConversionException;
+import org.quickfixj.field.IntConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import quickfix.ConfigError;
 import quickfix.Connector;
-import quickfix.FieldConvertError;
 import quickfix.Session;
 import quickfix.SessionFactory;
-import quickfix.SessionID;
 import quickfix.SessionSettings;
-import quickfix.field.converter.IntConverter;
 
 /**
  * An abstract base class for acceptors and initiators. Provides support for common functionality and also serves as an
@@ -62,7 +64,8 @@ public abstract class SessionConnector implements Connector {
 
     protected PropertyChangeSupport propertyChangeSupport = new PropertyChangeSupport(this);
 
-    private Map<SessionID, Session> sessions = Collections.emptyMap();
+    private Map<FIXSessionID, Session> sessions = Collections.emptyMap();
+    private final FIXEngine engine;
     private final SessionSettings settings;
     private final SessionFactory sessionFactory;
     private final static ScheduledExecutorService scheduledExecutorService = Executors
@@ -70,8 +73,9 @@ public abstract class SessionConnector implements Connector {
     private ScheduledFuture<?> sessionTimerFuture;
     private IoFilterChainBuilder ioFilterChainBuilder;
 
-    public SessionConnector(SessionSettings settings, SessionFactory sessionFactory)
-            throws ConfigError {
+    public SessionConnector(FIXEngine engine, SessionSettings settings,
+            SessionFactory sessionFactory) throws ConfigError {
+        this.engine = engine;
         this.settings = settings;
         this.sessionFactory = sessionFactory;
         if (settings == null) {
@@ -87,9 +91,19 @@ public abstract class SessionConnector implements Connector {
         propertyChangeSupport.removePropertyChangeListener(listener);
     }
 
-    protected void setSessions(Map<SessionID, Session> sessions) {
+    protected void setSessions(Map<FIXSessionID, Session> sessions) {
         this.sessions = sessions;
         propertyChangeSupport.firePropertyChange(SESSIONS_PROPERTY, null, sessions);
+    }
+
+    /**
+     * Get the engine property.
+     *
+     * @return Returns the engine.
+     * @since 2.0
+     */
+    public FIXEngine getEngine() {
+        return engine;
     }
 
     /**
@@ -98,8 +112,8 @@ public abstract class SessionConnector implements Connector {
      * @return list of quickfix.Session objects
      * @see quickfix.Session
      */
-    public List<Session> getManagedSessions() {
-        return new ArrayList<Session>(sessions.values());
+    public List<FIXSession> getManagedSessions() {
+        return new ArrayList<FIXSession>(sessions.values());
     }
 
     /**
@@ -107,7 +121,7 @@ public abstract class SessionConnector implements Connector {
      *
      * @return a map of sessions keys by session ID
      */
-    protected Map<SessionID, Session> getSessionMap() {
+    protected Map<FIXSessionID, Session> getSessionMap() {
         return Collections.unmodifiableMap(sessions);
     }
 
@@ -119,8 +133,8 @@ public abstract class SessionConnector implements Connector {
      * @return list of session identifiers
      */
     @Override
-    public ArrayList<SessionID> getSessions() {
-        return new ArrayList<SessionID>(sessions.keySet());
+    public ArrayList<FIXSessionID> getSessions() {
+        return new ArrayList<FIXSessionID>(sessions.keySet());
     }
 
     public void addDynamicSession(Session inSession) {
@@ -129,7 +143,7 @@ public abstract class SessionConnector implements Connector {
         propertyChangeSupport.firePropertyChange(SESSIONS_PROPERTY, null, sessions);
     }
 
-    public void removeDynamicSession(SessionID inSessionID) {
+    public void removeDynamicSession(FIXSessionID inSessionID) {
         sessions.remove(inSessionID);
         log.debug("removing session for " + inSessionID);
         propertyChangeSupport.firePropertyChange(SESSIONS_PROPERTY, null, sessions);
@@ -139,14 +153,14 @@ public abstract class SessionConnector implements Connector {
         return settings;
     }
 
-    protected Session createSession(SessionID sessionID) throws ConfigError {
+    protected Session createSession(FIXSessionID sessionID) throws ConfigError {
         return sessionFactory.create(sessionID, settings);
     }
 
     protected int getIntSetting(String key) throws ConfigError {
         try {
             return IntConverter.convert(settings.getString(key));
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             throw (ConfigError) new ConfigError(e.getMessage()).fillInStackTrace();
         }
     }
@@ -161,7 +175,7 @@ public abstract class SessionConnector implements Connector {
         // if no session, not logged on
         if (sessions.isEmpty())
             return false;
-        for (Session session : sessions.values()) {
+        for (FIXSession session : sessions.values()) {
             // at least one session not logged on
             if (!session.isLoggedOn())
                 return false;
@@ -170,9 +184,9 @@ public abstract class SessionConnector implements Connector {
         return true;
     }
 
-    private Set<quickfix.Session> getLoggedOnSessions() {
-        Set<quickfix.Session> loggedOnSessions = new HashSet<quickfix.Session>(sessions.size());
-        for (Session session : sessions.values()) {
+    private Set<FIXSession> getLoggedOnSessions() {
+        Set<FIXSession> loggedOnSessions = new HashSet<FIXSession>(sessions.size());
+        for (FIXSession session : sessions.values()) {
             if (session.isLoggedOn()) {
                 loggedOnSessions.add(session);
             }
@@ -186,7 +200,7 @@ public abstract class SessionConnector implements Connector {
             log.error("Attempt to logout all sessions before initialization is complete.");
             return;
         }
-        for (Session session : sessions.values()) {
+        for (FIXSession session : sessions.values()) {
             try {
                 session.logout();
             } catch (Throwable e) {
@@ -195,7 +209,7 @@ public abstract class SessionConnector implements Connector {
         }
 
         if (forceDisconnect && isLoggedOn()) {
-            for (Session session : sessions.values()) {
+            for (FIXSession session : sessions.values()) {
                 try {
                     if (session.isLoggedOn()) {
                         session.disconnect("Forcibly disconnecting session", false);
@@ -213,7 +227,7 @@ public abstract class SessionConnector implements Connector {
 
     protected void waitForLogout() {
         long start = System.currentTimeMillis();
-        Set<Session> loggedOnSessions;
+        Set<FIXSession> loggedOnSessions;
         while (!(loggedOnSessions = getLoggedOnSessions()).isEmpty()) {
             try {
                 Thread.sleep(100L);
@@ -221,9 +235,9 @@ public abstract class SessionConnector implements Connector {
                 log.error(e.getMessage(), e);
             }
             final long elapsed = System.currentTimeMillis() - start;
-            Iterator<Session> sessionItr = loggedOnSessions.iterator();
+            Iterator<FIXSession> sessionItr = loggedOnSessions.iterator();
             while (sessionItr.hasNext()) {
-                Session session = sessionItr.next();
+                FIXSession session = sessionItr.next();
                 if (elapsed >= session.getLogoutTimeout() * 1000L) {
                     try {
                         session.disconnect("Logout timeout, force disconnect", false);
@@ -241,12 +255,12 @@ public abstract class SessionConnector implements Connector {
         }
     }
 
-    protected void logError(SessionID sessionID, IoSession protocolSession, String message,
+    protected void logError(FIXSessionID sessionID, IoSession protocolSession, String message,
             Throwable t) {
         log.error(message + getLogSuffix(sessionID, protocolSession), t);
     }
 
-    private String getLogSuffix(SessionID sessionID, IoSession protocolSession) {
+    private String getLogSuffix(FIXSessionID sessionID, IoSession protocolSession) {
         String suffix = ":";
         if (sessionID != null) {
             suffix += "sessionID=" + sessionID.toString() + ";";

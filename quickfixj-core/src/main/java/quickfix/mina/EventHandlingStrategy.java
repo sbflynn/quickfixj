@@ -19,7 +19,8 @@
 
 package quickfix.mina;
 
-import quickfix.Message;
+import org.quickfixj.FIXMessage;
+
 import quickfix.Session;
 
 /**
@@ -28,7 +29,7 @@ import quickfix.Session;
  */
 public interface EventHandlingStrategy {
 
-    void onMessage(Session quickfixSession, Message message);
+    void onMessage(Session quickfixSession, FIXMessage message);
 
     /**
      * Get the session connector associated with this strategy

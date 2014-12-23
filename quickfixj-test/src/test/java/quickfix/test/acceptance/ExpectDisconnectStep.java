@@ -22,11 +22,11 @@ package quickfix.test.acceptance;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import junit.framework.Assert;
-import junit.framework.TestResult;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import junit.framework.Assert;
+import junit.framework.TestResult;
 
 public class ExpectDisconnectStep implements TestStep {
     private Logger log = LoggerFactory.getLogger(getClass());
@@ -38,6 +38,7 @@ public class ExpectDisconnectStep implements TestStep {
         this.command = data;
     }
 
+    @Override
     public void run(TestResult result, TestConnection connection) throws Exception {
         Matcher matcher = DISCONNECT_PATTERN.matcher(command);
         if (matcher.lookingAt()) {
@@ -53,8 +54,8 @@ public class ExpectDisconnectStep implements TestStep {
         connection.waitForClientDisconnect(clientId);
     }
 
+    @Override
     public String toString() {
         return "disconnect from server: " + command;
     }
-
 }

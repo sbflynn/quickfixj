@@ -22,7 +22,7 @@ package quickfix;
 /**
  * This exception causes a logon to be rejected with a forced logout and immediate disconnect.
  */
-public class RejectLogon extends Exception {
+public class RejectLogon extends RuntimeException {
 
     /**
      * The serialVersionUID property.

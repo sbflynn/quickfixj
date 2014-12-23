@@ -20,6 +20,9 @@
 package quickfix;
 
 import static org.mockito.Mockito.*;
+
+import org.quickfixj.engine.Log;
+
 import junit.framework.TestCase;
 
 public class CompositeLogTest extends TestCase {

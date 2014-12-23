@@ -19,9 +19,12 @@
 
 package quickfix;
 
+import org.quickfixj.engine.MessageStoreFactory;
+import org.quickfixj.field.FieldConversionException;
+
 public class FileStoreZeroMemTest extends FileStoreTest {
     @Override
-    protected MessageStoreFactory getMessageStoreFactory() throws ConfigError, FieldConvertError {
+    protected MessageStoreFactory getMessageStoreFactory() throws ConfigError, FieldConversionException {
         SessionSettings settings = new SessionSettings(getConfigurationFileName());
         // Initialize the session settings from the defaults
         settings.setString(getSessionID(), FileStoreFactory.SETTING_FILE_STORE_PATH, settings

@@ -40,10 +40,11 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import org.quickfixj.CharsetSupport;
+import org.quickfixj.engine.MessageStore;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.field.UtcTimestampConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import quickfix.field.converter.UtcTimestampConverter;
 
 /**
  * File store implementation. THIS CLASS IS PUBLIC ONLY TO MAINTAIN COMPATIBILITY WITH THE QUICKFIX JNI. IT SHOULD ONLY
@@ -89,7 +90,7 @@ public class CachedFileStore implements MessageStore {
 
     private final String charsetEncoding = CharsetSupport.getCharset();
 
-    CachedFileStore(String path, SessionID sessionID, boolean syncWrites) throws IOException {
+    CachedFileStore(String path, FIXSessionID sessionID, boolean syncWrites) throws IOException {
         this.syncWrites = syncWrites;
 
         final String fullPath = new File(path == null ? "." : path).getAbsolutePath();

@@ -25,6 +25,12 @@ import java.io.PrintStream;
 import java.util.Date;
 
 import org.quickfixj.FIXBeginString;
+import org.quickfixj.engine.Log;
+import org.quickfixj.engine.LogFactory;
+import org.quickfixj.engine.MessageStore;
+import org.quickfixj.engine.MessageStoreFactory;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.field.FieldConversionException;
 
 import junit.framework.TestCase;
 
@@ -36,7 +42,7 @@ public class LogUtilTest extends TestCase {
         SystemTime.setTimeSource(new MockSystemTimeSource(System.currentTimeMillis()));
     }
 
-    public void testLogThrowable() throws ConfigError, FieldConvertError {
+    public void testLogThrowable() throws ConfigError, FieldConversionException {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
         LogFactory mockLogFactory = createLogFactory(data);
         createSessionAndGenerateException(mockLogFactory);
@@ -46,7 +52,7 @@ public class LogUtilTest extends TestCase {
     }
 
     private void createSessionAndGenerateException(LogFactory mockLogFactory) throws ConfigError,
-            FieldConvertError {
+            FieldConversionException {
         SessionSettings settings = new SessionSettings();
         settings.setString(Session.SETTING_START_TIME, "16:00:00");
         settings.setString(Session.SETTING_END_TIME, "13:00:00");
@@ -54,7 +60,7 @@ public class LogUtilTest extends TestCase {
         SessionSchedule schedule = new SessionSchedule(settings, sessionID);
         Session session = new Session(null, new MessageStoreFactory() {
             @Override
-            public MessageStore create(SessionID sessionID) {
+            public MessageStore create(FIXSessionID sessionID) {
                 try {
                     return new MemoryStore() {
                         @Override
@@ -67,7 +73,8 @@ public class LogUtilTest extends TestCase {
                     return null;
                 }
             }
-        }, sessionID, null, schedule, mockLogFactory, null, 0);
+        }, sessionID, null, schedule, mockLogFactory, null, new DefaultValidator(
+                FIXBeginString.FIX42), 0);
         try {
             session.close();
         } catch (IOException e) {
@@ -80,12 +87,12 @@ public class LogUtilTest extends TestCase {
                 data));
         return new LocationAwareLogFactory() {
             @Override
-            public Log create(SessionID sessionID) {
+            public Log create(FIXSessionID sessionID) {
                 return create(sessionID, log.getClass().getName());
             }
 
             @Override
-            public Log create(SessionID sessionID, String callerFQCN) {
+            public Log create(FIXSessionID sessionID, String callerFQCN) {
                 return log;
             }
         };

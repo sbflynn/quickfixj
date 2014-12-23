@@ -22,8 +22,8 @@ package quickfix.examples.ordermatch;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import quickfix.fix42.field.Side;
-import quickfix.fix42.field.Symbol;
+import org.quickfixj.messages.bd.fix42.field.Side;
+import org.quickfixj.messages.bd.fix42.field.Symbol;
 
 public class OrderMatcher {
 

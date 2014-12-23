@@ -35,13 +35,14 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.quickfixj.FIXBeginString;
-import org.quickfixj.MessageBuilderFactory;
 import org.quickfixj.QFJException;
+import org.quickfixj.engine.FIXEngine;
+import org.quickfixj.engine.MessageStoreFactory;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.engine.LogFactory;
 
 import quickfix.ConfigError;
 import quickfix.DefaultSessionFactory;
-import quickfix.LogFactory;
-import quickfix.MessageStoreFactory;
 import quickfix.Session;
 import quickfix.SessionFactory;
 import quickfix.SessionID;
@@ -69,9 +70,9 @@ public class DynamicAcceptorSessionProvider implements AcceptorSessionProvider {
      */
     public static class TemplateMapping {
         private final TemplatePattern pattern;
-        private final SessionID templateID;
+        private final FIXSessionID templateID;
 
-        public TemplateMapping(TemplatePattern pattern, SessionID templateID) {
+        public TemplateMapping(TemplatePattern pattern, FIXSessionID templateID) {
             super();
             this.pattern = pattern;
             this.templateID = templateID;
@@ -81,7 +82,7 @@ public class DynamicAcceptorSessionProvider implements AcceptorSessionProvider {
             return pattern;
         }
 
-        public SessionID getTemplateID() {
+        public FIXSessionID getTemplateID() {
             return templateID;
         }
 
@@ -119,12 +120,12 @@ public class DynamicAcceptorSessionProvider implements AcceptorSessionProvider {
                 String targetCompID) {
             this.allowedBeginStrings = allowedBeginStrings;
             this.senderCompID = senderCompID;
-            this.senderSubID = null;
-            this.senderLocationID = null;
+            this.senderSubID = WILDCARD;
+            this.senderLocationID = WILDCARD;
             this.targetCompID = targetCompID;
-            this.targetSubID = null;
-            this.targetLocationID = null;
-            this.sessionQualifier = null;
+            this.targetSubID = WILDCARD;
+            this.targetLocationID = WILDCARD;
+            this.sessionQualifier = WILDCARD;
         }
 
         public TemplatePattern(Collection<FIXBeginString> allowedBeginStrings, String senderCompID,
@@ -144,7 +145,7 @@ public class DynamicAcceptorSessionProvider implements AcceptorSessionProvider {
             return senderCompID;
         }
 
-        private boolean isMatching(SessionID sessionID) {
+        private boolean isMatching(FIXSessionID sessionID) {
             return allowedBeginStrings.contains(sessionID.getBeginString())
                     && isMatching(senderCompID, sessionID.getSenderCompID())
                     && isMatching(senderSubID, sessionID.getSenderSubID())
@@ -172,10 +173,9 @@ public class DynamicAcceptorSessionProvider implements AcceptorSessionProvider {
      */
     public DynamicAcceptorSessionProvider(final SessionSettings settings,
             final SessionID templateID, quickfix.Application application,
-            MessageStoreFactory messageStoreFactory, LogFactory logFactory,
-            MessageBuilderFactory messageFactory) {
+            MessageStoreFactory messageStoreFactory, LogFactory logFactory, FIXEngine engine) {
         this(settings, Collections.singletonList(new TemplateMapping(ANY_SESSION, templateID)),
-                application, messageStoreFactory, logFactory, messageFactory);
+                application, messageStoreFactory, logFactory, engine);
     }
 
     /**
@@ -195,20 +195,19 @@ public class DynamicAcceptorSessionProvider implements AcceptorSessionProvider {
      */
     public DynamicAcceptorSessionProvider(final SessionSettings settings,
             List<TemplateMapping> templateMappings, quickfix.Application application,
-            MessageStoreFactory messageStoreFactory, LogFactory logFactory,
-            MessageBuilderFactory messageFactory) {
+            MessageStoreFactory messageStoreFactory, LogFactory logFactory, FIXEngine engine) {
         this.settings = settings;
         this.templateMappings = templateMappings;
         sessionFactory = new DefaultSessionFactory(application, messageStoreFactory, logFactory,
-                messageFactory);
+                engine);
     }
 
     @Override
-    public synchronized Session getSession(SessionID sessionID, SessionConnector sessionConnector) {
+    public synchronized Session getSession(FIXSessionID sessionID, SessionConnector sessionConnector) {
         Session s = Session.lookupSession(sessionID);
         if (s == null) {
             try {
-                SessionID templateID = lookupTemplateID(sessionID);
+                FIXSessionID templateID = lookupTemplateID(sessionID);
                 if (templateID == null) {
                     throw new ConfigError("Unable to find a session template for " + sessionID);
                 }
@@ -237,7 +236,7 @@ public class DynamicAcceptorSessionProvider implements AcceptorSessionProvider {
         dynamicSettings.setString(key, value);
     }
 
-    protected SessionID lookupTemplateID(SessionID sessionID) {
+    protected FIXSessionID lookupTemplateID(FIXSessionID sessionID) {
         for (TemplateMapping mapping : templateMappings) {
             if (mapping.getPattern().isMatching(sessionID)) {
                 return mapping.getTemplateID();

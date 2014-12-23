@@ -29,9 +29,13 @@ import java.util.List;
 import java.util.Map;
 
 import org.quickfixj.FIXBeginString;
+import org.quickfixj.engine.FIXEngine;
+import org.quickfixj.engine.FIXSession;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
 
 import quickfix.Acceptor;
 import quickfix.ConfigError;
+import quickfix.DefaultEngine;
 import quickfix.DefaultSessionFactory;
 import quickfix.MemoryStoreFactory;
 import quickfix.RuntimeError;
@@ -53,15 +57,16 @@ public class SessionConnectorTest extends TestCase {
         DefaultSessionFactory sessionFactory = new DefaultSessionFactory(new UnitTestApplication(),
                 new MemoryStoreFactory(), new ScreenLogFactory(true, true, true));
 
-        SessionConnector connector = new SessionConnectorUnderTest(settings, sessionFactory);
+        SessionConnector connector = new SessionConnectorUnderTest(
+                DefaultEngine.getDefaultEngine(), settings, sessionFactory);
 
         connector.addPropertyChangeListener(new SessionConnectorListener());
 
         Session session = connector.createSession(sessionID);
         assertNotNull(session);
 
-        Map<SessionID, Session> sessions = Collections
-                .singletonMap(session.getSessionID(), session);
+        Map<FIXSessionID, Session> sessions = Collections.singletonMap(session.getSessionID(),
+                session);
         connector.setSessions(sessions);
 
         assertEquals(1, propertyChangeEvents.size());
@@ -95,7 +100,8 @@ public class SessionConnectorTest extends TestCase {
         DefaultSessionFactory sessionFactory = new DefaultSessionFactory(new UnitTestApplication(),
                 new MemoryStoreFactory(), new ScreenLogFactory(true, true, true));
 
-        SessionConnector connector = new SessionConnectorUnderTest(settings, sessionFactory);
+        SessionConnector connector = new SessionConnectorUnderTest(
+                DefaultEngine.getDefaultEngine(), settings, sessionFactory);
 
         Session session1 = connector.createSession(sessionID1);
         assertNotNull(session1);
@@ -105,7 +111,7 @@ public class SessionConnectorTest extends TestCase {
         connector.addPropertyChangeListener(connectorListener);
         connector.removePropertyChangeListener(connectorListener);
 
-        Map<SessionID, Session> sessions = new HashMap<SessionID, Session>();
+        Map<FIXSessionID, Session> sessions = new HashMap<FIXSessionID, Session>();
         sessions.put(session1.getSessionID(), session1);
         connector.setSessions(sessions);
 
@@ -137,20 +143,22 @@ public class SessionConnectorTest extends TestCase {
      * Test that adding/removing dynamic sessions works correctly
      */
     public void testAddingRemovingDymaicSessions() throws Exception {
-        SessionID sessionID = new SessionID(FIXBeginString.FIX40, "TW", "ISLD");
-        SessionID sessionID2 = new SessionID(FIXBeginString.FIX40, "me", "you");
+        FIXSessionID sessionID = new SessionID(FIXBeginString.FIX40, "TW", "ISLD");
+        FIXSessionID sessionID2 = new SessionID(FIXBeginString.FIX40, "me", "you");
         SessionSettings settings = setUpSessionSettings(sessionID);
         DefaultSessionFactory sessionFactory = new DefaultSessionFactory(new UnitTestApplication(),
                 new MemoryStoreFactory(), new ScreenLogFactory(true, true, true));
 
-        SessionConnector connector = new SessionConnectorUnderTest(settings, sessionFactory);
-        connector.setSessions(new HashMap<SessionID, Session>());
+        SessionConnector connector = new SessionConnectorUnderTest(
+                DefaultEngine.getDefaultEngine(), settings, sessionFactory);
+        connector.setSessions(new HashMap<FIXSessionID, Session>());
         Session session = connector.createSession(sessionID);
 
         // one-time use connector to create a slightly different session
         SessionSettings settings2 = setUpSessionSettings(sessionID2);
-        SessionConnector connector2 = new SessionConnectorUnderTest(settings2, sessionFactory);
-        connector.setSessions(new HashMap<SessionID, Session>());
+        SessionConnector connector2 = new SessionConnectorUnderTest(
+                DefaultEngine.getDefaultEngine(), settings2, sessionFactory);
+        connector.setSessions(new HashMap<FIXSessionID, Session>());
         Session session2 = connector2.createSession(sessionID2);
         assertNotNull(session);
         assertNotNull(session2);
@@ -161,8 +169,8 @@ public class SessionConnectorTest extends TestCase {
         connector.addDynamicSession(session2);
         assertEquals(2, connector.getManagedSessions().size());
         // the list can be in arbitrary order so let's make sure that we get both
-        HashMap<SessionID, Session> map = new HashMap<SessionID, Session>();
-        for (Session s : connector.getManagedSessions()) {
+        HashMap<FIXSessionID, FIXSession> map = new HashMap<FIXSessionID, FIXSession>();
+        for (FIXSession s : connector.getManagedSessions()) {
             map.put(s.getSessionID(), s);
         }
         assertEquals(session, map.get(session.getSessionID()));
@@ -175,7 +183,7 @@ public class SessionConnectorTest extends TestCase {
         assertEquals(0, connector.getManagedSessions().size());
     }
 
-    private SessionSettings setUpSessionSettings(SessionID sessionID) {
+    private SessionSettings setUpSessionSettings(FIXSessionID sessionID) {
         SessionSettings settings = new SessionSettings();
         settings.setString(Session.SETTING_USE_DATA_DICTIONARY, "N");
         settings.setString(Session.SETTING_START_TIME, "00:00:00");
@@ -197,9 +205,9 @@ public class SessionConnectorTest extends TestCase {
 
     private static class SessionConnectorUnderTest extends SessionConnector {
 
-        public SessionConnectorUnderTest(SessionSettings settings, SessionFactory sessionFactory)
-                throws ConfigError {
-            super(settings, sessionFactory);
+        public SessionConnectorUnderTest(FIXEngine engine, SessionSettings settings,
+                SessionFactory sessionFactory) throws ConfigError {
+            super(engine, settings, sessionFactory);
         }
 
         @Override

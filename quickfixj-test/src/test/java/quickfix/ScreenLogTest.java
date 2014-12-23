@@ -24,8 +24,8 @@ import java.io.PrintStream;
 import java.util.Date;
 
 import org.quickfixj.FIXBeginString;
+import org.quickfixj.field.UtcTimestampConverter;
 
-import quickfix.field.converter.UtcTimestampConverter;
 import junit.framework.TestCase;
 
 public class ScreenLogTest extends TestCase {

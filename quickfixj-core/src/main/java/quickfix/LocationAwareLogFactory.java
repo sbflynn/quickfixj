@@ -19,6 +19,10 @@
 
 package quickfix;
 
+import org.quickfixj.engine.Log;
+import org.quickfixj.engine.LogFactory;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+
 /**
  * This extension of the QF JNI LogFactory interface provides the fully
  * qualified class name of the calling class so it can be filtered for
@@ -34,6 +38,6 @@ public interface LocationAwareLogFactory extends LogFactory {
      *        in case we are being constructed as part of a composite logger
      * @return the log implementation
      */
-    Log create(SessionID sessionID, String callerFQCN);
+    Log create(FIXSessionID sessionID, String callerFQCN);
 
 }

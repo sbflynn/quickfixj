@@ -22,7 +22,7 @@ package quickfix;
 /**
  * An exception thrown when a tags value is not valid according to the data dictionary.
  */
-public class IncorrectTagValue extends Exception {
+public class IncorrectTagValue extends RuntimeException {
 
     /**
      * The serialVersionUID property.

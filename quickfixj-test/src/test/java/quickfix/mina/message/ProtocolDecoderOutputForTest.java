@@ -27,6 +27,7 @@ import org.apache.mina.filter.codec.ProtocolDecoderOutput;
 public class ProtocolDecoderOutputForTest implements ProtocolDecoderOutput {
     public List<Object> messages = new ArrayList<Object>();
 
+    @Override
     public void write(Object message) {
         messages.add(message);
     }
@@ -50,7 +51,9 @@ public class ProtocolDecoderOutputForTest implements ProtocolDecoderOutput {
         messages.clear();
     }
 
-    public void flush(org.apache.mina.core.filterchain.IoFilter.NextFilter filter, org.apache.mina.core.session.IoSession session) {
+    @Override
+    public void flush(org.apache.mina.core.filterchain.IoFilter.NextFilter filter,
+            org.apache.mina.core.session.IoSession session) {
         // empty
     }
 }

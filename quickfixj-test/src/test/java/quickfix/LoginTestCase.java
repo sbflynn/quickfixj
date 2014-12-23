@@ -20,14 +20,16 @@
 package quickfix;
 
 import static junit.framework.Assert.assertEquals;
-import static quickfix.FixVersions.BEGINSTRING_FIX44;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 import org.quickfixj.FIXBeginString;
-import org.quickfixj.spi.MessageBuilderServiceLoader;
+import org.quickfixj.FIXMessage;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+
+import quickfix.mina.initiator.SocketInitiator;
 
 public class LoginTestCase {
 
@@ -44,11 +46,10 @@ public class LoginTestCase {
             public void run() {
                 try {
                     SessionSettings settings = createSettings(senderCompID);
-                    SessionID sessionID = settings.sectionIterator().next();
+                    FIXSessionID sessionID = settings.sectionIterator().next();
                     SocketInitiator initiator = new SocketInitiator(new TestApplication(sessionID),
                             new FileStoreFactory(settings), settings,
-                            new ScreenLogFactory(settings),
-                            MessageBuilderServiceLoader.getMessageBuilderFactory());
+                            new ScreenLogFactory(settings), DefaultEngine.getDefaultEngine());
 
                     System.out.println(senderCompID + ": starting initiator");
                     initiator.start();
@@ -74,7 +75,7 @@ public class LoginTestCase {
         defaults.put("HeartBtInt", "3000");
         defaults.put("ReconnectInterval", "5");
         defaults.put("ScreenIncludeMilliseconds", "Y");
-        defaults.put("BeginString", BEGINSTRING_FIX44);
+        defaults.put("BeginString", FIXBeginString.FIX44.getValue());
         settings.set(defaults);
 
         settings.setString(new SessionID(FIXBeginString.FIX44, senderCompID, "EXEC"),
@@ -84,46 +85,46 @@ public class LoginTestCase {
     }
 
     private static final class TestApplication extends ApplicationAdapter {
-        private final SessionID expectedSessionID;
+        private final FIXSessionID expectedSessionID;
 
-        public TestApplication(SessionID expectedSessionID) {
+        public TestApplication(FIXSessionID expectedSessionID) {
             this.expectedSessionID = expectedSessionID;
         }
 
         @Override
-        public void fromAdmin(Message message, SessionID sessionId) throws FieldNotFound,
+        public void fromAdmin(FIXMessage message, FIXSessionID sessionId) throws FieldNotFound,
                 IncorrectDataFormat, IncorrectTagValue, RejectLogon {
             assertEquals(expectedSessionID, sessionId);
         }
 
         @Override
-        public void fromApp(Message message, SessionID sessionId) throws FieldNotFound,
+        public void fromApp(FIXMessage message, FIXSessionID sessionId) throws FieldNotFound,
                 IncorrectDataFormat, IncorrectTagValue, UnsupportedMessageType {
             assertEquals(expectedSessionID, sessionId);
         }
 
         @Override
-        public void onCreate(SessionID sessionId) {
+        public void onCreate(FIXSessionID sessionId) {
             assertEquals(expectedSessionID, sessionId);
         }
 
         @Override
-        public void onLogon(SessionID sessionId) {
+        public void onLogon(FIXSessionID sessionId) {
             assertEquals(expectedSessionID, sessionId);
         }
 
         @Override
-        public void onLogout(SessionID sessionId) {
+        public void onLogout(FIXSessionID sessionId) {
             assertEquals(expectedSessionID, sessionId);
         }
 
         @Override
-        public void toAdmin(Message message, SessionID sessionId) {
+        public void toAdmin(FIXMessage message, FIXSessionID sessionId) {
             assertEquals(expectedSessionID, sessionId);
         }
 
         @Override
-        public void toApp(Message message, SessionID sessionId) throws DoNotSend {
+        public void toApp(FIXMessage message, FIXSessionID sessionId) throws DoNotSend {
             assertEquals(expectedSessionID, sessionId);
         }
     }

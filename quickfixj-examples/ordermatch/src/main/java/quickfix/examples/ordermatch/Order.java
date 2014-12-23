@@ -19,10 +19,10 @@
 
 package quickfix.examples.ordermatch;
 
-import quickfix.fix42.field.ClOrdID;
-import quickfix.fix42.field.OrdType;
-import quickfix.fix42.field.Side;
-import quickfix.fix42.field.Symbol;
+import org.quickfixj.messages.bd.fix42.field.ClOrdID;
+import org.quickfixj.messages.bd.fix42.field.OrdType;
+import org.quickfixj.messages.bd.fix42.field.Side;
+import org.quickfixj.messages.bd.fix42.field.Symbol;
 
 public class Order {
 
@@ -54,8 +54,8 @@ public class Order {
 
     private long lastExecutedQuantity;
 
-    public Order(ClOrdID clientId, Symbol symbol, String owner, String target,
-            Side side, OrdType type, double price, long quantity) {
+    public Order(ClOrdID clientId, Symbol symbol, String owner, String target, Side side,
+            OrdType type, double price, long quantity) {
 
         super();
         this.clientOrderId = clientId;
@@ -159,8 +159,8 @@ public class Order {
     @Override
     public String toString() {
 
-        return (side == Side.BUY ? "BUY" : "SELL") + " " + quantity + "@$"
-                + price + " (" + openQuantity + ")";
+        return (side == Side.BUY ? "BUY" : "SELL") + " " + quantity + "@$" + price + " ("
+                + openQuantity + ")";
     }
 
     public long getEntryTime() {

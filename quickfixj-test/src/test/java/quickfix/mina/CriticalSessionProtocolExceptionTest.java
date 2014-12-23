@@ -19,11 +19,13 @@
 
 package quickfix.mina;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
-public class CriticalSessionProtocolExceptionTest extends TestCase {
+public class CriticalSessionProtocolExceptionTest {
     // For coverage
 
+    @Test
+    @SuppressWarnings("unused")
     public void testConstructors() throws Exception {
         new CriticalProtocolCodecException();
         new CriticalProtocolCodecException("");

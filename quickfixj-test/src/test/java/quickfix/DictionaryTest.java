@@ -19,27 +19,40 @@
 
 package quickfix;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Locale;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.quickfixj.field.FieldConversionException;
 
-public class DictionaryTest extends TestCase {
+public class DictionaryTest {
+
     private Dictionary dictionary;
     private Locale defaultLocale;
 
-    protected void setUp() throws Exception {
-        super.setUp();
+    @Before
+    public void setUp() throws Exception {
         dictionary = new Dictionary();
         defaultLocale = Locale.getDefault();
         Locale.setDefault(Locale.US);
     }
 
-    protected void tearDown() throws Exception {
-        super.tearDown();
+    @After
+    public void tearDown() throws Exception {
         Locale.setDefault(defaultLocale);
+        defaultLocale = null;
+        dictionary = null;
     }
 
-    public void testDay() throws Exception {
+    @Test
+    public void testDay() throws ConfigError {
         assertFalse(dictionary.has("DAY"));
         dictionary.setString("DAY", "monday");
         assertTrue(dictionary.has("DAY"));
@@ -52,24 +65,22 @@ public class DictionaryTest extends TestCase {
         assertEquals(4, dictionary.getDay("DAY"));
     }
 
-    public void testDayTooShort() throws Exception {
+    @Test(expected = ConfigError.class)
+    @Ignore
+    // SBF : doesn't throw an exception - original test 
+    // was meaningless
+    public void testDayTooShort() throws ConfigError {
         dictionary.setString("DAY", "t");
-        try {
-            dictionary.getDay("DAY");
-        } catch (ConfigError e) {
-            // expected
-        }
+        dictionary.getDay("DAY");
     }
 
-    public void testDayTooUnknown() throws Exception {
+    @Test(expected = ConfigError.class)
+    public void testDayUnknown() throws ConfigError {
         dictionary.setString("DAY", "xyz");
-        try {
-            dictionary.getDay("DAY");
-        } catch (ConfigError e) {
-            // expected
-        }
+        dictionary.getDay("DAY");
     }
 
+    @Test
     public void testBoolean() throws Exception {
         dictionary.setBool("B", true);
         assertTrue(dictionary.getBool("B"));
@@ -78,81 +89,64 @@ public class DictionaryTest extends TestCase {
         assertFalse(dictionary.getBool("B"));
     }
 
-    public void testBooleanError() throws Exception {
+    @Test(expected = FieldConversionException.class)
+    public void testBooleanError() throws ConfigError {
         dictionary.setString("B", "XYZ");
-        try {
-            dictionary.getBool("B");
-        } catch (FieldConvertError e) {
-            // expected
-        }
+        dictionary.getBool("B");
     }
 
-    public void testBooleanMissing() throws Exception {
-        try {
-            dictionary.getBool("B");
-        } catch (ConfigError e) {
-            // expected
-        }
+    @Test(expected = ConfigError.class)
+    public void testBooleanMissing() throws ConfigError {
+        dictionary.getBool("B");
     }
 
-    public void testString() throws Exception {
+    @Test
+    public void testString() throws ConfigError {
         dictionary.setString("B", "X");
         assertEquals("X", dictionary.getString("B"));
     }
 
-    public void testStringMissing() throws Exception {
-        try {
-            dictionary.getString("X");
-        } catch (ConfigError e) {
-            // expected
-        }
+    @Test(expected = ConfigError.class)
+    public void testStringMissing() throws ConfigError {
+        dictionary.getString("X");
     }
 
-    public void testDouble() throws Exception {
+    @Test
+    public void testDouble() throws ConfigError {
         dictionary.setDouble("B", 1.1);
         assertEquals(1.1, dictionary.getDouble("B"), 0);
     }
 
-    public void testDoubleError() throws Exception {
+    @Test(expected = FieldConversionException.class)
+    public void testDoubleError() throws ConfigError {
         dictionary.setString("B", "XYZ");
-        try {
-            dictionary.getDouble("B");
-        } catch (FieldConvertError e) {
-            // expected
-        }
+        dictionary.getDouble("B");
     }
 
-    public void testDoubleMissing() throws Exception {
-        try {
-            dictionary.getDouble("B");
-        } catch (ConfigError e) {
-            // expected
-        }
+    @Test(expected = ConfigError.class)
+    public void testDoubleMissing() throws ConfigError {
+        dictionary.getDouble("B");
     }
 
+    @Test
     public void testLong() throws Exception {
         dictionary.setLong("B", 1);
         assertEquals(1, dictionary.getLong("B"));
     }
 
+    @Test(expected = FieldConversionException.class)
     public void testLongError() throws Exception {
         dictionary.setString("B", "XYZ");
-        try {
-            dictionary.getLong("B");
-        } catch (FieldConvertError e) {
-            // expected
-        }
+        dictionary.getLong("B");
     }
 
+    @Test(expected = ConfigError.class)
     public void testLongMissing() throws Exception {
-        try {
-            dictionary.getLong("B");
-        } catch (ConfigError e) {
-            // expected
-        }
+        dictionary.getLong("B");
     }
 
-    public void testMerge() throws Exception {
+    @Test
+    public void testMerge() throws ConfigError {
         Dictionary d2 = new Dictionary("ABC");
         d2.setString("XYZ", "123");
 
@@ -166,6 +160,7 @@ public class DictionaryTest extends TestCase {
         assertEquals(1, d2.toMap().size());
     }
 
+    @Test
     public void testName() throws Exception {
         assertNull(dictionary.getName());
 
@@ -173,6 +168,7 @@ public class DictionaryTest extends TestCase {
         assertEquals("NAME", d.getName());
     }
 
+    @Test
     public void testConstructors() throws Exception {
         Dictionary dw = new Dictionary();
         assertNull(dw.getName());
@@ -194,6 +190,7 @@ public class DictionaryTest extends TestCase {
     }
 
     // From C++ tests
+    @Test
     public void testGetDay() throws Exception {
         Dictionary object = new Dictionary();
 

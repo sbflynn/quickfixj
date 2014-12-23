@@ -28,6 +28,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.quickfixj.FIXMessage;
+import org.quickfixj.engine.Log;
+import org.quickfixj.engine.MessageStore;
+
 /**
  * Used by the session communications code. Not intended to be used by applications. All dynamic data is protected by
  * the session's intrinsic lock. The log and message store implementation must be thread safe.
@@ -72,7 +76,7 @@ public final class SessionState {
     private final AtomicInteger nextExpectedMsgSeqNum = new AtomicInteger(0);
 
     // The messageQueue should be accessed from a single thread
-    private final Map<Integer, Message> messageQueue = new LinkedHashMap<Integer, Message>();
+    private final Map<Integer, FIXMessage> messageQueue = new LinkedHashMap<Integer, FIXMessage>();
 
     public SessionState(Object lock, Log log, int heartBeatInterval, boolean initiator,
             MessageStore messageStore, double testRequestDelayMultiplier) {
@@ -304,11 +308,11 @@ public final class SessionState {
         messageStore.get(first, last, messages);
     }
 
-    public void enqueue(int sequence, Message message) {
+    public void enqueue(int sequence, FIXMessage message) {
         messageQueue.put(sequence, message);
     }
 
-    public Message dequeue(int sequence) {
+    public FIXMessage dequeue(int sequence) {
         return messageQueue.remove(sequence);
     }
 
@@ -323,7 +327,7 @@ public final class SessionState {
         }
     }
 
-    public Message getNextQueuedMessage() {
+    public FIXMessage getNextQueuedMessage() {
         return messageQueue.size() > 0 ? messageQueue.values().iterator().next() : null;
     }
 

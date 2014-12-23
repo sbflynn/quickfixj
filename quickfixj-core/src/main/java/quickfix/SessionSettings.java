@@ -43,10 +43,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.quickfixj.FIXBeginString;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.field.BooleanConverter;
+import org.quickfixj.field.FieldConversionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import quickfix.field.converter.BooleanConverter;
 
 /**
  * Settings for sessions. Settings are grouped by FIX version and target company
@@ -130,9 +131,9 @@ public class SessionSettings {
      * @param key
      * @return the default string value
      * @throws ConfigError
-     * @throws FieldConvertError
+     * @throws FieldConversionException
      */
-    public String getString(String key) throws ConfigError, FieldConvertError {
+    public String getString(String key) throws ConfigError, FieldConversionException {
         return getString(DEFAULT_SESSION_ID, key);
     }
 
@@ -143,9 +144,10 @@ public class SessionSettings {
      * @param key the settings key
      * @return the string value for the setting
      * @throws ConfigError configuration error, probably a missing setting.
-     * @throws FieldConvertError error during field type conversion.
+     * @throws FieldConversionException error during field type conversion.
      */
-    public String getString(SessionID sessionID, String key) throws ConfigError, FieldConvertError {
+    public String getString(FIXSessionID sessionID, String key) throws ConfigError,
+            FieldConversionException {
         final String value = interpolate(getSessionProperties(sessionID).getProperty(key));
         if (value == null) {
             throw new ConfigError(key + " not defined");
@@ -162,7 +164,7 @@ public class SessionSettings {
      * @throws ConfigError
      * @see java.util.Properties
      */
-    public Properties getSessionProperties(SessionID sessionID, boolean includeDefaults)
+    public Properties getSessionProperties(FIXSessionID sessionID, boolean includeDefaults)
             throws ConfigError {
         final Properties p = sections.get(sessionID);
         if (p == null) {
@@ -187,7 +189,7 @@ public class SessionSettings {
      * @throws ConfigError
      * @see java.util.Properties
      */
-    public Properties getSessionProperties(SessionID sessionID) throws ConfigError {
+    public Properties getSessionProperties(FIXSessionID sessionID) throws ConfigError {
         return getSessionProperties(sessionID, false);
     }
 
@@ -212,9 +214,9 @@ public class SessionSettings {
      * @param key
      * @return the default value
      * @throws ConfigError
-     * @throws FieldConvertError
+     * @throws FieldConversionException
      */
-    public long getLong(String key) throws ConfigError, FieldConvertError {
+    public long getLong(String key) throws ConfigError, FieldConversionException {
         return getLong(DEFAULT_SESSION_ID, key);
     }
 
@@ -225,17 +227,18 @@ public class SessionSettings {
      * @param key the settings key
      * @return the long integer value for the setting
      * @throws ConfigError configuration error, probably a missing setting.
-     * @throws FieldConvertError error during field type conversion.
+     * @throws FieldConversionException error during field type conversion.
      */
-    public long getLong(SessionID sessionID, String key) throws ConfigError, FieldConvertError {
+    public long getLong(FIXSessionID sessionID, String key) throws ConfigError,
+            FieldConversionException {
         try {
             return Long.parseLong(getString(sessionID, key));
         } catch (final NumberFormatException e) {
-            throw new FieldConvertError(e.getMessage());
+            throw new FieldConversionException(e.getMessage());
         }
     }
 
-    private Properties getOrCreateSessionProperties(SessionID sessionID) {
+    private Properties getOrCreateSessionProperties(FIXSessionID sessionID) {
         Properties p = sections.get(sessionID);
         if (p == null) {
             p = new Properties(sections.get(DEFAULT_SESSION_ID));
@@ -250,9 +253,9 @@ public class SessionSettings {
      * @param key
      * @return the default value
      * @throws ConfigError
-     * @throws FieldConvertError
+     * @throws FieldConversionException
      */
-    public double getDouble(String key) throws ConfigError, FieldConvertError {
+    public double getDouble(String key) throws ConfigError, FieldConversionException {
         return getDouble(DEFAULT_SESSION_ID, key);
     }
 
@@ -263,13 +266,14 @@ public class SessionSettings {
      * @param key the settings key
      * @return the double number value for the setting
      * @throws ConfigError configuration error, probably a missing setting.
-     * @throws FieldConvertError error during field type conversion.
+     * @throws FieldConversionException error during field type conversion.
      */
-    public double getDouble(SessionID sessionID, String key) throws ConfigError, FieldConvertError {
+    public double getDouble(SessionID sessionID, String key) throws ConfigError,
+            FieldConversionException {
         try {
             return Double.parseDouble(getString(sessionID, key));
         } catch (final NumberFormatException e) {
-            throw new FieldConvertError(e.getMessage());
+            throw new FieldConversionException(e.getMessage());
         }
     }
 
@@ -279,9 +283,9 @@ public class SessionSettings {
      * @param key
      * @return the boolean value
      * @throws ConfigError
-     * @throws FieldConvertError
+     * @throws FieldConversionException
      */
-    public boolean getBool(String key) throws ConfigError, FieldConvertError {
+    public boolean getBool(String key) throws ConfigError, FieldConversionException {
         return getBool(DEFAULT_SESSION_ID, key);
     }
 
@@ -292,12 +296,12 @@ public class SessionSettings {
      * @param key the settings key
      * @return the boolean value for the setting
      * @throws ConfigError configuration error, probably a missing setting.
-     * @throws FieldConvertError error during field type conversion.
+     * @throws FieldConversionException error during field type conversion.
      */
-    public boolean getBool(SessionID sessionID, String key) throws ConfigError, FieldConvertError {
+    public boolean getBool(FIXSessionID sessionID, String key) throws ConfigError {
         try {
             return BooleanConverter.convert(getString(sessionID, key));
-        } catch (final FieldConvertError e) {
+        } catch (final FieldConversionException e) {
             throw new ConfigError(e);
         }
     }
@@ -309,7 +313,7 @@ public class SessionSettings {
      * @param key the setting key
      * @param value the string value
      */
-    public void setString(SessionID sessionID, String key, String value) {
+    public void setString(FIXSessionID sessionID, String key, String value) {
         getOrCreateSessionProperties(sessionID).setProperty(key, value.trim());
     }
 
@@ -346,10 +350,11 @@ public class SessionSettings {
         getOrCreateSessionProperties(sessionID).setProperty(key, BooleanConverter.convert(value));
     }
 
-    private final HashMap<SessionID, Properties> sections = new HashMap<SessionID, Properties>();
+    private final HashMap<FIXSessionID, Properties> sections = new HashMap<FIXSessionID, Properties>();
 
-    public Iterator<SessionID> sectionIterator() {
-        final HashSet<SessionID> nondefaultSessions = new HashSet<SessionID>(sections.keySet());
+    public Iterator<FIXSessionID> sectionIterator() {
+        final HashSet<FIXSessionID> nondefaultSessions = new HashSet<FIXSessionID>(
+                sections.keySet());
         nondefaultSessions.remove(DEFAULT_SESSION_ID);
         return nondefaultSessions.iterator();
     }
@@ -419,7 +424,7 @@ public class SessionSettings {
      * @param key the setting key
      * @return true is setting exists, false otherwise.
      */
-    public boolean isSetting(SessionID sessionID, String key) {
+    public boolean isSetting(FIXSessionID sessionID, String key) {
         return getOrCreateSessionProperties(sessionID).getProperty(key) != null;
     }
 
@@ -662,7 +667,7 @@ public class SessionSettings {
     public void toString(PrintWriter writer) {
         try {
             writeSection("[DEFAULT]", writer, getDefaultProperties());
-            final Iterator<SessionID> s = sectionIterator();
+            final Iterator<FIXSessionID> s = sectionIterator();
             while (s.hasNext()) {
                 try {
                     writeSection("[SESSION]", writer, getSessionProperties(s.next()));

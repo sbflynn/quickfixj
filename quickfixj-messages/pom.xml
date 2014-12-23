@@ -9,6 +9,7 @@
 		<version>2.0.0.Beta1-SNAPSHOT</version>
 	</parent>
 
+	<groupId>org.quickfixj.messages</groupId>
 	<artifactId>quickfixj-messages</artifactId>
 	<packaging>pom</packaging>
 
@@ -17,14 +18,22 @@
 	<url>http://www.quickfixj.org</url>
 
 	<modules>
-		<module>quickfixj-messages-fix40</module>
-		<module>quickfixj-messages-fix41</module>
-		<module>quickfixj-messages-fix42</module>
-		<module>quickfixj-messages-fix43</module>
-		<module>quickfixj-messages-fix44</module>
-		<module>quickfixj-messages-fix50</module>
-		<module>quickfixj-messages-fix50sp1</module>
-		<module>quickfixj-messages-fix50sp2</module>
+		<module>quickfixj-messages-fix40-bd</module>
+		<module>quickfixj-messages-fix40-fp</module>
+		<module>quickfixj-messages-fix41-bd</module>
+		<module>quickfixj-messages-fix41-fp</module>
+		<module>quickfixj-messages-fix42-bd</module>
+		<module>quickfixj-messages-fix42-fp</module>
+		<module>quickfixj-messages-fix43-bd</module>
+		<module>quickfixj-messages-fix43-fp</module>
+		<module>quickfixj-messages-fix44-bd</module>
+		<module>quickfixj-messages-fix44-fp</module>
+		<module>quickfixj-messages-fix50-bd</module>
+		<module>quickfixj-messages-fix50-fp</module>
+		<module>quickfixj-messages-fix50sp1-bd</module>
+		<module>quickfixj-messages-fix50sp1-fp</module>
+		<module>quickfixj-messages-fix50sp2-bd</module>
+		<module>quickfixj-messages-fix50sp2-fp</module>
 		<module>quickfixj-messages-fixt11</module>
 	</modules>
 
@@ -36,45 +45,33 @@
 	</dependencies>
 
 	<build>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+			</resource>
+			<resource>
+				<directory>target/generated-resources</directory>
+				<includes>
+					<include>META-INF/**</include>
+				</includes>
+			</resource>
+			<resource>
+				<directory>target/generated-sources</directory>
+				<includes>
+					<include>META-INF/**</include>
+				</includes>
+			</resource>
+		</resources>
 		<pluginManagement>
 			<plugins>
 				<plugin>
 					<groupId>org.quickfixj</groupId>
 					<artifactId>quickfixj-codegenerator</artifactId>
 					<version>${project.version}</version>
-					<executions>
-						<execution>
-							<id>${fix.name}</id>
-							<goals>
-								<goal>generate</goal>
-							</goals>
-							<configuration>
-								<dictFile>src/main/resources/${fix.spec}</dictFile>
-								<packaging>quickfix.${fix.name}</packaging>
-							</configuration>
-						</execution>
-					</executions>
-					<dependencies>
-						<dependency>
-							<groupId>org.quickfixj</groupId>
-							<artifactId>quickfixj-core</artifactId>
-							<version>${project.version}</version>
-						</dependency>
-					</dependencies>
 				</plugin>
 			</plugins>
 		</pluginManagement>
-		<plugins>
-			<plugin>
-				<groupId>org.quickfixj</groupId>
-				<artifactId>quickfixj-codegenerator</artifactId>
-			</plugin>
-			<plugin>
-				<artifactId>maven-source-plugin</artifactId>
-			</plugin>
-			<plugin>
-				<artifactId>maven-jar-plugin</artifactId>
-			</plugin>
-		</plugins>
 	</build>
+
 </project>

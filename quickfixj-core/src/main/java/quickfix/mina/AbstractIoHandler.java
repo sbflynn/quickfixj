@@ -27,15 +27,16 @@ import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.ProtocolCodecException;
 import org.apache.mina.filter.codec.ProtocolDecoderException;
+import org.quickfixj.FIXMessage;
+import org.quickfixj.engine.FIXSession;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import quickfix.FixMessageTypes;
 import quickfix.InvalidMessage;
-import quickfix.Message;
 import quickfix.MessageUtils;
 import quickfix.Session;
-import quickfix.SessionID;
 
 /**
  * Abstract class used for acceptor and initiator IO handlers.
@@ -116,12 +117,12 @@ public abstract class AbstractIoHandler extends IoHandlerAdapter {
     public void messageReceived(IoSession ioSession, Object message) throws Exception {
 
         String messageString = (String) message;
-        SessionID remoteSessionID = MessageUtils.getReverseSessionID(messageString);
-        Session quickFixSession = findQFSession(ioSession, remoteSessionID);
+        FIXSessionID remoteSessionID = MessageUtils.getReverseSessionID(messageString);
+        FIXSession quickFixSession = findQFSession(ioSession, remoteSessionID);
         if (quickFixSession != null) {
             quickFixSession.getLog().onIncoming(messageString);
             try {
-                Message fixMessage = parse(quickFixSession, messageString);
+                FIXMessage fixMessage = parse(quickFixSession, messageString);
                 processMessage(ioSession, fixMessage);
             } catch (InvalidMessage e) {
                 if (FixMessageTypes.LOGON.equals(MessageUtils.getMessageType(messageString))) {
@@ -137,9 +138,9 @@ public abstract class AbstractIoHandler extends IoHandlerAdapter {
         }
     }
 
-    protected Session findQFSession(IoSession ioSession, SessionID sessionID) {
+    protected FIXSession findQFSession(IoSession ioSession, FIXSessionID sessionID) {
 
-        Session quickfixSession = findQFSession(ioSession);
+        FIXSession quickfixSession = findQFSession(ioSession);
         if (quickfixSession == null) {
             quickfixSession = Session.lookupSession(sessionID);
         }
@@ -156,6 +157,7 @@ public abstract class AbstractIoHandler extends IoHandlerAdapter {
         return networkingOptions;
     }
 
-    protected abstract void processMessage(IoSession ioSession, Message message) throws Exception;
+    protected abstract void processMessage(IoSession ioSession, FIXMessage message)
+            throws Exception;
 
 }

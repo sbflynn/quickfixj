@@ -4,34 +4,96 @@
  * This software is the proprietary information of JF Technology (UK) Ltd.
  * Use is subject to license terms.
  *
- * Created on 28 Nov 2014 by stephen.flynn@jftechnology.com.
+ * Created on 21 Dec 2014 by stephen.flynn@jftechnology.com.
  */
 package org.quickfixj.spi;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.quickfixj.FIXApplication;
 import org.quickfixj.FIXBeginString;
-import org.quickfixj.MessageBuilder;
-import org.quickfixj.MessageBuilder.FieldBuilder;
+import org.quickfixj.engine.FIXMessageBuilder;
+import org.quickfixj.engine.GraphBuilder.FieldBuilder;
+import org.quickfixj.spi.DictionaryMetadata.FieldMetadata;
+import org.quickfixj.spi.DictionaryMetadata.GroupMetadata;
+import org.quickfixj.spi.DictionaryMetadata.MessageMetadata;
+import org.quickfixj.spi.DictionaryMetadata.TransportMetadata;
+import org.quickfixj.xml.dictionary.Engine;
 
 /**
- * SessionBuilderProvider - provides...
+ * Internal management store used by {@link MetadataRegistry}.
  *
  * @author stephen.flynn@jftechnology.com
  * @since 2.0
  */
-public interface SessionBuilderProvider {
+class SessionBuilderProvider {
 
-    FIXBeginString getBeginString();
+    private final List<FIXMessageBuilder> messageBuilders = new ArrayList<FIXMessageBuilder>();
+    private final Map<Integer, FieldBuilder> headerFieldBuilders = new HashMap<Integer, FieldBuilder>();
+    private final Map<Integer, FieldBuilder> trailerFieldBuilders = new HashMap<Integer, FieldBuilder>();
 
-    List<MessageBuilder> getMessageBuilders();
+    private final TransportMetadata metadata;
+    private final Engine.MessageFactory messageFactory;
 
-    Map<Integer, FieldBuilder> getHeaderFieldBuilders();
+    SessionBuilderProvider(TransportMetadata metadata, Engine.MessageFactory messageFactory) {
 
-    Map<Integer, FieldBuilder> getTrailerFieldBuilders();
+        this.metadata = metadata;
+        this.messageFactory = messageFactory;
 
-    List<FIXApplication> getSupportedApplications();
+        for (MessageMetadata md : metadata.getMessageMetadata()) {
+            messageBuilders.add(new LazyMessageBuilder(null, md, messageFactory));
+        }
 
+        for (FieldMetadata header : metadata.getHeaderMetadata().values()) {
+            if (header instanceof GroupMetadata) {
+                headerFieldBuilders.put(header.getTag(), new LazyGroupFieldBuilder(
+                        (GroupMetadata) header, messageFactory));
+            } else {
+                headerFieldBuilders.put(header.getTag(), new LazyFieldBuilder(header,
+                        messageFactory.getFields()));
+            }
+        }
+
+        for (FieldMetadata trailer : metadata.getTrailerMetadata().values()) {
+            trailerFieldBuilders.put(trailer.getTag(),
+                    new LazyFieldBuilder(trailer, messageFactory.getFields()));
+        }
+    }
+
+    /**
+     * @since 2.0
+     */
+    public FIXBeginString getBeginString() {
+        return metadata.getBeginString();
+    }
+
+    /**
+     * @since 2.0
+     */
+    public TransportMetadata getTransportMetadata() {
+        return metadata;
+    }
+
+    /**
+     * @since 2.0
+     */
+    public List<FIXMessageBuilder> getMessageBuilders() {
+        return messageBuilders;
+    }
+
+    /**
+     * @since 2.0
+     */
+    public Map<Integer, FieldBuilder> getHeaderFieldBuilders() {
+        return headerFieldBuilders;
+    }
+
+    /**
+     * @since 2.0
+     */
+    public Map<Integer, FieldBuilder> getTrailerFieldBuilders() {
+        return trailerFieldBuilders;
+    }
 }

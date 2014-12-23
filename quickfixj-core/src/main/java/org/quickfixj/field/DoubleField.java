@@ -19,8 +19,6 @@
 
 package org.quickfixj.field;
 
-import quickfix.field.converter.DoubleConverter;
-
 /**
  * A double-values message field.
  */
@@ -45,9 +43,9 @@ public abstract class DoubleField extends AbstractField<Double> {
         this.padding = padding;
     }
 
-    protected DoubleField(CharSequence charSequence) {
+    protected DoubleField(char[] value, int offset, int count) {
 
-        this(Double.parseDouble(charSequence.toString()), 0);
+        this(Double.parseDouble(new String(value, offset, count)), 0);
     }
 
     @Override

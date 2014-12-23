@@ -19,19 +19,120 @@
 
 package quickfix;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.quickfixj.FIXApplication;
 import org.quickfixj.FIXBeginString;
 import org.quickfixj.FIXField;
+import org.quickfixj.FIXMessage;
+import org.quickfixj.engine.FIXMessageBuilderFactory;
+import org.quickfixj.engine.FIXMessageDictionary;
+import org.quickfixj.engine.FIXMessageDictionaryFactory;
+import org.quickfixj.engine.SessionRejectReason;
+import org.quickfixj.field.FieldException;
+import org.quickfixj.field.GenericField;
+import org.quickfixj.messages.bd.fix44.Quote;
+import org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSym;
+import org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup;
+import org.quickfixj.messages.bd.fix44.field.LegSymbol;
+import org.quickfixj.messages.bd.fix44.field.OrderID;
+import org.quickfixj.messages.bd.fix50.field.QuoteReqID;
+import org.quickfixj.messages.bd.fix50.field.SettlDate2;
+import org.quickfixj.messages.bd.fix50.field.Symbol;
+import org.quickfixj.spi.DictionaryService;
+import org.quickfixj.spi.DictionaryServiceSupport;
+import org.quickfixj.spi.MetadataRegistry;
 
-import quickfix.fix44.Quote;
-import quickfix.fix44.field.LegSymbol;
-import quickfix.fix44.field.OrderID;
-import quickfix.fix50.field.QuoteReqID;
-import quickfix.fix50.field.SettlDate2;
-import quickfix.fix50.field.Symbol;
 import junit.framework.Assert;
-import junit.framework.TestCase;
 
-public class RepeatingGroupTest extends TestCase {
+public class RepeatingGroupTest {
+
+    // Testing Message validation
+    private static FIXMessageDictionaryFactory systemDataDictionary44;
+    private static FIXMessageDictionaryFactory systemDataDictionary50;
+    private static FIXMessageDictionaryFactory customDataDictionary44;
+
+    private static DefaultValidator validator;
+    private static DefaultValidator validatorWithIgnoreOutOfOrder;
+
+    @BeforeClass
+    public static void beforeClass() throws Exception {
+
+        DictionaryService builderService44 = new org.quickfixj.messages.bd.fix44.DictionaryService();
+        DictionaryService builderServiceFixt = new org.quickfixj.messages.fixt11.DictionaryService();
+        DictionaryService builderService50 = new org.quickfixj.messages.bd.fix50.DictionaryService();
+        DictionaryService builderService50sp2 = new org.quickfixj.messages.bd.fix50sp2.DictionaryService();
+        DictionaryService customService = new DictionaryServiceSupport(
+                "/META-INF/quickfix/FIX44.custom.xml") {
+            //no-op
+        };
+
+        MetadataRegistry registry = new MetadataRegistry();
+
+        registry.register(builderService44.getEngine(), builderService44.getDictionaries());
+        registry.register(builderServiceFixt.getEngine(), builderServiceFixt.getDictionaries());
+        registry.register(builderService50.getEngine(), builderService50.getDictionaries());
+        registry.register(builderService50sp2.getEngine(), builderService50sp2.getDictionaries());
+        registry.register(customService.getEngine(), customService.getDictionaries());
+        registry.build();
+
+        systemDataDictionary44 = registry.getMessageDictionaryFactory(FIXBeginString.FIX44,
+                "org.quickfixj.messages.bd");
+        systemDataDictionary50 = registry.getMessageDictionaryFactory(FIXBeginString.FIXT11,
+                "org.quickfixj.messages.bd");
+        customDataDictionary44 = registry.getMessageDictionaryFactory(FIXBeginString.FIXT11,
+                "CUSTOM");
+
+        //        customDataDictionary = new MetadataDictionaryFactory(
+        //                DictionaryMetadata.getTransportMetadata("/FIX44.xml"));
+        //        customDataDictionary.add(DictionaryMetadata
+        //                .getApplicationMetadata("/FIX44_Custom_Test.xml"));
+
+        validator = new DefaultValidator(FIXBeginString.FIX44);
+        validatorWithIgnoreOutOfOrder = new DefaultValidator(FIXBeginString.FIX44);
+        validatorWithIgnoreOutOfOrder.setCheckUnorderedGroupFields(false);
+
+        //        defaultDataDictionary.addTransportDictionary(FIXBeginString.FIX44, dictionary);
+        //        defaultDataDictionary.addApplicationDictionary(FIXApplication.FIX44, dictionary);
+        // dictionary = new DataDictionary("FIX50SP2.xml");
+        //        defaultDataDictionary.addTransportDictionary(FIXBeginString.FIXT11, dictionary);
+        //        defaultDataDictionary.addApplicationDictionary(FIXApplication.FIX50SP2, dictionary);
+
+        // set up default dictionary ignoring out of order
+        //        defaultDataDictionaryWithIgnoreOutOfOrder = new DefaultDataDictionaryProvider(false);
+        //        dictionary = new DataDictionary("FIX44.xml");
+        //        dictionary.setCheckUnorderedGroupFields(false);
+        //        defaultDataDictionaryWithIgnoreOutOfOrder.addTransportDictionary(FIXBeginString.FIX44,
+        //                dictionary);
+        //        defaultDataDictionaryWithIgnoreOutOfOrder.addApplicationDictionary(FIXApplication.FIX44,
+        //                dictionary);
+
+        // set up customer dictionary
+        //        customDataDictionary = new MetadataDictionaryFactory(
+        //                DictionaryMetadata.getTransportMetadata("/FIX44.xml"));
+        //        customDataDictionary.add(DictionaryMetadata
+        //                .getApplicationMetadata("/FIX44_Custom_Test.xml"));
+        //        dictionary = new DataDictionary("FIX44_Custom_Test.xml");
+        //        customDataDictionary.addTransportDictionary(FIXBeginString.FIX44, dictionary);
+        //        customDataDictionary.addApplicationDictionary(FIXApplication.FIX44, dictionary);
+        //
+
+        //  messageFactory = SystemServiceLoader.getMessageBuilderFactory();
+    }
+
+    @AfterClass
+    public static void afterClass() {
+        systemDataDictionary44 = null;
+        systemDataDictionary50 = null;
+        customDataDictionary44 = null;
+        validator = null;
+        validatorWithIgnoreOutOfOrder = null;
+        //   messageFactory = null;
+    }
 
     // In this testcase we use only FIX4.4 message, but we could use the others
     // FIX version. Indeed the group
@@ -45,6 +146,7 @@ public class RepeatingGroupTest extends TestCase {
         return grp;
     }
 
+    @Test
     public void testSettingGettingGroupWithStandardFields() throws FieldNotFound {
 
         final String settingValue = "SETTING_VALUE";
@@ -61,12 +163,13 @@ public class RepeatingGroupTest extends TestCase {
     private Quote.NoLegsGroup buildGroupWithCustomFields(String settingValue) {
 
         final Quote.NoLegsGroup grp = new Quote.NoLegsGroup();
-        grp.setField(new quickfix.StringField(9001, settingValue)); // Custom
-                                                                    // tag is
+        grp.setField(new org.quickfixj.field.GenericField(9001, settingValue)); // Custom
+        // tag is
         // 9001
         return grp;
     }
 
+    @Test
     public void testSettingGettingGroupWithCustomFields() throws FieldNotFound {
 
         final String settingValue = "SETTING_VALUE";
@@ -83,12 +186,13 @@ public class RepeatingGroupTest extends TestCase {
     private Quote.NoLegsGroup buildGroupWithCustomAndStandardFields(String settingValue) {
 
         final Quote.NoLegsGroup grp = new Quote.NoLegsGroup();
-        grp.setField(new StringField(9001, settingValue)); // Custom tag is
+        grp.setField(new GenericField(9001, settingValue)); // Custom tag is
         // 9001
         grp.setLegSymbol(new LegSymbol(settingValue));
         return grp;
     }
 
+    @Test
     public void testSettingGettingGroupWithCustomAndStandardFields() throws FieldNotFound {
 
         final String settingValue = "SETTING_VALUE";
@@ -106,128 +210,159 @@ public class RepeatingGroupTest extends TestCase {
     }
 
     // NESTED Groups outside messages
-    private quickfix.fix44.QuoteRequest.NoRelatedSymGroup buildNestedGroupWithStandardFields(
+    private org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup buildNestedGroupWithStandardFields(
             String settingValue) {
 
         // The root group
-        final quickfix.fix44.QuoteRequest.NoRelatedSymGroup gNoRelatedSym = new quickfix.fix44.QuoteRequest.NoRelatedSymGroup();
+        final org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup gNoRelatedSym = new org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup();
 
         // The nested group
-        final quickfix.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup nestedgroup = new quickfix.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup();
+        org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegs noLegs;
+        org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup nestedgroup;
+
+        noLegs = new org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegs();
+
+        nestedgroup = new org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup();
         nestedgroup.setField(new LegSymbol(settingValue));
-        gNoRelatedSym.addGroup(nestedgroup);
+        noLegs.add(nestedgroup);
 
         // Adding a second fake nested group to avoid being the case of having
         // one element which is not relevant :-)
-        final quickfix.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup oneMoreNestedgroup = new quickfix.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup();
-        oneMoreNestedgroup.setField(new LegSymbol("Donald"));
-        gNoRelatedSym.addGroup(oneMoreNestedgroup);
+        nestedgroup = new org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup();
+        nestedgroup.setField(new LegSymbol("Donald"));
+        noLegs.add(nestedgroup);
+
+        gNoRelatedSym.setNoLegs(noLegs);
 
         return gNoRelatedSym;
     }
 
-    private quickfix.fix50.component.QuotReqGrp.NoRelatedSymGroup buildNestedGroupWithStandardFieldsFIX50(
+    private org.quickfixj.messages.bd.fix50.component.QuotReqGrp.NoRelatedSymGroup buildNestedGroupWithStandardFieldsFIX50(
             String settingValue) {
 
         // The root group
-        final quickfix.fix50.component.QuotReqGrp.NoRelatedSymGroup gNoRelatedSym = new quickfix.fix50.component.QuotReqGrp.NoRelatedSymGroup();
+        org.quickfixj.messages.bd.fix50.component.QuotReqGrp.NoRelatedSymGroup noRelatedSymGroup = new org.quickfixj.messages.bd.fix50.component.QuotReqGrp.NoRelatedSymGroup();
 
         // The nested group
-        final quickfix.fix50.component.QuotReqGrp.NoRelatedSymGroup.NoLegsGroup nestedgroup = new quickfix.fix50.component.QuotReqGrp.NoRelatedSymGroup.NoLegsGroup();
+        org.quickfixj.messages.bd.fix50.component.QuotReqGrp.NoRelatedSymGroup.NoLegs noLegs;
+        org.quickfixj.messages.bd.fix50.component.QuotReqGrp.NoRelatedSymGroup.NoLegsGroup nestedgroup;
+
+        noLegs = new org.quickfixj.messages.bd.fix50.component.QuotReqGrp.NoRelatedSymGroup.NoLegs();
+        nestedgroup = new org.quickfixj.messages.bd.fix50.component.QuotReqGrp.NoRelatedSymGroup.NoLegsGroup();
         nestedgroup.setField(new LegSymbol(settingValue));
-        gNoRelatedSym.addGroup(nestedgroup);
+        noLegs.add(nestedgroup);
 
         // Adding a second fake nested group to avoid being the case of having
         // one element which is not relevant :-)
-        final quickfix.fix50.component.QuotReqGrp.NoRelatedSymGroup.NoLegsGroup oneMoreNestedgroup = new quickfix.fix50.component.QuotReqGrp.NoRelatedSymGroup.NoLegsGroup();
-        oneMoreNestedgroup.setField(new LegSymbol("Donald"));
-        gNoRelatedSym.addGroup(oneMoreNestedgroup);
+        nestedgroup = new org.quickfixj.messages.bd.fix50.component.QuotReqGrp.NoRelatedSymGroup.NoLegsGroup();
+        nestedgroup.setField(new LegSymbol("Donald"));
+        noLegs.add(nestedgroup);
 
-        return gNoRelatedSym;
+        // set nested group field
+        noRelatedSymGroup.setNoLegs(noLegs);
+
+        return noRelatedSymGroup;
     }
 
+    @Test
     public void testSettingGettingNestedGroupWithStandardFields() throws FieldNotFound {
 
         final String settingValue = "SETTING_VALUE";
 
-        final quickfix.fix44.QuoteRequest.NoRelatedSymGroup gNoRelatedSym = buildNestedGroupWithStandardFields(settingValue);
+        final org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup noRelatedSymGroup;
+        noRelatedSymGroup = buildNestedGroupWithStandardFields(settingValue);
 
         // Getting part
-        final quickfix.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup getgrp = new quickfix.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup();
-        gNoRelatedSym.getGroup(1, getgrp);
+        final org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup getgrp;
+        getgrp = noRelatedSymGroup.getNoLegs().get(0);
         final LegSymbol gotFieldStd = (LegSymbol) getgrp.getField(LegSymbol.TAG);
 
         assertEquals("GettingValue is not the same the SettingValue", settingValue,
                 gotFieldStd.getValue());
     }
 
-    private quickfix.fix44.QuoteRequest.NoRelatedSymGroup buildNestedGroupWithCustomFields(
+    private org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup buildNestedGroupWithCustomFields(
             String settingValue) {
 
         // The root group
-        final quickfix.fix44.QuoteRequest.NoRelatedSymGroup gNoRelatedSym = new quickfix.fix44.QuoteRequest.NoRelatedSymGroup();
+        final org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup gNoRelatedSym = new org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup();
 
         // The nested group
-        final quickfix.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup nestedgroup = new quickfix.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup();
-        nestedgroup.setField(new StringField(9001, settingValue));
-        gNoRelatedSym.addGroup(nestedgroup);
+        org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegs noLegs;
+        org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup nestedgroup;
+
+        noLegs = new org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegs();
+        nestedgroup = noLegs
+                .add(new org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup());
+        nestedgroup.setField(new GenericField(9001, settingValue));
 
         // Adding a second fake nested group to avoid being the case of having
         // one element which is not relevant :-)
-        final quickfix.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup oneMoreNestedgroup = new quickfix.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup();
-        oneMoreNestedgroup.setField(new StringField(9001, "Donald"));
-        gNoRelatedSym.addGroup(oneMoreNestedgroup);
+        nestedgroup = noLegs
+                .add(new org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup());
+        nestedgroup.setField(new GenericField(9001, "Donald"));
+
+        gNoRelatedSym.setField(noLegs);
 
         return gNoRelatedSym;
     }
 
+    @Test
     public void testSettingGettingNestedGroupWithCustomFields() throws FieldNotFound {
 
         final String settingValue = "SETTING_VALUE";
 
         // The root group
-        final quickfix.fix44.QuoteRequest.NoRelatedSymGroup gNoRelatedSym = buildNestedGroupWithCustomFields(settingValue);
+        final org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup gNoRelatedSym = buildNestedGroupWithCustomFields(settingValue);
 
         // Getting part
-        final quickfix.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup getgrp = new quickfix.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup();
-        gNoRelatedSym.getGroup(1, getgrp);
+        final org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup getgrp;
+        getgrp = gNoRelatedSym.getNoLegs().get(0);
         final FIXField<?> gotFieldStd = getgrp.getField(9001);
 
         assertEquals("GettingValue is not the same the SettingValue", settingValue,
                 gotFieldStd.getValue());
     }
 
-    private quickfix.fix44.QuoteRequest.NoRelatedSymGroup buildNestedGroupWithCustomAndStandardFields(
+    private org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup buildNestedGroupWithCustomAndStandardFields(
             String settingValue) {
 
         // The root group
-        final quickfix.fix44.QuoteRequest.NoRelatedSymGroup gNoRelatedSym = new quickfix.fix44.QuoteRequest.NoRelatedSymGroup();
+        final org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup gNoRelatedSym = new org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup();
 
         // The nested group
-        final quickfix.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup nestedgroup = new quickfix.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup();
+        org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegs noLegs;
+        org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup nestedgroup;
+
+        noLegs = new org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegs();
+
+        nestedgroup = noLegs
+                .add(new org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup());
         nestedgroup.setField(new LegSymbol(settingValue));
-        nestedgroup.setField(new StringField(9001, settingValue));
-        gNoRelatedSym.addGroup(nestedgroup);
+        nestedgroup.setField(new GenericField(9001, settingValue));
 
         // Adding a second fake nested group to avoid being the case of having
         // one element which is not relevant :-)
-        final quickfix.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup oneMoreNestedgroup = new quickfix.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup();
-        oneMoreNestedgroup.setField(new LegSymbol("Donald"));
-        oneMoreNestedgroup.setField(new StringField(9001, "Donald"));
-        gNoRelatedSym.addGroup(oneMoreNestedgroup);
+        nestedgroup = noLegs
+                .add(new org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup());
+        nestedgroup.setField(new LegSymbol("Donald"));
+        nestedgroup.setField(new GenericField(9001, "Donald"));
+
+        gNoRelatedSym.setField(noLegs);
 
         return gNoRelatedSym;
     }
 
+    @Test
     public void testSettingGettingNestedGroupWithCustomAndStandardFields() throws FieldNotFound {
 
         final String settingValue = "SETTING_VALUE";
 
-        final quickfix.fix44.QuoteRequest.NoRelatedSymGroup gNoRelatedSym = buildNestedGroupWithCustomAndStandardFields(settingValue);
+        final org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup gNoRelatedSym = buildNestedGroupWithCustomAndStandardFields(settingValue);
 
         // Getting part
-        final quickfix.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup getgrp = new quickfix.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup();
-        gNoRelatedSym.getGroup(1, getgrp);
+        final org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup getgrp;
+        getgrp = gNoRelatedSym.getNoLegs().get(0);
 
         final FIXField<?> gotField = getgrp.getField(9001);
         final LegSymbol gotFieldStd = (LegSymbol) getgrp.getField(LegSymbol.TAG);
@@ -240,27 +375,35 @@ public class RepeatingGroupTest extends TestCase {
     }
 
     // Testing group re-usability when setting values
+    @Test
     public void testSettingGettingGroupByReusingGroup() throws FieldNotFound {
 
         // The root group
-        final quickfix.fix44.QuoteRequest.NoRelatedSymGroup gNoRelatedSym = new quickfix.fix44.QuoteRequest.NoRelatedSymGroup();
+        final org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup gNoRelatedSym = new org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup();
 
         // Create the initial group
-        final quickfix.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup nestedgroup = new quickfix.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup();
-        final String notOverridenFieldValue = "Value1.1";
-        nestedgroup.setField(new LegSymbol(notOverridenFieldValue));
-        nestedgroup.setField(new StringField(9001, "Value1.2"));
-        gNoRelatedSym.addGroup(nestedgroup);
+        org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegs noLegs;
+        org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup noLegsGroup;
 
-        // Create the second group by re-using the same group and changing one
+        noLegs = new org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegs();
+
+        noLegsGroup = new org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup();
+        final String notOverridenFieldValue = "Value1.1";
+        noLegsGroup.setField(new LegSymbol(notOverridenFieldValue));
+        noLegsGroup.setField(new GenericField(9001, "Value1.2"));
+        noLegs.add(noLegsGroup);
+
+        // Create the second group by cloning the first group and changing one
         // value of only one field
+        noLegsGroup = (NoLegsGroup) noLegsGroup.clone();
         final String overridenFieldValue = "Value2.2";
-        nestedgroup.setField(new StringField(9001, overridenFieldValue));
-        gNoRelatedSym.addGroup(nestedgroup);
+        noLegsGroup.setField(new GenericField(9001, overridenFieldValue));
+        noLegs.add(noLegsGroup);
 
         // Getting part
-        final quickfix.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup getgrp = new quickfix.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup();
-        gNoRelatedSym.getGroup(2, getgrp);
+        final org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup getgrp;
+        getgrp = noLegs.get(1);
+        // gNoRelatedSym.getGroup(2, getgrp);
 
         final FIXField<?> gotField = getgrp.getField(9001);
         final LegSymbol gotFieldStd = (LegSymbol) getgrp.getField(LegSymbol.TAG);
@@ -274,59 +417,51 @@ public class RepeatingGroupTest extends TestCase {
                 gotFieldStd.getValue());
     }
 
-    // Testing Message validation
-    private static DataDictionary defaultDataDictionary = null;
+    private FIXMessage buildValidatedMessage(FIXMessageDictionaryFactory dictionaryFactory,
+            FIXApplication application, String messageString) {
 
-    private static DataDictionary defaultDataDictionaryWithIgnoreOutOfOrder = null;
+        FIXMessageBuilderFactory factory = DefaultEngine.getDefaultEngine()
+                .getMessageBuilderFactory(dictionaryFactory.getBeginString(),
+                        "org.quickfixj.messages.bd");
 
-    private static DataDictionary customDataDictionary = null;
-
-    private final DefaultMessageFactory messageFactory = new DefaultMessageFactory();
-
-    static {
-        try {
-            defaultDataDictionary = new DataDictionary("FIX44.xml");
-            defaultDataDictionaryWithIgnoreOutOfOrder = new DataDictionary("FIX44.xml");
-            defaultDataDictionaryWithIgnoreOutOfOrder.setCheckUnorderedGroupFields(false);
-            customDataDictionary = new DataDictionary("FIX44_Custom_Test.xml");
-        } catch (final ConfigError e) {
-            e.printStackTrace();
-        }
+        return MessageUtils.parse(application, factory, dictionaryFactory, messageString, true);
     }
 
-    private Message buildValidatedMessage(String sourceFIXString, DataDictionary dd)
-            throws InvalidMessage {
-
-        final Message message = messageFactory.create(MessageUtils.getBeginString(sourceFIXString),
-                MessageUtils.getMessageType(sourceFIXString));
-        MessageUtils.parse(message, sourceFIXString, dd, true);
-        return message;
-    }
-
+    @Test
     public void testValidationWithNestedGroupAndStandardFields() throws InvalidMessage {
 
-        final quickfix.fix44.QuoteRequest quoteRequest = new quickfix.fix44.QuoteRequest();
+        final org.quickfixj.messages.bd.fix44.QuoteRequest quoteRequest = new org.quickfixj.messages.bd.fix44.QuoteRequest();
 
         // Added - TODO these should be acquired via a MessageBuilder
-        quoteRequest.getHeader().setField(quickfix.fix44.field.MsgType.QUOTE_REQUEST);
         quoteRequest.getHeader().setField(
-                new quickfix.fix44.field.BeginString(FIXBeginString.FIX44.getValue()));
+                org.quickfixj.messages.bd.fix44.field.MsgType.QUOTE_REQUEST);
+        quoteRequest.getHeader().setField(
+                new org.quickfixj.messages.bd.fix44.field.BeginString(FIXBeginString.FIX44
+                        .getValue()));
 
         final QuoteReqID gQuoteReqID = new QuoteReqID("12342");
         //   gQuoteReqID.setValue("12342");
         quoteRequest.setField(gQuoteReqID);
 
-        final quickfix.fix44.QuoteRequest.NoRelatedSymGroup gNoRelatedSym = buildNestedGroupWithStandardFields("DEFAULT_VALUE");
-        gNoRelatedSym.setField(new Symbol("SYM00"));
+        org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSym noRelatedSym;
+        org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup noRelatedSymGroup;
 
-        quoteRequest.addGroup(gNoRelatedSym);
+        noRelatedSym = new org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSym();
 
-        quoteRequest.addGroup(gNoRelatedSym);
+        noRelatedSymGroup = buildNestedGroupWithStandardFields("DEFAULT_VALUE");
+        noRelatedSymGroup.setField(new Symbol("SYM00"));
+        noRelatedSym.add(noRelatedSymGroup);
+
+        noRelatedSymGroup = buildNestedGroupWithStandardFields("DEFAULT_VALUE");
+        noRelatedSymGroup.setField(new Symbol("SYM01"));
+        noRelatedSym.add(noRelatedSymGroup);
+
+        quoteRequest.setNoRelatedSym(noRelatedSym);
 
         final String sourceFIXString = quoteRequest.toString();
 
-        final quickfix.fix44.QuoteRequest validatedMessage = (quickfix.fix44.QuoteRequest) buildValidatedMessage(
-                sourceFIXString, defaultDataDictionary);
+        final org.quickfixj.messages.bd.fix44.QuoteRequest validatedMessage = (org.quickfixj.messages.bd.fix44.QuoteRequest) buildValidatedMessage(
+                systemDataDictionary44, FIXApplication.FIX44, sourceFIXString);
         String validateFIXString = null;
         if (validatedMessage != null) {
             validateFIXString = validatedMessage.toString();
@@ -335,235 +470,290 @@ public class RepeatingGroupTest extends TestCase {
         assertEquals("Message validation failed", sourceFIXString, validateFIXString);
     }
 
-    public void testValidationWithNestedGroupAndStandardFieldsFIX50SP2() throws InvalidMessage,
-            ConfigError {
+    @Test
+    public void testValidationWithNestedGroupAndStandardFieldsFIX50SP2() {
 
-        final quickfix.fix50.QuoteRequest quoteRequest = new quickfix.fix50.QuoteRequest();
+        final org.quickfixj.messages.bd.fix50.QuoteRequest quoteRequest = new org.quickfixj.messages.bd.fix50.QuoteRequest();
 
         // Added - TODO these should be acquired via a MessageBuilder
-        quoteRequest.getHeader().setField(quickfix.fix50.field.MsgType.QUOTE_REQUEST);
         quoteRequest.getHeader().setField(
-                new quickfix.fix50.field.BeginString(FIXBeginString.FIXT11.getValue()));
+                org.quickfixj.messages.bd.fix50.field.MsgType.QUOTE_REQUEST);
+        quoteRequest.getHeader().setField(
+                new org.quickfixj.messages.bd.fix50.field.BeginString(FIXBeginString.FIXT11
+                        .getValue()));
 
-        final QuoteReqID gQuoteReqID = new QuoteReqID("12342");
-        // gQuoteReqID.setValue("12342");
-        quoteRequest.setField(gQuoteReqID);
+        quoteRequest.setField(new QuoteReqID("12342"));
 
-        final quickfix.fix50.component.QuotReqGrp.NoRelatedSymGroup gNoRelatedSym = buildNestedGroupWithStandardFieldsFIX50("DEFAULT_VALUE");
-        gNoRelatedSym.setField(new Symbol("SYM00"));
-        gNoRelatedSym.setField(new SettlDate2("20120801"));
+        org.quickfixj.messages.bd.fix50.component.QuotReqGrp.NoRelatedSym noRelatedSym;
+        org.quickfixj.messages.bd.fix50.component.QuotReqGrp.NoRelatedSymGroup noRelatedSymGroup;
 
-        quoteRequest.addGroup(gNoRelatedSym);
+        noRelatedSym = new org.quickfixj.messages.bd.fix50.component.QuotReqGrp.NoRelatedSym();
 
-        quoteRequest.addGroup(gNoRelatedSym);
+        noRelatedSymGroup = buildNestedGroupWithStandardFieldsFIX50("DEFAULT_VALUE");
+        noRelatedSymGroup.setSymbol(new Symbol("SYM00"));
+        noRelatedSymGroup.setSettlDate2(new SettlDate2("20120801"));
+        noRelatedSym.add(noRelatedSymGroup);
+
+        noRelatedSymGroup = buildNestedGroupWithStandardFieldsFIX50("DEFAULT_VALUE");
+        noRelatedSymGroup.setSymbol(new Symbol("SYM00"));
+        noRelatedSymGroup.setSettlDate2(new SettlDate2("20120801"));
+        noRelatedSym.add(noRelatedSymGroup);
+
+        quoteRequest.setField(noRelatedSym);
 
         final String sourceFIXString = quoteRequest.toString();
-        final DataDictionary fix50DataDictionary = new DataDictionary("FIX50SP2.xml");
-        final quickfix.fix50.QuoteRequest validatedMessage = (quickfix.fix50.QuoteRequest) buildValidatedMessage(
-                sourceFIXString, fix50DataDictionary);
-        String validateFIXString = null;
-        if (validatedMessage != null) {
-            validateFIXString = validatedMessage.toString();
-        }
+
+        //    final DataDictionary fix50DataDictionary = new DataDictionary("FIX50SP2.xml");
+        final org.quickfixj.messages.bd.fix50sp2.QuoteRequest validatedMessage = (org.quickfixj.messages.bd.fix50sp2.QuoteRequest) buildValidatedMessage(
+                systemDataDictionary50, FIXApplication.FIX50SP2, sourceFIXString);
+
+        String validateFIXString = validatedMessage.toString();
 
         assertEquals("Message validation failed", sourceFIXString, validateFIXString);
-        assertEquals(2, validatedMessage.getGroupCount(gNoRelatedSym.getFieldTag()));
+        assertEquals(2, validatedMessage.getNoRelatedSym().size());
     }
 
+    @Test(expected = InvalidMessage.class)
     public void testValidationWithNestedGroupAndStandardFieldsWithoutDelimiter() {
 
-        final quickfix.fix44.QuoteRequest quoteRequest = new quickfix.fix44.QuoteRequest();
+        final org.quickfixj.messages.bd.fix44.QuoteRequest quoteRequest = new org.quickfixj.messages.bd.fix44.QuoteRequest();
 
-        final quickfix.fix44.field.QuoteReqID gQuoteReqID = new quickfix.fix44.field.QuoteReqID(
+        final org.quickfixj.messages.bd.fix44.field.QuoteReqID gQuoteReqID = new org.quickfixj.messages.bd.fix44.field.QuoteReqID(
                 "12342");
         //  gQuoteReqID.setValue("12342");
         quoteRequest.setField(gQuoteReqID);
 
-        final quickfix.fix44.QuoteRequest.NoRelatedSymGroup gNoRelatedSym = buildNestedGroupWithStandardFields("DEFAULT_VALUE");
+        org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSym noRelatedSym;
+        org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup noRelatedSymGroup;
 
-        quoteRequest.addGroup(gNoRelatedSym);
+        noRelatedSym = new NoRelatedSym();
+        noRelatedSymGroup = buildNestedGroupWithStandardFields("DEFAULT_VALUE");
 
-        quoteRequest.addGroup(gNoRelatedSym);
+        noRelatedSym.add(noRelatedSymGroup);
+        noRelatedSym.add(noRelatedSymGroup);
+
+        quoteRequest.setField(noRelatedSym);
 
         final String sourceFIXString = quoteRequest.toString();
 
-        try {
-            buildValidatedMessage(sourceFIXString, defaultDataDictionary);
-            fail("No Exception thrown");
-        } catch (final InvalidMessage e) {
-            // We expect that Exception did happen, so we don't do anything.
-        }
+        buildValidatedMessage(systemDataDictionary50, FIXApplication.FIX44, sourceFIXString);
     }
 
+    @Test
     public void testGroupFieldsOrderWithCustomDataDictionary() throws InvalidMessage {
 
-        final quickfix.fix44.QuoteRequest quoteRequest = new quickfix.fix44.QuoteRequest();
+        final org.quickfixj.messages.bd.fix44.QuoteRequest quoteRequest = new org.quickfixj.messages.bd.fix44.QuoteRequest();
 
         // Added - TODO these should be acquired via a MessageBuilder
-        quoteRequest.getHeader().setField(quickfix.fix44.field.MsgType.QUOTE_REQUEST);
         quoteRequest.getHeader().setField(
-                new quickfix.fix44.field.BeginString(FIXBeginString.FIX44.getValue()));
+                org.quickfixj.messages.bd.fix44.field.MsgType.QUOTE_REQUEST);
+        quoteRequest.getHeader().setField(
+                new org.quickfixj.messages.bd.fix44.field.BeginString(FIXBeginString.FIX44
+                        .getValue()));
 
-        final quickfix.fix44.field.QuoteReqID gQuoteReqID = new quickfix.fix44.field.QuoteReqID(
+        final org.quickfixj.messages.bd.fix44.field.QuoteReqID gQuoteReqID = new org.quickfixj.messages.bd.fix44.field.QuoteReqID(
                 "12342");
-        //   gQuoteReqID.setValue("12342");
         quoteRequest.setField(gQuoteReqID);
 
+        org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSym noRelatedSym;
+        org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup noRelatedSymGroup;
+
         // The root group
-        final quickfix.fix44.QuoteRequest.NoRelatedSymGroup gNoRelatedSym = new quickfix.fix44.QuoteRequest.NoRelatedSymGroup();
-        gNoRelatedSym.setField(new Symbol("SYM00"));
+        noRelatedSym = new org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSym();
+        noRelatedSymGroup = new org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup();
+        noRelatedSymGroup.setField(new Symbol("SYM00"));
+        noRelatedSym.add(noRelatedSymGroup);
 
         // The nested group
-        final quickfix.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup nestedgroup = new quickfix.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup();
+        org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegs noLegs;
+        org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup nestedgroup;
+
+        noLegs = new org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegs();
+        noRelatedSymGroup.setNoLegs(noLegs);
+
+        nestedgroup = new org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup();
         nestedgroup.setField(new LegSymbol("DEFAULT_VALUE"));
         nestedgroup.setField(new OrderID("111")); // The non ordered field
-        nestedgroup.setField(new StringField(9001, "1.9001")); // The custom non
-                                                               // ordered field
-        gNoRelatedSym.addGroup(nestedgroup);
+        nestedgroup.setField(new GenericField(9001, "1.9001")); // The custom non rdered field
+        noLegs.add(nestedgroup);
 
         // Adding a second fake nested group to avoid being the case of having
         // one element which is not relevant :-)
-        final quickfix.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup oneMoreNestedgroup = new quickfix.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup();
-        oneMoreNestedgroup.setField(new LegSymbol("Donald"));
-        oneMoreNestedgroup.setField(new OrderID("112")); // The non ordered
-                                                         // field
-        oneMoreNestedgroup.setField(new StringField(9001, "2.9001")); // The
-                                                                      // custom
-                                                                      // non
-                                                                      // ordered
-                                                                      // field
-        gNoRelatedSym.addGroup(oneMoreNestedgroup);
+        nestedgroup = new org.quickfixj.messages.bd.fix44.QuoteRequest.NoRelatedSymGroup.NoLegsGroup();
+        nestedgroup.setField(new LegSymbol("Donald"));
+        nestedgroup.setField(new OrderID("112")); // The non ordered field
+        nestedgroup.setField(new GenericField(9001, "2.9001")); // The custom non ordered field
+        noLegs.add(nestedgroup);
 
-        quoteRequest.addGroup(gNoRelatedSym);
+        quoteRequest.setNoRelatedSym(noRelatedSym);
 
         final String sourceFIXString = quoteRequest.toString();
-        final quickfix.fix44.QuoteRequest validatedMessage = (quickfix.fix44.QuoteRequest) buildValidatedMessage(
-                sourceFIXString, customDataDictionary);
 
-        assertNull("Invalid message", validatedMessage.getException());
+        org.quickfixj.messages.bd.fix44.QuoteRequest validatedMessage = (org.quickfixj.messages.bd.fix44.QuoteRequest) buildValidatedMessage(
+                customDataDictionary44, FIXApplication.FIX44, sourceFIXString);
 
-        String validatedFIXString = null;
-        if (validatedMessage != null) {
-            validatedFIXString = validatedMessage.toString();
-        }
+        assertNull("Invalid message", validatedMessage.getParseException());
+
+        String validatedFIXString = validatedMessage.toString();
 
         assertEquals("Message validation failed", MessageUtils.checksum(sourceFIXString),
                 MessageUtils.checksum(validatedFIXString));
     }
 
+    @Test
     public void testOutOfOrderGroupMembersDelimiterField() throws Exception {
 
-        final Message m = new Message(
-                "8=FIX.4.4\0019=0\00135=D\00134=2\00149=TW\00152=<TIME>\00156=ISLD\00111=ID\001"
-                        + "21=1\00140=1\00154=1\00138=200.00\00155=INTC\00178=2\00180=50\00179=acct1\001"
-                        + "80=150\00179=acct2\00160=<TIME>\00110=000\001", defaultDataDictionary,
-                false);
+        FIXMessage m = MessageUtils
+                .parse(FIXApplication.FIX44,
+                        new GenericMessageBuilderFactory(),
+                        systemDataDictionary44,
+                        "8=FIX.4.4\0019=0\00135=D\00134=2\00149=TW\00152=<TIME>\00156=ISLD\00111=ID\001"
+                                + "21=1\00140=1\00154=1\00138=200.00\00155=INTC\00178=2\00180=50\00179=acct1\001"
+                                + "80=150\00179=acct2\00160=<TIME>\00110=000\001", false);
+
         try {
-            defaultDataDictionary.validate(m);
+            new DefaultValidator(FIXBeginString.FIX44).validate(
+                    systemDataDictionary44.getMessageDictionary(FIXApplication.FIX44, "D"), m);
             Assert.fail("No exception");
         } catch (final FieldException e) {
             // expected
-            assertEquals(SessionRejectReasonText.REPEATING_GROUP_FIELDS_OUT_OF_ORDER,
+            assertEquals(SessionRejectReason.REPEATING_GROUP_FIELDS_OUT_OF_ORDER,
                     e.getSessionRejectReason());
             assertEquals(80, e.getField());
         }
     }
 
+    @Test
     public void testIgnoreOutOfOrderGroupMembersDelimiterField() throws Exception {
 
-        final Message m = new Message(
+        FIXMessage m = MessageUtils.parse(FIXApplication.FIX44, new GenericMessageBuilderFactory(),
+                systemDataDictionary44,
                 "8=FIX.4.4\0019=0\00135=D\00134=2\00149=TW\00152=<TIME>\00156=ISLD\00111=ID\001"
-                        + "21=1\00140=1\00154=1\00138=200.00\00155=INTC\00178=2\00180=50\00179=acct1\001"
-                        + "80=150\00179=acct2\00160=<TIME>\00110=000\001",
-                defaultDataDictionaryWithIgnoreOutOfOrder, false);
+                        + "21=1\00140=1\00154=1\00138=200.00\00155=INTC\001"
+                        + "78=2\00180=50\00179=acct1\00180=150\00179=acct2\001" + "60=<TIME>\001"
+                        + "10=000\001", false);
+
         try {
-            defaultDataDictionaryWithIgnoreOutOfOrder.validate(m);
+            validatorWithIgnoreOutOfOrder.validate(
+                    systemDataDictionary44.getMessageDictionary(FIXApplication.FIX44, "D"), m);
             Assert.fail("No exception");
         } catch (final FieldException e) {
+            e.printStackTrace();
             // expected
-            assertEquals(SessionRejectReasonText.REPEATING_GROUP_FIELDS_OUT_OF_ORDER,
+            assertEquals(SessionRejectReason.REPEATING_GROUP_FIELDS_OUT_OF_ORDER,
                     e.getSessionRejectReason());
             assertEquals(80, e.getField());
         }
     }
 
+    @Test
     public void testOutOfOrderGroupMembers() throws Exception {
 
-        final Message m = new Message(
+        FIXMessage m = MessageUtils.parse(FIXApplication.FIX44, new GenericMessageBuilderFactory(),
+                systemDataDictionary44,
                 "8=FIX.4.4\0019=0\00135=D\00134=2\00149=TW\00152=20080203-00:29:51.453\00156=ISLD\001"
-                        + "11=ID\00121=1\00140=1\00154=1\00138=200.00\00155=INTC\00178=2\00179=acct1\00180=50\001"
-                        + "661=X\00179=acct2\00180=150\001661=X\00160=20080203-00:29:51.453\00110=000\001",
-                defaultDataDictionary, false);
+                        + "11=ID\00121=1\00140=1\00154=1\00138=200.00\00155=INTC\00178=2\001"
+                        + "79=acct1\00180=50\001661=99\00179=acct2\00180=150\001661=99\001"
+                        + "60=20080203-00:29:51.453\00110=000\001", false);
+
         try {
-            defaultDataDictionary.validate(m);
+            validator.validate(
+                    systemDataDictionary44.getMessageDictionary(FIXApplication.FIX44, "D"), m);
             Assert.fail("No exception");
         } catch (final FieldException e) {
             // expected
-            assertEquals(e.getMessage(),
-                    SessionRejectReasonText.REPEATING_GROUP_FIELDS_OUT_OF_ORDER,
+            assertEquals(e.getMessage(), SessionRejectReason.REPEATING_GROUP_FIELDS_OUT_OF_ORDER,
                     e.getSessionRejectReason());
             assertEquals(661, e.getField());
         }
     }
 
+    @Test
     public void testIgnoreOutOfOrderGroupMembers() throws Exception {
 
-        final Message m = new Message(
-                "8=FIX.4.4\0019=0\00135=D\00134=2\00149=TW\00152=20080203-00:29:51.453\00156=ISLD\001"
-                        + "11=ID\00121=1\00140=1\00154=1\00138=200.00\00155=INTC\00178=2\00179=acct1\00180=50\001"
-                        + "661=10\00179=acct2\00180=150\001661=11\00160=20080203-00:29:51.453\00110=000\001",
-                defaultDataDictionaryWithIgnoreOutOfOrder, false);
+        String messageString = "8=FIX.4.4\0019=0\00135=D\00134=2\00149=TW\00152=20080203-00:29:51.453\00156=ISLD\001"
+                + "11=ID\00121=1\00140=1\00154=1\00138=200.00\00155=INTC\00178=2\001"
+                + "79=acct1\00180=50\001661=10\001"
+                + "79=acct2\00180=150\001661=11\001"
+                + "60=20080203-00:29:51.453\00110=000\001";
+
+        FIXMessageDictionary dictionary;
+        MessageParser parser;
+        FIXMessage message;
+
+        dictionary = systemDataDictionary44.getMessageDictionary(FIXApplication.FIX44, "D");
+
         try {
-            defaultDataDictionaryWithIgnoreOutOfOrder.validate(m);
+            parser = new MessageParser(new GenericMessageBuilderFactory(), systemDataDictionary44,
+                    validatorWithIgnoreOutOfOrder);
+            message = parser.parse(FIXApplication.FIX44, messageString, false);
+            validatorWithIgnoreOutOfOrder.validate(dictionary, message);
         } catch (final FieldException e) {
             Assert.fail("Exception");
         }
     }
 
+    @Test
     public void testRequiredGroupMembers() throws Exception {
 
         // Missing group tag 304
-        final Message m = new Message("8=FIX.4.4\0019=0\00135=i\00134=2\00149=TW\001"
-                + "52=20080203-00:29:51.453\00156=ISLD\001117=ID\001296=1\001302=X\00110=000\001",
-                defaultDataDictionary, false);
+        FIXMessage m = MessageUtils
+                .parse(FIXApplication.FIX44,
+                        new GenericMessageBuilderFactory(),
+                        systemDataDictionary44,
+                        "8=FIX.4.4\0019=0\00135=i\00134=2\00149=TW\001"
+                                + "52=20080203-00:29:51.453\00156=ISLD\001117=ID\001296=1\001302=X\00110=000\001",
+                        false);
         try {
-            defaultDataDictionary.validate(m);
+            validator.validate(
+                    systemDataDictionary44.getMessageDictionary(FIXApplication.FIX44, "i"), m);
             Assert.fail("No exception");
         } catch (final FieldException e) {
             // expected
-            assertEquals(e.getMessage(), SessionRejectReasonText.REQUIRED_TAG_MISSING,
+            assertEquals(e.getMessage(), SessionRejectReason.REQUIRED_TAG_MISSING,
                     e.getSessionRejectReason());
             assertEquals(304, e.getField());
         }
     }
 
+    @Test
     public void testWrongGroupCount() throws Exception {
 
         // Excessive group counts in nested group
-        final Message m = new Message("8=FIX.4.4\0019=0\00135=i\00134=2\00149=TW\001"
-                + "52=20080203-00:29:51.453\00156=ISLD\001117=ID\001296=1\001302=X\001"
-                + "304=5\001295=50\001299=QID\00110=085\001", defaultDataDictionary, true);
+        FIXMessage m = MessageUtils.parse(FIXApplication.FIX44, new GenericMessageBuilderFactory(),
+                systemDataDictionary44, "8=FIX.4.4\0019=0\00135=i\00134=2\00149=TW\001"
+                        + "52=20080203-00:29:51.453\00156=ISLD\001117=ID\001296=1\001302=X\001"
+                        + "304=5\001295=50\001299=QID\00110=085\001", true);
+
         try {
-            defaultDataDictionary.validate(m);
+            validator.validate(
+                    systemDataDictionary44.getMessageDictionary(FIXApplication.FIX44, "i"), m);
             Assert.fail("No exception");
         } catch (final FieldException e) {
+            e.printStackTrace();
             // expected
             assertEquals("Wrong reject reason: [" + e.getMessage() + "]",
-                    SessionRejectReasonText.INCORRECT_NUMINGROUP_COUNT_FOR_REPEATING_GROUP,
+                    SessionRejectReason.INCORRECT_NUMINGROUP_COUNT_FOR_REPEATING_GROUP,
                     e.getSessionRejectReason());
             assertEquals(295, e.getField());
         }
     }
 
+    @Test
     public void testInvalidEnumFieldInGroup() throws Exception {
 
         // Excessive group counts
-        final Message m = new Message(
-                "8=FIX.4.4\0019=0\00135=A\00134=2\00152=20080203-00:29:51.453\00156=ISLD\001"
-                        + "49=TW\001108=10\001384=1\001372=D\001385=X\00198=0\00110=129\001",
-                defaultDataDictionary, false);
+        FIXMessage m = MessageUtils
+                .parse(FIXApplication.FIX44,
+                        new GenericMessageBuilderFactory(),
+                        systemDataDictionary44,
+                        "8=FIX.4.4\0019=0\00135=A\00134=2\00152=20080203-00:29:51.453\00156=ISLD\001"
+                                + "49=TW\001108=10\001384=1\001372=D\001385=X\00198=0\00110=129\001",
+                        false);
+
         try {
-            defaultDataDictionary.validate(m);
+            validator.validate(
+                    systemDataDictionary44.getMessageDictionary(FIXApplication.FIX44, "A"), m);
             Assert.fail("No exception");
         } catch (final IncorrectTagValue e) {
             // expected
@@ -571,18 +761,21 @@ public class RepeatingGroupTest extends TestCase {
         }
     }
 
+    @Test
     public void testSettingGettingGroupWithStandardFieldsInHeader() throws Exception {
 
-        final Message m = new Message(
-                "8=FIX.4.4\0019=87\00135=0\00134=2\00152=20080203-00:29:51.453\00156=ISLD\001"
-                        + "49=TW\001627=2\001628=_TED02A\001629=20090717-13:25:31.896\001628=_GWSURV\001"
-                        + "629=20090717-13:25:31.928\00110=012\001", defaultDataDictionary, false);
+        FIXMessage m = MessageUtils.parse(FIXApplication.FIX44, new GenericMessageBuilderFactory(),
+                systemDataDictionary44,
+                "8=FIX.4.4\0019=87\00135=0\00134=2\00152=20080203-00:29:51.453\00156=ISLD\00149=TW\001627=2\001"
+                        + "628=_TED02A\001629=20090717-13:25:31.896\001"
+                        + "628=_GWSURV\001629=20090717-13:25:31.928\00110=012\001", false);
+
         try {
-            defaultDataDictionary.validate(m);
+            validator.validate(
+                    systemDataDictionary44.getMessageDictionary(FIXApplication.FIX44, "0"), m);
         } catch (final IncorrectTagValue e) {
             // not expected
             Assert.fail("Exception occured");
         }
     }
-
 }

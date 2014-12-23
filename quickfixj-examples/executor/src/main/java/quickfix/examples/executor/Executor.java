@@ -37,25 +37,24 @@ import java.util.Map;
 import javax.management.JMException;
 import javax.management.ObjectName;
 
-import org.quickfixj.MessageBuilderFactory;
-import org.quickfixj.jmx.JmxExporter;
-import org.quickfixj.spi.MessageBuilderServiceLoader;
+import org.quickfixj.engine.FIXEngine;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.engine.LogFactory;
+import org.quickfixj.engine.MessageStoreFactory;
+import org.quickfixj.jmx.mbean.JmxExporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import quickfix.ConfigError;
-import quickfix.FieldConvertError;
+import quickfix.DefaultEngine;
 import quickfix.FileStoreFactory;
-import quickfix.LogFactory;
-import quickfix.MessageStoreFactory;
 import quickfix.RuntimeError;
 import quickfix.ScreenLogFactory;
-import quickfix.SessionID;
 import quickfix.SessionSettings;
-import quickfix.SocketAcceptor;
 import quickfix.mina.acceptor.DynamicAcceptorSessionProvider;
 import quickfix.mina.acceptor.DynamicAcceptorSessionProvider.TemplateMapping;
 import quickfix.mina.acceptor.DynamicAcceptorSessionProvider.TemplatePattern;
+import quickfix.mina.acceptor.SocketAcceptor;
 
 public class Executor {
     private final static Logger log = LoggerFactory.getLogger(Executor.class);
@@ -65,18 +64,16 @@ public class Executor {
     private final JmxExporter jmxExporter;
     private final ObjectName connectorObjectName;
 
-    public Executor(SessionSettings settings) throws ConfigError, FieldConvertError, JMException {
+    public Executor(SessionSettings settings) throws ConfigError, JMException {
+        FIXEngine engine = DefaultEngine.getDefaultEngine();
         Application application = new Application(settings);
         MessageStoreFactory messageStoreFactory = new FileStoreFactory(settings);
         LogFactory logFactory = new ScreenLogFactory(true, true, true);
-        MessageBuilderFactory messageFactory = MessageBuilderServiceLoader
-                .getMessageBuilderFactory();
 
         acceptor = new SocketAcceptor(application, messageStoreFactory, settings, logFactory,
-                messageFactory);
+                engine);
 
-        configureDynamicSessions(settings, application, messageStoreFactory, logFactory,
-                messageFactory);
+        configureDynamicSessions(settings, application, messageStoreFactory, logFactory, engine);
 
         jmxExporter = new JmxExporter();
         connectorObjectName = jmxExporter.register(acceptor);
@@ -84,16 +81,16 @@ public class Executor {
     }
 
     private void configureDynamicSessions(SessionSettings settings, Application application,
-            MessageStoreFactory messageStoreFactory, LogFactory logFactory,
-            MessageBuilderFactory messageFactory) throws ConfigError, FieldConvertError {
+            MessageStoreFactory messageStoreFactory, LogFactory logFactory, FIXEngine engine)
+            throws ConfigError {
         //
         // If a session template is detected in the settings, then
         // set up a dynamic session provider.
         //
 
-        Iterator<SessionID> sectionIterator = settings.sectionIterator();
+        Iterator<FIXSessionID> sectionIterator = settings.sectionIterator();
         while (sectionIterator.hasNext()) {
-            SessionID sessionID = sectionIterator.next();
+            FIXSessionID sessionID = sectionIterator.next();
             if (isSessionTemplate(settings, sessionID)) {
                 InetSocketAddress address = getAcceptorSocketAddress(settings, sessionID);
                 getMappings(address).add(
@@ -107,7 +104,7 @@ public class Executor {
                 .entrySet()) {
             acceptor.setSessionProvider(entry.getKey(), new DynamicAcceptorSessionProvider(
                     settings, entry.getValue(), application, messageStoreFactory, logFactory,
-                    messageFactory));
+                    engine));
         }
     }
 
@@ -120,8 +117,8 @@ public class Executor {
         return mappings;
     }
 
-    private InetSocketAddress getAcceptorSocketAddress(SessionSettings settings, SessionID sessionID)
-            throws ConfigError, FieldConvertError {
+    private InetSocketAddress getAcceptorSocketAddress(SessionSettings settings,
+            FIXSessionID sessionID) throws ConfigError {
         String acceptorHost = "0.0.0.0";
         if (settings.isSetting(sessionID, SETTING_SOCKET_ACCEPT_ADDRESS)) {
             acceptorHost = settings.getString(sessionID, SETTING_SOCKET_ACCEPT_ADDRESS);
@@ -131,8 +128,8 @@ public class Executor {
         return new InetSocketAddress(acceptorHost, acceptorPort);
     }
 
-    private boolean isSessionTemplate(SessionSettings settings, SessionID sessionID)
-            throws ConfigError, FieldConvertError {
+    private boolean isSessionTemplate(SessionSettings settings, FIXSessionID sessionID)
+            throws ConfigError {
         return settings.isSetting(sessionID, SETTING_ACCEPTOR_TEMPLATE)
                 && settings.getBool(sessionID, SETTING_ACCEPTOR_TEMPLATE);
     }

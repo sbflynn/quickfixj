@@ -22,8 +22,16 @@ package quickfix;
 import java.io.File;
 import java.io.IOException;
 
+import org.quickfixj.engine.MessageStore;
+import org.quickfixj.engine.MessageStoreFactory;
+import org.quickfixj.field.FieldConversionException;
+
+import quickfix.sleepycat.SleepycatStore;
+import quickfix.sleepycat.SleepycatStoreFactory;
+
 public class SleepycatStoreTest extends AbstractMessageStoreTest {
-    protected MessageStoreFactory getMessageStoreFactory() throws ConfigError, FieldConvertError {
+    protected MessageStoreFactory getMessageStoreFactory() throws ConfigError,
+            FieldConversionException {
         SessionSettings settings = new SessionSettings(getConfigurationFileName());
         File tmpfile;
         try {
@@ -37,17 +45,21 @@ public class SleepycatStoreTest extends AbstractMessageStoreTest {
         return new SleepycatStoreFactory(settings);
     }
 
+    @Override
     protected void tearDown() throws Exception {
         try {
             ((SleepycatStore) getStore()).close();
         } catch (Exception e) {
+            // ignore
         }
     }
 
+    @Override
     protected Class<?> getMessageStoreClass() {
         return SleepycatStore.class;
     }
 
+    @Override
     protected void closeMessageStore(MessageStore store) throws IOException {
         ((SleepycatStore) store).close();
     }
@@ -62,5 +74,4 @@ public class SleepycatStoreTest extends AbstractMessageStoreTest {
         assertEquals(123, store.getNextSenderMsgSeqNum());
         assertEquals(321, store.getNextTargetMsgSeqNum());
     }
-
 }

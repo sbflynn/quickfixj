@@ -38,8 +38,9 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import org.quickfixj.CharsetSupport;
-
-import quickfix.field.converter.UtcTimestampConverter;
+import org.quickfixj.engine.MessageStore;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.field.UtcTimestampConverter;
 
 /**
  * File store implementation. THIS CLASS IS PUBLIC ONLY TO MAINTAIN
@@ -72,7 +73,7 @@ public class FileStore implements MessageStore, Closeable {
     private RandomAccessFile senderSequenceNumberFile;
     private RandomAccessFile targetSequenceNumberFile;
 
-    FileStore(String path, SessionID sessionID, boolean syncWrites, int maxCachedMsgs)
+    FileStore(String path, FIXSessionID sessionID, boolean syncWrites, int maxCachedMsgs)
             throws IOException {
         this.syncWrites = syncWrites;
         this.maxCachedMsgs = maxCachedMsgs;
@@ -358,15 +359,6 @@ public class FileStore implements MessageStore, Closeable {
         }
 
         messages.addAll(messagesFound.values());
-    }
-
-    /**
-     * This method is here for JNI API consistency but it's not
-     * implemented. Use get(int, int, Collection) with the same
-     * start and end sequence.
-     */
-    public boolean get(int sequence, String message) {
-        throw new UnsupportedOperationException("not supported");
     }
 
     private String getMessage(int i) throws IOException {

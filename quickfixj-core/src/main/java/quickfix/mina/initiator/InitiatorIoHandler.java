@@ -20,8 +20,8 @@
 package quickfix.mina.initiator;
 
 import org.apache.mina.core.session.IoSession;
+import org.quickfixj.FIXMessage;
 
-import quickfix.Message;
 import quickfix.Session;
 import quickfix.mina.AbstractIoHandler;
 import quickfix.mina.EventHandlingStrategy;
@@ -55,7 +55,7 @@ class InitiatorIoHandler extends AbstractIoHandler {
     }
 
     @Override
-    protected void processMessage(IoSession protocolSession, Message message) throws Exception {
+    protected void processMessage(IoSession protocolSession, FIXMessage message) throws Exception {
         eventHandlingStrategy.onMessage(quickfixSession, message);
     }
 }

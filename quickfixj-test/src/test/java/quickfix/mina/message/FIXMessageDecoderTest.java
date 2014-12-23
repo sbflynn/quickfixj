@@ -43,12 +43,18 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.quickfixj.CharsetSupport;
+import org.quickfixj.FIXApplication;
+import org.quickfixj.FIXBeginString;
+import org.quickfixj.FIXMessage;
+import org.quickfixj.engine.FIXEngine;
+import org.quickfixj.engine.FIXMessageDictionaryFactory;
+import org.quickfixj.messages.bd.fix44.field.Headline;
 
-import quickfix.DataDictionaryTest;
+import quickfix.DefaultEngine;
 import quickfix.FieldNotFound;
+import quickfix.GenericMessageBuilderFactory;
 import quickfix.InvalidMessage;
-import quickfix.Message;
-import quickfix.fix44.field.Headline;
+import quickfix.MessageUtils;
 import quickfix.mina.CriticalProtocolCodecException;
 
 public class FIXMessageDecoderTest {
@@ -84,7 +90,7 @@ public class FIXMessageDecoderTest {
         setUpBuffer("8=FIX.4.2\0019=12\00135=X\001108=30\00110=049\001");
         MessageDecoderResult decoderResult = decoder.decode(null, buffer, decoderOutput);
         assertEquals("wrong decoder result", MessageDecoderResult.OK, decoderResult);
-        assertEquals("Wrong encoding", 14397, (int) decoderOutput.getMessage().charAt(0));
+        assertEquals("Wrong encoding", 14397, decoderOutput.getMessage().charAt(0));
     }
 
     @Test
@@ -93,7 +99,7 @@ public class FIXMessageDecoderTest {
         setUpBuffer("8=FIXT.1.1\0019=12\00135=X\001108=30\00110=049\001");
         MessageDecoderResult decoderResult = decoder.decode(null, buffer, decoderOutput);
         assertEquals("wrong decoder result", MessageDecoderResult.OK, decoderResult);
-        assertEquals("Wrong encoding", 14397, (int) decoderOutput.getMessage().charAt(0));
+        assertEquals("Wrong encoding", 14397, decoderOutput.getMessage().charAt(0));
     }
 
     @Test
@@ -125,10 +131,14 @@ public class FIXMessageDecoderTest {
         ProtocolDecoderOutputForTest decoderOutput = new ProtocolDecoderOutputForTest();
         decoder.decode(null, byteBuffer, decoderOutput);
 
-        Message decodedMessage = new Message(decoderOutput.getMessage(),
-                DataDictionaryTest.getDictionary(), true);
+        FIXEngine engine = DefaultEngine.getDefaultEngine();
+        FIXMessageDictionaryFactory provider = engine.getMessageDictionaryFactory(
+                FIXBeginString.FIX44, "org.quickfixj.messages.bd");
 
-        assertEquals("wrong text", headline, decodedMessage.getString(Headline.TAG));
+        FIXMessage decodedMessage = MessageUtils.parse(FIXApplication.FIX44,
+                new GenericMessageBuilderFactory(), provider, decoderOutput.getMessage(), true);
+
+        assertEquals("wrong text", headline, decodedMessage.getFieldValue(Headline.TAG));
     }
 
     @Test
@@ -421,7 +431,7 @@ public class FIXMessageDecoderTest {
         return new String(bytes, "ISO_8859-1");
     }
 
-    private void setUpBuffer(byte[] bytes) throws UnsupportedEncodingException {
+    private void setUpBuffer(byte[] bytes) {
         buffer.put(bytes);
         buffer.flip();
     }
@@ -562,6 +572,7 @@ public class FIXMessageDecoderTest {
             _length = length;
         }
 
+        @Override
         public String toString() {
             return _offset + "," + _length;
         }

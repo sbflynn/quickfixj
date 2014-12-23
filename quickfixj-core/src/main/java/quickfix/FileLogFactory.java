@@ -19,6 +19,10 @@
 
 package quickfix;
 
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.engine.Log;
+import org.quickfixj.engine.LogFactory;
+
 /**
  * Factory for creating file-based loggers. See SessionSettings for
  * configuration.
@@ -67,7 +71,7 @@ public class FileLogFactory implements LogFactory {
      * @param sessionID session ID for the logger
      */
     @Override
-    public Log create(SessionID sessionID) {
+    public Log create(FIXSessionID sessionID) {
         try {
             boolean includeMillis = false;
             if (settings.isSetting(sessionID, SETTING_INCLUDE_MILLIS_IN_TIMESTAMP)) {

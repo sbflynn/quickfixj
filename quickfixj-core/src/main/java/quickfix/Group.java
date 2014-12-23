@@ -19,12 +19,15 @@
 
 package quickfix;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.quickfixj.FIXGroup;
 
 /**
  * Represents a repeating field group within a message.
  */
-public class Group extends FieldMap implements FIXGroup {
+public class Group extends AbstractFieldGraph implements FIXGroup {
 
     /**
      * The serialVersionUID property.
@@ -41,19 +44,8 @@ public class Group extends FieldMap implements FIXGroup {
      * @param delim the delimiter tag number (first group field)
      */
     public Group(int fieldTag, int delim) {
-        this(fieldTag, delim, new int[] { delim });
+        this(fieldTag, delim, Arrays.asList(delim));
     }
-
-    //    /**
-    //     * Copy a group.
-    //     *
-    //     * @param group the group to copy
-    //     */
-    //    public Group(Group group) {
-    //        this(group.getFieldTag(), group.delim(), group.getFieldOrder());
-    //        setFields(group);
-    //        //  setGroups(group);
-    //    }
 
     /**
      * Create a group with the specified count and delimiter fields and
@@ -63,7 +55,7 @@ public class Group extends FieldMap implements FIXGroup {
      * @param delim
      * @param order
      */
-    public Group(int fieldTag, int delim, int[] order) {
+    public Group(int fieldTag, int delim, List<Integer> order) {
         super(order);
         this.fieldTag = fieldTag;
         this.delim = delim;
@@ -76,32 +68,29 @@ public class Group extends FieldMap implements FIXGroup {
         return delim;
     }
 
-    //    /**
-    //     * Add a copy of the group to the message.
-    //     *
-    //     * @param group the group to copy
-    //     */
-    //    @Override
-    //    public void addGroup(Group group) {
-    //        super.addGroup(group);
-    //    }
-
-    //    /**
-    //     * Copy the group at the specified index into the supplied group object.
-    //     *
-    //     * @param num the index of the group (1 based)
-    //     * @param group the target group object for the group fields (it will be cleared).sss
-    //     */
-    //    @Override
-    //    public Group getGroup(int num, Group group) throws FieldNotFound {
-    //        return super.getGroup(num, group);
-    //    }
-
     /**
      * @return the count field tag.
      */
     @Override
     public int getFieldTag() {
         return fieldTag;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @since 2.0
+     */
+    @Override
+    public FIXGroup clone() {
+
+        // careful not to call super.clone() or we end up
+        // with a shallow copy of the field storage
+        Group clone = (Group) super.clone();
+
+        clone.delim = delim;
+        clone.fieldTag = fieldTag;
+
+        return clone;
     }
 }

@@ -26,12 +26,11 @@ import java.util.Properties;
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.core.session.IoSessionConfig;
 import org.apache.mina.transport.socket.SocketSessionConfig;
+import org.quickfixj.field.BooleanConverter;
+import org.quickfixj.field.FieldConversionException;
+import org.quickfixj.field.IntConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import quickfix.FieldConvertError;
-import quickfix.field.converter.BooleanConverter;
-import quickfix.field.converter.IntConverter;
 
 /**
  * This class holds the QFJ settings information related to networking options.
@@ -73,7 +72,7 @@ public class NetworkingOptions {
         trafficClasses.put(IPTOC_LOWDELAY, 0x10);
     }
 
-    public NetworkingOptions(Properties properties) throws FieldConvertError {
+    public NetworkingOptions(Properties properties) throws FieldConversionException {
         keepAlive = getBoolean(properties, SETTING_SOCKET_KEEPALIVE, null);
         oobInline = getBoolean(properties, SETTING_SOCKET_OOBINLINE, null);
         receiveBufferSize = getInteger(properties, SETTING_SOCKET_RECEIVE_BUFFER_SIZE, null);
@@ -88,7 +87,7 @@ public class NetworkingOptions {
         Integer trafficClassSetting;
         try {
             trafficClassSetting = getInteger(properties, SETTING_SOCKET_TRAFFIC_CLASS, null);
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             // Try parsing the enums
             String trafficClassEnumString = properties.getProperty(SETTING_SOCKET_TRAFFIC_CLASS);
             int trafficClassBits = 0;
@@ -97,7 +96,7 @@ public class NetworkingOptions {
                 if (trafficClasses.containsKey(trafficClassEnum)) {
                     trafficClassBits |= trafficClasses.get(trafficClassEnum);
                 } else {
-                    throw new FieldConvertError("Can't parse traffic class: " + trafficClassEnum);
+                    throw new FieldConversionException("Can't parse traffic class: " + trafficClassEnum);
                 }
             }
             trafficClassSetting = trafficClassBits;
@@ -109,7 +108,7 @@ public class NetworkingOptions {
     }
 
     private Boolean getBoolean(Properties properties, String key, Boolean defaultValue)
-            throws FieldConvertError {
+            throws FieldConversionException {
         Boolean value = properties.containsKey(key) ? Boolean.valueOf(BooleanConverter
                 .convert(properties.getProperty(key))) : defaultValue;
         logOption(key, value);
@@ -123,7 +122,7 @@ public class NetworkingOptions {
     }
 
     private Integer getInteger(Properties properties, String key, Integer defaultValue)
-            throws FieldConvertError {
+            throws FieldConversionException {
         Integer value = properties.containsKey(key) ? Integer.valueOf(IntConverter
                 .convert(properties.getProperty(key))) : defaultValue;
         logOption(key, value);

@@ -34,15 +34,16 @@ import org.apache.mina.core.buffer.SimpleBufferAllocator;
 import org.apache.mina.core.service.IoAcceptor;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.filter.ssl.SslFilter;
-import org.quickfixj.MessageBuilderFactory;
+import org.quickfixj.engine.FIXEngine;
+import org.quickfixj.engine.MessageStoreFactory;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.engine.LogFactory;
+import org.quickfixj.field.FieldConversionException;
 
 import quickfix.Acceptor;
 import quickfix.Application;
 import quickfix.ConfigError;
 import quickfix.DefaultSessionFactory;
-import quickfix.FieldConvertError;
-import quickfix.LogFactory;
-import quickfix.MessageStoreFactory;
 import quickfix.RuntimeError;
 import quickfix.ScreenLogFactory;
 import quickfix.Session;
@@ -67,26 +68,25 @@ public abstract class AbstractSocketAcceptor extends SessionConnector implements
     private final Map<SocketAddress, AcceptorSocketDescriptor> socketDescriptorForAddress = new HashMap<SocketAddress, AcceptorSocketDescriptor>();
     private final Map<AcceptorSocketDescriptor, IoAcceptor> ioAcceptors = new HashMap<AcceptorSocketDescriptor, IoAcceptor>();
 
-    protected AbstractSocketAcceptor(SessionSettings settings, SessionFactory sessionFactory)
-            throws ConfigError {
-        super(settings, sessionFactory);
+    protected AbstractSocketAcceptor(FIXEngine engine, SessionSettings settings,
+            SessionFactory sessionFactory) throws ConfigError {
+        super(engine, settings, sessionFactory);
         IoBuffer.setAllocator(new SimpleBufferAllocator());
         IoBuffer.setUseDirectBuffer(false);
         this.sessionFactory = sessionFactory;
     }
 
     protected AbstractSocketAcceptor(Application application,
-            MessageStoreFactory messageStoreFactory, SessionSettings settings,
-            MessageBuilderFactory messageFactory) throws ConfigError {
-        this(application, messageStoreFactory, settings, new ScreenLogFactory(settings),
-                messageFactory);
+            MessageStoreFactory messageStoreFactory, SessionSettings settings, FIXEngine engine)
+            throws ConfigError {
+        this(application, messageStoreFactory, settings, new ScreenLogFactory(settings), engine);
     }
 
     protected AbstractSocketAcceptor(Application application,
             MessageStoreFactory messageStoreFactory, SessionSettings settings,
-            LogFactory logFactory, MessageBuilderFactory messageFactory) throws ConfigError {
-        this(settings, new DefaultSessionFactory(application, messageStoreFactory, logFactory,
-                messageFactory));
+            LogFactory logFactory, FIXEngine engine) throws ConfigError {
+        this(engine, settings, new DefaultSessionFactory(application, messageStoreFactory,
+                logFactory, engine));
     }
 
     // TODO SYNC Does this method really need synchronization?
@@ -116,7 +116,7 @@ public abstract class AbstractSocketAcceptor extends SessionConnector implements
                 log.info("Listening for connections at " + address + " for session(s) "
                         + socketDescriptor.getAcceptedSessions().keySet());
             }
-        } catch (FieldConvertError e) {
+        } catch (FieldConversionException e) {
             throw new ConfigError(e);
         } catch (Exception e) {
             log.error("Cannot start acceptor session for " + address + ", error:" + e);
@@ -152,7 +152,7 @@ public abstract class AbstractSocketAcceptor extends SessionConnector implements
                 SessionSettings settings = getSettings();
                 ioAcceptor.setHandler(new AcceptorIoHandler(sessionProvider, new NetworkingOptions(
                         settings.getDefaultProperties()), getEventHandlingStrategy()));
-            } catch (FieldConvertError e) {
+            } catch (FieldConversionException e) {
                 throw new ConfigError(e);
             }
             ioAcceptors.put(socketDescriptor, ioAcceptor);
@@ -165,7 +165,7 @@ public abstract class AbstractSocketAcceptor extends SessionConnector implements
     }
 
     private AcceptorSocketDescriptor getAcceptorSocketDescriptor(SessionSettings settings,
-            SessionID sessionID) throws ConfigError, FieldConvertError {
+            FIXSessionID sessionID) throws ConfigError, FieldConversionException {
         int acceptTransportType = ProtocolFactory.SOCKET;
         if (settings.isSetting(sessionID, Acceptor.SETTING_SOCKET_ACCEPT_PROTOCOL)) {
             try {
@@ -224,10 +224,10 @@ public abstract class AbstractSocketAcceptor extends SessionConnector implements
         return object1 == null ? object2 == null : object1.equals(object2);
     }
 
-    private void createSessions(SessionSettings settings) throws ConfigError, FieldConvertError {
-        HashMap<SessionID, Session> allSessions = new HashMap<SessionID, Session>();
-        for (Iterator<SessionID> i = settings.sectionIterator(); i.hasNext();) {
-            SessionID sessionID = i.next();
+    private void createSessions(SessionSettings settings) throws ConfigError {
+        HashMap<FIXSessionID, Session> allSessions = new HashMap<FIXSessionID, Session>();
+        for (Iterator<FIXSessionID> i = settings.sectionIterator(); i.hasNext();) {
+            FIXSessionID sessionID = i.next();
             String connectionType = settings.getString(sessionID,
                     SessionFactory.SETTING_CONNECTION_TYPE);
 
@@ -270,7 +270,7 @@ public abstract class AbstractSocketAcceptor extends SessionConnector implements
         private final boolean useSSL;
         private final String keyStoreName;
         private final String keyStorePassword;
-        private final Map<SessionID, Session> acceptedSessions = new HashMap<SessionID, Session>();
+        private final Map<FIXSessionID, Session> acceptedSessions = new HashMap<FIXSessionID, Session>();
 
         public AcceptorSocketDescriptor(SocketAddress address, boolean useSSL, String keyStoreName,
                 String keyStorePassword) {
@@ -284,7 +284,7 @@ public abstract class AbstractSocketAcceptor extends SessionConnector implements
             acceptedSessions.put(session.getSessionID(), session);
         }
 
-        public Map<SessionID, Session> getAcceptedSessions() {
+        public Map<FIXSessionID, Session> getAcceptedSessions() {
             return Collections.unmodifiableMap(acceptedSessions);
         }
 
@@ -309,10 +309,11 @@ public abstract class AbstractSocketAcceptor extends SessionConnector implements
         return ioAcceptors.values();
     }
 
-    public Map<SessionID, SocketAddress> getAcceptorAddresses() {
-        Map<SessionID, SocketAddress> sessionIdToAddressMap = new HashMap<SessionID, SocketAddress>();
+    @Override
+    public Map<FIXSessionID, SocketAddress> getAcceptorAddresses() {
+        Map<FIXSessionID, SocketAddress> sessionIdToAddressMap = new HashMap<FIXSessionID, SocketAddress>();
         for (AcceptorSocketDescriptor descriptor : socketDescriptorForAddress.values()) {
-            for (SessionID sessionID : descriptor.getAcceptedSessions().keySet()) {
+            for (FIXSessionID sessionID : descriptor.getAcceptedSessions().keySet()) {
                 sessionIdToAddressMap.put(sessionID, descriptor.getAddress());
             }
         }
@@ -324,18 +325,19 @@ public abstract class AbstractSocketAcceptor extends SessionConnector implements
     }
 
     static class StaticAcceptorSessionProvider implements AcceptorSessionProvider {
-        private final Map<SessionID, Session> acceptorSessions;
+        private final Map<FIXSessionID, Session> acceptorSessions;
 
-        public StaticAcceptorSessionProvider(final Map<SessionID, Session> acceptorSessions) {
+        public StaticAcceptorSessionProvider(final Map<FIXSessionID, Session> acceptorSessions) {
             this.acceptorSessions = acceptorSessions;
         }
 
         @Override
-        public Session getSession(SessionID sessionID, SessionConnector connector) {
+        public Session getSession(FIXSessionID sessionID, SessionConnector connector) {
             return acceptorSessions.get(sessionID);
         }
     }
 
+    @Override
     public int getQueueSize() {
         final EventHandlingStrategy ehs = getEventHandlingStrategy();
         return ehs == null ? 0 : ehs.getQueueSize();
@@ -345,17 +347,17 @@ public abstract class AbstractSocketAcceptor extends SessionConnector implements
 
     private class DefaultAcceptorSessionProvider implements AcceptorSessionProvider {
 
-        private final Map<SessionID, Session> acceptorSessions;
+        private final Map<FIXSessionID, Session> acceptorSessions;
 
-        public DefaultAcceptorSessionProvider(Map<SessionID, Session> acceptorSessions) {
+        public DefaultAcceptorSessionProvider(Map<FIXSessionID, Session> acceptorSessions) {
             this.acceptorSessions = acceptorSessions;
         }
 
         @Override
-        public Session getSession(SessionID sessionID, SessionConnector ignored) {
+        public Session getSession(FIXSessionID sessionID, SessionConnector ignored) {
             Session session = acceptorSessions.get(sessionID);
             if (session == null) {
-                SessionID reduced = reduceSessionID(sessionID);
+                FIXSessionID reduced = reduceSessionID(sessionID);
                 session = acceptorSessions.get(reduced);
             }
             return session;
@@ -364,7 +366,7 @@ public abstract class AbstractSocketAcceptor extends SessionConnector implements
         /**
          * Remove the extra fields added to the session ID in QF-272.
          */
-        private SessionID reduceSessionID(SessionID sessionID) {
+        private FIXSessionID reduceSessionID(FIXSessionID sessionID) {
             // Acceptors don't use qualifiers.
             return new SessionID(sessionID.getBeginString(), sessionID.getSenderCompID(),
                     sessionID.getTargetCompID());

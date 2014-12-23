@@ -24,4 +24,10 @@ public interface FIXGroup extends FIXFieldGraph {
      */
     int getFieldTag();
 
+    /**
+     * @since 2.0
+     */
+    @Override
+    FIXGroup clone();
+
 }

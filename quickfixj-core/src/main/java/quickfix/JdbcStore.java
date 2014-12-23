@@ -36,6 +36,9 @@ import java.util.TimeZone;
 
 import javax.sql.DataSource;
 
+import org.quickfixj.engine.MessageStore;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+
 class JdbcStore implements MessageStore {
     private final static String DEFAULT_SESSION_TABLE_NAME = "sessions";
     private final static String DEFAULT_MESSAGE_TABLE_NAME = "messages";
@@ -43,7 +46,7 @@ class JdbcStore implements MessageStore {
     private final MemoryStore cache = new MemoryStore();
     private final boolean extendedSessionIdSupported;
     private final DataSource dataSource;
-    private final SessionID sessionID;
+    private final FIXSessionID sessionID;
     private final String sessionTableName;
     private final String messageTableName;
     private final String defaultSessionIdPropertyValue;
@@ -57,7 +60,8 @@ class JdbcStore implements MessageStore {
     private String SQL_UPDATE_SESSION;
     private String SQL_DELETE_MESSAGES;
 
-    public JdbcStore(SessionSettings settings, SessionID sessionID, DataSource ds) throws Exception {
+    public JdbcStore(SessionSettings settings, FIXSessionID sessionID, DataSource ds)
+            throws Exception {
         this.sessionID = sessionID;
         if (settings.isSetting(sessionID, SETTING_JDBC_STORE_SESSIONS_TABLE_NAME)) {
             sessionTableName = settings

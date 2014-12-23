@@ -27,43 +27,43 @@ import java.util.List;
 import org.quickfixj.FIXApplication;
 import org.quickfixj.FIXBeginString;
 import org.quickfixj.FIXField;
+import org.quickfixj.FIXMessage;
+import org.quickfixj.engine.FIXMessageDictionary;
+import org.quickfixj.engine.FIXMessageDictionaryFactory;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.engine.FIXTag;
+import org.quickfixj.engine.SessionNotFoundException;
+import org.quickfixj.field.GenericField;
+import org.quickfixj.messages.bd.fix40.ExecutionReport;
+import org.quickfixj.messages.bd.fix40.NewOrderSingle;
+import org.quickfixj.messages.bd.fix40.field.AvgPx;
+import org.quickfixj.messages.bd.fix40.field.CumQty;
+import org.quickfixj.messages.bd.fix40.field.ExecID;
+import org.quickfixj.messages.bd.fix40.field.ExecTransType;
+import org.quickfixj.messages.bd.fix40.field.LastPx;
+import org.quickfixj.messages.bd.fix40.field.LastShares;
+import org.quickfixj.messages.bd.fix40.field.OrdStatus;
+import org.quickfixj.messages.bd.fix40.field.OrderID;
+import org.quickfixj.messages.bd.fix40.field.OrderQty;
+import org.quickfixj.messages.bd.fix40.field.Price;
+import org.quickfixj.messages.bd.fix50.field.OrdType;
+import org.quickfixj.messages.bd.fix50.field.Side;
+import org.quickfixj.messages.bd.fix50.field.Symbol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import quickfix.ConfigError;
-import quickfix.DataDictionaryProvider;
+import quickfix.DefaultValidator;
 import quickfix.DoNotSend;
-import quickfix.FieldConvertError;
 import quickfix.FieldNotFound;
-import quickfix.FixTags;
-import quickfix.IncorrectDataFormat;
 import quickfix.IncorrectTagValue;
 import quickfix.LogUtil;
-import quickfix.Message;
+import quickfix.MessageCracker;
 import quickfix.MessageUtils;
-import quickfix.RejectLogon;
 import quickfix.Session;
-import quickfix.SessionID;
-import quickfix.SessionNotFound;
 import quickfix.SessionSettings;
-import quickfix.UnsupportedMessageType;
-import quickfix.fix40.ExecutionReport;
-import quickfix.fix40.NewOrderSingle;
-import quickfix.fix40.field.AvgPx;
-import quickfix.fix40.field.CumQty;
-import quickfix.fix40.field.ExecID;
-import quickfix.fix40.field.ExecTransType;
-import quickfix.fix40.field.LastPx;
-import quickfix.fix40.field.LastShares;
-import quickfix.fix40.field.OrdStatus;
-import quickfix.fix40.field.OrderID;
-import quickfix.fix40.field.OrderQty;
-import quickfix.fix40.field.Price;
-import quickfix.fix50.field.OrdType;
-import quickfix.fix50.field.Side;
-import quickfix.fix50.field.Symbol;
 
-public class Application extends quickfix.MessageCracker implements quickfix.Application {
+public class Application extends MessageCracker implements quickfix.Application {
     private static final String DEFAULT_MARKET_PRICE_KEY = "DefaultMarketPrice";
     private static final String ALWAYS_FILL_LIMIT_KEY = "AlwaysFillLimitOrders";
     private static final String VALID_ORDER_TYPES_KEY = "ValidOrderTypes";
@@ -73,7 +73,7 @@ public class Application extends quickfix.MessageCracker implements quickfix.App
     private final HashSet<String> validOrderTypes = new HashSet<String>();
     private MarketDataProvider marketDataProvider;
 
-    public Application(SessionSettings settings) throws ConfigError, FieldConvertError {
+    public Application(SessionSettings settings) throws ConfigError {
         initializeValidOrderTypes(settings);
         initializeMarketDataProvider(settings);
 
@@ -84,8 +84,7 @@ public class Application extends quickfix.MessageCracker implements quickfix.App
         }
     }
 
-    private void initializeMarketDataProvider(SessionSettings settings) throws ConfigError,
-            FieldConvertError {
+    private void initializeMarketDataProvider(SessionSettings settings) throws ConfigError {
         if (settings.isSetting(DEFAULT_MARKET_PRICE_KEY)) {
             if (marketDataProvider == null) {
                 final double defaultMarketPrice = settings.getDouble(DEFAULT_MARKET_PRICE_KEY);
@@ -107,8 +106,7 @@ public class Application extends quickfix.MessageCracker implements quickfix.App
         }
     }
 
-    private void initializeValidOrderTypes(SessionSettings settings) throws ConfigError,
-            FieldConvertError {
+    private void initializeValidOrderTypes(SessionSettings settings) throws ConfigError {
         if (settings.isSetting(VALID_ORDER_TYPES_KEY)) {
             List<String> orderTypes = Arrays.asList(settings.getString(VALID_ORDER_TYPES_KEY)
                     .trim().split("\\s*,\\s*"));
@@ -119,56 +117,53 @@ public class Application extends quickfix.MessageCracker implements quickfix.App
     }
 
     @Override
-    public void onCreate(SessionID sessionID) {
+    public void onCreate(FIXSessionID sessionID) {
         Session.lookupSession(sessionID).getLog().onEvent("Valid order types: " + validOrderTypes);
     }
 
     @Override
-    public void onLogon(SessionID sessionID) {
+    public void onLogon(FIXSessionID sessionID) {
         //no-op
     }
 
     @Override
-    public void onLogout(SessionID sessionID) {
+    public void onLogout(FIXSessionID sessionID) {
         //no-op
     }
 
     @Override
-    public void toAdmin(quickfix.Message message, SessionID sessionID) {
+    public void toAdmin(FIXMessage message, FIXSessionID sessionID) {
         //no-op
     }
 
     @Override
-    public void toApp(quickfix.Message message, SessionID sessionID) throws DoNotSend {
+    public void toApp(FIXMessage message, FIXSessionID sessionID) throws DoNotSend {
         //no-op
     }
 
     @Override
-    public void fromAdmin(quickfix.Message message, SessionID sessionID) throws FieldNotFound,
-            IncorrectDataFormat, IncorrectTagValue, RejectLogon {
+    public void fromAdmin(FIXMessage message, FIXSessionID sessionID) {
         //no-op
     }
 
     @Override
-    public void fromApp(quickfix.Message message, SessionID sessionID) throws FieldNotFound,
-            IncorrectDataFormat, IncorrectTagValue, UnsupportedMessageType {
+    public void fromApp(FIXMessage message, FIXSessionID sessionID) {
         crack(message, sessionID);
     }
 
-    public void onMessage(NewOrderSingle order, SessionID sessionID) throws FieldNotFound,
-            IncorrectTagValue {
+    public void onMessage(NewOrderSingle order, FIXSessionID sessionID) {
         try {
 
             // earlier FIX versions used string not character values
-            validateOrder(new quickfix.fix44.field.OrdType(order.getOrdType().getCharacters()
-                    .charAt(0)));
+            validateOrder(new org.quickfixj.messages.bd.fix44.field.OrdType(order.getOrdType()
+                    .getCharacters().charAt(0)));
 
             double price = getPrice(order);
 
             OrderQty orderQty = order.getOrderQty();
 
             ExecutionReport accept = new ExecutionReport(new OrderID(genOrderID()), new ExecID(
-                    genExecID()), ExecTransType.NEW, OrdStatus.NEW, order.getSymbol(),
+                    genExecIDAsInt()), ExecTransType.NEW, OrdStatus.NEW, order.getSymbol(),
                     order.getSide(), orderQty, new LastShares(0), new LastPx(0), new CumQty(0),
                     new AvgPx(0));
 
@@ -177,7 +172,7 @@ public class Application extends quickfix.MessageCracker implements quickfix.App
 
             if (isOrderExecutable(order, price)) {
                 ExecutionReport fill = new ExecutionReport(new OrderID(genOrderID()), new ExecID(
-                        genExecID()), ExecTransType.NEW, OrdStatus.FILLED, order.getSymbol(),
+                        genExecIDAsInt()), ExecTransType.NEW, OrdStatus.FILLED, order.getSymbol(),
                         order.getSide(), orderQty, new LastShares(orderQty.getValue()), new LastPx(
                                 price), new CumQty(orderQty.getValue()), new AvgPx(price));
 
@@ -190,10 +185,10 @@ public class Application extends quickfix.MessageCracker implements quickfix.App
         }
     }
 
-    private boolean isOrderExecutable(Message order, double price) throws FieldNotFound {
-        if (order.getChar(OrdType.TAG) == OrdType.LIMIT.getValue()) {
-            BigDecimal limitPrice = new BigDecimal(order.getString(Price.TAG));
-            char side = order.getChar(Side.TAG);
+    private boolean isOrderExecutable(FIXMessage order, double price) throws FieldNotFound {
+        if (MessageUtils.coerceToChar(order, OrdType.TAG) == OrdType.LIMIT.getValue()) {
+            BigDecimal limitPrice = new BigDecimal(order.getFieldValue(Price.TAG));
+            char side = MessageUtils.coerceToChar(order, Side.TAG);
             BigDecimal thePrice = new BigDecimal(price);
 
             return (side == Side.BUY.getValue() && thePrice.compareTo(limitPrice) <= 0)
@@ -203,40 +198,44 @@ public class Application extends quickfix.MessageCracker implements quickfix.App
         return true;
     }
 
-    private double getPrice(Message message) throws FieldNotFound {
+    private double getPrice(FIXMessage message) throws FieldNotFound {
 
-        if (message.getChar(OrdType.TAG) == OrdType.LIMIT.getValue() && alwaysFillLimitOrders) {
-            return message.getDouble(Price.TAG);
+        if (MessageUtils.coerceToChar(message, OrdType.TAG) == OrdType.LIMIT.getValue()
+                && alwaysFillLimitOrders) {
+            return MessageUtils.coerceToDouble(message, Price.TAG);
         }
 
         if (marketDataProvider == null) {
             throw new RuntimeException("No market data provider specified for market order");
         }
 
-        char side = message.getChar(Side.TAG);
+        char side = MessageUtils.coerceToChar(message, OrdType.TAG);
         if (side == Side.BUY.getValue()) {
-            return marketDataProvider.getAsk(message.getString(Symbol.TAG));
+            return marketDataProvider.getAsk(message.getFieldValue(Symbol.TAG));
         } else if (side == Side.SELL.getValue() || side == Side.SELL_SHORT.getValue()) {
-            return marketDataProvider.getBid(message.getString(Symbol.TAG));
+            return marketDataProvider.getBid(message.getFieldValue(Symbol.TAG));
         } else {
             throw new RuntimeException("Invalid order side: " + side);
         }
     }
 
-    private void sendMessage(SessionID sessionID, Message message) {
+    void sendMessage(FIXSessionID sessionID, FIXMessage message) {
         try {
             Session session = Session.lookupSession(sessionID);
             if (session == null) {
-                throw new SessionNotFound(sessionID.toString());
+                throw new SessionNotFoundException(sessionID.toString());
             }
 
-            message.getHeader().setString(FixTags.MSG_TYPE, message.getMsgType());
+            message.getHeader().setField(new GenericField(FIXTag.MSG_TYPE, message.getMsgType()));
 
-            DataDictionaryProvider dataDictionaryProvider = session.getDataDictionaryProvider();
-            if (dataDictionaryProvider != null) {
+            FIXMessageDictionaryFactory dictionaryFactory = session.getDataDictionary();
+
+            if (dictionaryFactory != null) {
                 try {
-                    dataDictionaryProvider.getApplicationDataDictionary(getApplVerID(session))
-                            .validate(message, true);
+                    FIXMessageDictionary messageDictionary = dictionaryFactory
+                            .getMessageDictionary(getApplVerID(session), message.getMsgType());
+                    new DefaultValidator(sessionID.getBeginString()).validate(messageDictionary,
+                            message, true);
                 } catch (Exception e) {
                     LogUtil.logThrowable(sessionID,
                             "Outgoing message failed validation: " + e.getMessage(), e);
@@ -246,9 +245,67 @@ public class Application extends quickfix.MessageCracker implements quickfix.App
 
             session.send(message);
 
-        } catch (SessionNotFound e) {
+        } catch (SessionNotFoundException e) {
             log.error(e.getMessage(), e);
         }
+    }
+
+    /**
+     * Get the marketDataProvider property.
+     *
+     * @return Returns the marketDataProvider.
+     * @since 2.0
+     */
+    public MarketDataProvider getMarketDataProvider() {
+        return marketDataProvider;
+    }
+
+    public double getBid(String symbol) {
+
+        if (getMarketDataProvider() == null) {
+            throw new RuntimeException("No market data provider specified for market order");
+        }
+
+        return getMarketDataProvider().getBid(symbol);
+    }
+
+    public double getAsk(String symbol) {
+
+        if (getMarketDataProvider() == null) {
+            throw new RuntimeException("No market data provider specified for market order");
+        }
+
+        return getMarketDataProvider().getAsk(symbol);
+    }
+
+    /**
+     * Get the validOrderTypes property.
+     *
+     * @return Returns the validOrderTypes.
+     * @since 2.0
+     */
+    public HashSet<String> getValidOrderTypes() {
+        return validOrderTypes;
+    }
+
+    /**
+     * Get the log property.
+     *
+     * @return Returns the log.
+     * @since 2.0
+     */
+    public Logger getLog() {
+        return log;
+    }
+
+    /**
+     * Get the alwaysFillLimitOrders property.
+     *
+     * @return Returns the alwaysFillLimitOrders.
+     * @since 2.0
+     */
+    public boolean isAlwaysFillLimitOrders() {
+        return alwaysFillLimitOrders;
     }
 
     private FIXApplication getApplVerID(Session session) {
@@ -260,40 +317,47 @@ public class Application extends quickfix.MessageCracker implements quickfix.App
         return MessageUtils.toApplVerID(beginString);
     }
 
-    public void onMessage(quickfix.fix41.NewOrderSingle order, SessionID sessionID)
-            throws FieldNotFound, IncorrectTagValue {
+    public void onMessage(org.quickfixj.messages.bd.fix41.NewOrderSingle order,
+            FIXSessionID sessionID) throws FieldNotFound, IncorrectTagValue {
         try {
 
             // earlier FIX versions used string not character values
-            validateOrder(new quickfix.fix44.field.OrdType(order.getOrdType().getCharacters()
-                    .charAt(0)));
+            validateOrder(new org.quickfixj.messages.bd.fix44.field.OrdType(order.getOrdType()
+                    .getCharacters().charAt(0)));
 
             double price = getPrice(order);
 
-            quickfix.fix41.field.OrderQty orderQty = order.getOrderQty();
+            org.quickfixj.messages.bd.fix41.field.OrderQty orderQty = order.getOrderQty();
 
-            quickfix.fix41.ExecutionReport accept = new quickfix.fix41.ExecutionReport(
-                    new quickfix.fix41.field.OrderID(genOrderID()),
-                    new quickfix.fix41.field.ExecID(genExecID()),
-                    quickfix.fix41.field.ExecTransType.NEW, quickfix.fix41.field.ExecType.FILL,
-                    quickfix.fix41.field.OrdStatus.NEW, order.getSymbol(), order.getSide(),
-                    order.getOrderQty(), new quickfix.fix41.field.LastShares(0),
-                    new quickfix.fix41.field.LastPx(0), new quickfix.fix41.field.LeavesQty(0),
-                    new quickfix.fix41.field.CumQty(0), new quickfix.fix41.field.AvgPx(0));
+            org.quickfixj.messages.bd.fix41.ExecutionReport accept = new org.quickfixj.messages.bd.fix41.ExecutionReport(
+                    new org.quickfixj.messages.bd.fix41.field.OrderID(genOrderID()),
+                    new org.quickfixj.messages.bd.fix41.field.ExecID(genExecID()),
+                    org.quickfixj.messages.bd.fix41.field.ExecTransType.NEW,
+                    org.quickfixj.messages.bd.fix41.field.ExecType.FILL,
+                    org.quickfixj.messages.bd.fix41.field.OrdStatus.NEW, order.getSymbol(),
+                    order.getSide(), order.getOrderQty(),
+                    new org.quickfixj.messages.bd.fix41.field.LastShares(0),
+                    new org.quickfixj.messages.bd.fix41.field.LastPx(0),
+                    new org.quickfixj.messages.bd.fix41.field.LeavesQty(0),
+                    new org.quickfixj.messages.bd.fix41.field.CumQty(0),
+                    new org.quickfixj.messages.bd.fix41.field.AvgPx(0));
 
             accept.setClOrdID(order.getClOrdID());
             sendMessage(sessionID, accept);
 
             if (isOrderExecutable(order, price)) {
-                quickfix.fix41.ExecutionReport executionReport = new quickfix.fix41.ExecutionReport(
-                        new quickfix.fix41.field.OrderID(genOrderID()),
-                        new quickfix.fix41.field.ExecID(genExecID()),
-                        quickfix.fix41.field.ExecTransType.NEW, quickfix.fix41.field.ExecType.FILL,
-                        quickfix.fix41.field.OrdStatus.FILLED, order.getSymbol(), order.getSide(),
-                        order.getOrderQty(), new quickfix.fix41.field.LastShares(
-                                orderQty.getValue()), new quickfix.fix41.field.LastPx(price),
-                        new quickfix.fix41.field.LeavesQty(0), new quickfix.fix41.field.CumQty(
-                                orderQty.getValue()), new quickfix.fix41.field.AvgPx(price));
+                org.quickfixj.messages.bd.fix41.ExecutionReport executionReport = new org.quickfixj.messages.bd.fix41.ExecutionReport(
+                        new org.quickfixj.messages.bd.fix41.field.OrderID(genOrderID()),
+                        new org.quickfixj.messages.bd.fix41.field.ExecID(genExecID()),
+                        org.quickfixj.messages.bd.fix41.field.ExecTransType.NEW,
+                        org.quickfixj.messages.bd.fix41.field.ExecType.FILL,
+                        org.quickfixj.messages.bd.fix41.field.OrdStatus.FILLED, order.getSymbol(),
+                        order.getSide(), order.getOrderQty(),
+                        new org.quickfixj.messages.bd.fix41.field.LastShares(orderQty.getValue()),
+                        new org.quickfixj.messages.bd.fix41.field.LastPx(price),
+                        new org.quickfixj.messages.bd.fix41.field.LeavesQty(0),
+                        new org.quickfixj.messages.bd.fix41.field.CumQty(orderQty.getValue()),
+                        new org.quickfixj.messages.bd.fix41.field.AvgPx(price));
 
                 executionReport.setClOrdID(order.getClOrdID());
 
@@ -304,43 +368,47 @@ public class Application extends quickfix.MessageCracker implements quickfix.App
         }
     }
 
-    public void onMessage(quickfix.fix42.NewOrderSingle order, SessionID sessionID)
-            throws FieldNotFound, IncorrectTagValue {
+    public void onMessage(org.quickfixj.messages.bd.fix42.NewOrderSingle order,
+            FIXSessionID sessionID) throws FieldNotFound, IncorrectTagValue {
         try {
 
             // earlier FIX versions used string not character values
-            validateOrder(new quickfix.fix44.field.OrdType(order.getOrdType().getCharacters()
-                    .charAt(0)));
+            validateOrder(new org.quickfixj.messages.bd.fix44.field.OrdType(order.getOrdType()
+                    .getCharacters().charAt(0)));
 
             double price = getPrice(order);
 
-            quickfix.fix42.field.OrderQty orderQty = order.getOrderQty();
+            org.quickfixj.messages.bd.fix42.field.OrderQty orderQty = order.getOrderQty();
 
-            quickfix.fix42.ExecutionReport accept = new quickfix.fix42.ExecutionReport(
-                    new quickfix.fix42.field.OrderID(genOrderID()),
-                    new quickfix.fix42.field.ExecID(genExecID()),
-                    quickfix.fix42.field.ExecTransType.NEW, quickfix.fix42.field.ExecType.FILL,
-                    quickfix.fix42.field.OrdStatus.NEW, order.getSymbol(), order.getSide(),
-                    new quickfix.fix42.field.LeavesQty(0), new quickfix.fix42.field.CumQty(0),
-                    new quickfix.fix42.field.AvgPx(0));
+            org.quickfixj.messages.bd.fix42.ExecutionReport accept = new org.quickfixj.messages.bd.fix42.ExecutionReport(
+                    new org.quickfixj.messages.bd.fix42.field.OrderID(genOrderID()),
+                    new org.quickfixj.messages.bd.fix42.field.ExecID(genExecID()),
+                    org.quickfixj.messages.bd.fix42.field.ExecTransType.NEW,
+                    org.quickfixj.messages.bd.fix42.field.ExecType.FILL,
+                    org.quickfixj.messages.bd.fix42.field.OrdStatus.NEW, order.getSymbol(),
+                    order.getSide(), new org.quickfixj.messages.bd.fix42.field.LeavesQty(0),
+                    new org.quickfixj.messages.bd.fix42.field.CumQty(0),
+                    new org.quickfixj.messages.bd.fix42.field.AvgPx(0));
 
             accept.setClOrdID(order.getClOrdID());
             sendMessage(sessionID, accept);
 
             if (isOrderExecutable(order, price)) {
-                quickfix.fix42.ExecutionReport executionReport = new quickfix.fix42.ExecutionReport(
-                        new quickfix.fix42.field.OrderID(genOrderID()),
-                        new quickfix.fix42.field.ExecID(genExecID()),
-                        quickfix.fix42.field.ExecTransType.NEW, quickfix.fix42.field.ExecType.FILL,
-                        quickfix.fix42.field.OrdStatus.FILLED, order.getSymbol(), order.getSide(),
-                        new quickfix.fix42.field.LeavesQty(0), new quickfix.fix42.field.CumQty(
-                                orderQty.getValue()), new quickfix.fix42.field.AvgPx(price));
+                org.quickfixj.messages.bd.fix42.ExecutionReport executionReport = new org.quickfixj.messages.bd.fix42.ExecutionReport(
+                        new org.quickfixj.messages.bd.fix42.field.OrderID(genOrderID()),
+                        new org.quickfixj.messages.bd.fix42.field.ExecID(genExecID()),
+                        org.quickfixj.messages.bd.fix42.field.ExecTransType.NEW,
+                        org.quickfixj.messages.bd.fix42.field.ExecType.FILL,
+                        org.quickfixj.messages.bd.fix42.field.OrdStatus.FILLED, order.getSymbol(),
+                        order.getSide(), new org.quickfixj.messages.bd.fix42.field.LeavesQty(0),
+                        new org.quickfixj.messages.bd.fix42.field.CumQty(orderQty.getValue()),
+                        new org.quickfixj.messages.bd.fix42.field.AvgPx(price));
 
                 executionReport.setClOrdID(order.getClOrdID());
                 executionReport.setOrderQty(orderQty);
-                executionReport.setLastShares(new quickfix.fix42.field.LastShares(orderQty
-                        .getValue()));
-                executionReport.setLastPx(new quickfix.fix42.field.LastPx(price));
+                executionReport.setLastShares(new org.quickfixj.messages.bd.fix42.field.LastShares(
+                        orderQty.getValue()));
+                executionReport.setLastPx(new org.quickfixj.messages.bd.fix42.field.LastPx(price));
 
                 sendMessage(sessionID, executionReport);
             }
@@ -361,41 +429,44 @@ public class Application extends quickfix.MessageCracker implements quickfix.App
         }
     }
 
-    public void onMessage(quickfix.fix43.NewOrderSingle order, SessionID sessionID)
-            throws FieldNotFound, IncorrectTagValue {
+    public void onMessage(org.quickfixj.messages.bd.fix43.NewOrderSingle order,
+            FIXSessionID sessionID) throws FieldNotFound, IncorrectTagValue {
         try {
             validateOrder(order.getOrdType());
 
             double price = getPrice(order);
 
-            quickfix.fix43.field.OrderQty orderQty = order.getOrderQty();
+            org.quickfixj.messages.bd.fix43.field.OrderQty orderQty = order.getOrderQty();
 
-            quickfix.fix43.ExecutionReport accept = new quickfix.fix43.ExecutionReport(
-                    new quickfix.fix43.field.OrderID(genOrderID()),
-                    new quickfix.fix43.field.ExecID(genExecID()),
-                    quickfix.fix43.field.ExecType.FILL, quickfix.fix43.field.OrdStatus.NEW,
-                    order.getSide(), new quickfix.fix43.field.LeavesQty(order.getOrderQty()
-                            .getValue()), new quickfix.fix43.field.CumQty(0),
-                    new quickfix.fix43.field.AvgPx(0));
+            org.quickfixj.messages.bd.fix43.ExecutionReport accept = new org.quickfixj.messages.bd.fix43.ExecutionReport(
+                    new org.quickfixj.messages.bd.fix43.field.OrderID(genOrderID()),
+                    new org.quickfixj.messages.bd.fix43.field.ExecID(genExecID()),
+                    org.quickfixj.messages.bd.fix43.field.ExecType.FILL,
+                    org.quickfixj.messages.bd.fix43.field.OrdStatus.NEW, order.getSide(),
+                    new org.quickfixj.messages.bd.fix43.field.LeavesQty(order.getOrderQty()
+                            .getValue()), new org.quickfixj.messages.bd.fix43.field.CumQty(0),
+                    new org.quickfixj.messages.bd.fix43.field.AvgPx(0));
 
             accept.setClOrdID(order.getClOrdID());
             accept.setSymbol(order.getSymbol());
             sendMessage(sessionID, accept);
 
             if (isOrderExecutable(order, price)) {
-                quickfix.fix43.ExecutionReport executionReport = new quickfix.fix43.ExecutionReport(
-                        new quickfix.fix43.field.OrderID(genOrderID()),
-                        new quickfix.fix43.field.ExecID(genExecID()),
-                        quickfix.fix43.field.ExecType.FILL, quickfix.fix43.field.OrdStatus.FILLED,
-                        order.getSide(), new quickfix.fix43.field.LeavesQty(0),
-                        new quickfix.fix43.field.CumQty(orderQty.getValue()),
-                        new quickfix.fix43.field.AvgPx(price));
+                org.quickfixj.messages.bd.fix43.ExecutionReport executionReport = new org.quickfixj.messages.bd.fix43.ExecutionReport(
+                        new org.quickfixj.messages.bd.fix43.field.OrderID(genOrderID()),
+                        new org.quickfixj.messages.bd.fix43.field.ExecID(genExecID()),
+                        org.quickfixj.messages.bd.fix43.field.ExecType.FILL,
+                        org.quickfixj.messages.bd.fix43.field.OrdStatus.FILLED, order.getSide(),
+                        new org.quickfixj.messages.bd.fix43.field.LeavesQty(0),
+                        new org.quickfixj.messages.bd.fix43.field.CumQty(orderQty.getValue()),
+                        new org.quickfixj.messages.bd.fix43.field.AvgPx(price));
 
                 executionReport.setClOrdID(order.getClOrdID());
                 executionReport.setSymbol(order.getSymbol());
                 executionReport.setOrderQty(orderQty);
-                executionReport.setLastQty(new quickfix.fix43.field.LastQty(orderQty.getValue()));
-                executionReport.setLastPx(new quickfix.fix43.field.LastPx(price));
+                executionReport.setLastQty(new org.quickfixj.messages.bd.fix43.field.LastQty(
+                        orderQty.getValue()));
+                executionReport.setLastPx(new org.quickfixj.messages.bd.fix43.field.LastPx(price));
 
                 sendMessage(sessionID, executionReport);
             }
@@ -404,41 +475,44 @@ public class Application extends quickfix.MessageCracker implements quickfix.App
         }
     }
 
-    public void onMessage(quickfix.fix44.NewOrderSingle order, SessionID sessionID)
-            throws FieldNotFound, IncorrectTagValue {
+    public void onMessage(org.quickfixj.messages.bd.fix44.NewOrderSingle order,
+            FIXSessionID sessionID) throws FieldNotFound, IncorrectTagValue {
         try {
             validateOrder(order.getOrdType());
 
             double price = getPrice(order);
 
-            quickfix.fix44.field.OrderQty orderQty = order.getOrderQty();
+            org.quickfixj.messages.bd.fix44.field.OrderQty orderQty = order.getOrderQty();
 
-            quickfix.fix44.ExecutionReport accept = new quickfix.fix44.ExecutionReport(
-                    new quickfix.fix44.field.OrderID(genOrderID()),
-                    new quickfix.fix44.field.ExecID(genExecID()),
-                    quickfix.fix44.field.ExecType.FILL, quickfix.fix44.field.OrdStatus.NEW,
-                    order.getSide(), new quickfix.fix44.field.LeavesQty(order.getOrderQty()
-                            .getValue()), new quickfix.fix44.field.CumQty(0),
-                    new quickfix.fix44.field.AvgPx(0));
+            org.quickfixj.messages.bd.fix44.ExecutionReport accept = new org.quickfixj.messages.bd.fix44.ExecutionReport(
+                    new org.quickfixj.messages.bd.fix44.field.OrderID(genOrderID()),
+                    new org.quickfixj.messages.bd.fix44.field.ExecID(genExecID()),
+                    org.quickfixj.messages.bd.fix44.field.ExecType.FILL,
+                    org.quickfixj.messages.bd.fix44.field.OrdStatus.NEW, order.getSide(),
+                    new org.quickfixj.messages.bd.fix44.field.LeavesQty(order.getOrderQty()
+                            .getValue()), new org.quickfixj.messages.bd.fix44.field.CumQty(0),
+                    new org.quickfixj.messages.bd.fix44.field.AvgPx(0));
 
             accept.setClOrdID(order.getClOrdID());
             accept.setSymbol(order.getSymbol());
             sendMessage(sessionID, accept);
 
             if (isOrderExecutable(order, price)) {
-                quickfix.fix44.ExecutionReport executionReport = new quickfix.fix44.ExecutionReport(
-                        new quickfix.fix44.field.OrderID(genOrderID()),
-                        new quickfix.fix44.field.ExecID(genExecID()),
-                        quickfix.fix44.field.ExecType.FILL, quickfix.fix44.field.OrdStatus.FILLED,
-                        order.getSide(), new quickfix.fix44.field.LeavesQty(0),
-                        new quickfix.fix44.field.CumQty(orderQty.getValue()),
-                        new quickfix.fix44.field.AvgPx(price));
+                org.quickfixj.messages.bd.fix44.ExecutionReport executionReport = new org.quickfixj.messages.bd.fix44.ExecutionReport(
+                        new org.quickfixj.messages.bd.fix44.field.OrderID(genOrderID()),
+                        new org.quickfixj.messages.bd.fix44.field.ExecID(genExecID()),
+                        org.quickfixj.messages.bd.fix44.field.ExecType.FILL,
+                        org.quickfixj.messages.bd.fix44.field.OrdStatus.FILLED, order.getSide(),
+                        new org.quickfixj.messages.bd.fix44.field.LeavesQty(0),
+                        new org.quickfixj.messages.bd.fix44.field.CumQty(orderQty.getValue()),
+                        new org.quickfixj.messages.bd.fix44.field.AvgPx(price));
 
                 executionReport.setClOrdID(order.getClOrdID());
                 executionReport.setSymbol(order.getSymbol());
                 executionReport.setOrderQty(orderQty);
-                executionReport.setLastQty(new quickfix.fix44.field.LastQty(orderQty.getValue()));
-                executionReport.setLastPx(new quickfix.fix44.field.LastPx(price));
+                executionReport.setLastQty(new org.quickfixj.messages.bd.fix44.field.LastQty(
+                        orderQty.getValue()));
+                executionReport.setLastPx(new org.quickfixj.messages.bd.fix44.field.LastPx(price));
 
                 sendMessage(sessionID, executionReport);
             }
@@ -447,40 +521,43 @@ public class Application extends quickfix.MessageCracker implements quickfix.App
         }
     }
 
-    public void onMessage(quickfix.fix50.NewOrderSingle order, SessionID sessionID)
-            throws FieldNotFound, IncorrectTagValue {
+    public void onMessage(org.quickfixj.messages.bd.fix50.NewOrderSingle order,
+            FIXSessionID sessionID) throws FieldNotFound, IncorrectTagValue {
         try {
             validateOrder(order.getOrdType());
 
             double price = getPrice(order);
 
-            quickfix.fix50.field.OrderQty orderQty = order.getOrderQty();
+            org.quickfixj.messages.bd.fix50.field.OrderQty orderQty = order.getOrderQty();
 
-            quickfix.fix50.ExecutionReport accept = new quickfix.fix50.ExecutionReport(
-                    new quickfix.fix50.field.OrderID(genOrderID()),
-                    new quickfix.fix50.field.ExecID(genExecID()),
-                    quickfix.fix50.field.ExecType.FILL, quickfix.fix50.field.OrdStatus.NEW,
-                    order.getSide(), new quickfix.fix50.field.LeavesQty(order.getOrderQty()
-                            .getValue()), new quickfix.fix50.field.CumQty(0));
+            org.quickfixj.messages.bd.fix50.ExecutionReport accept = new org.quickfixj.messages.bd.fix50.ExecutionReport(
+                    new org.quickfixj.messages.bd.fix50.field.OrderID(genOrderID()),
+                    new org.quickfixj.messages.bd.fix50.field.ExecID(genExecID()),
+                    org.quickfixj.messages.bd.fix50.field.ExecType.FILL,
+                    org.quickfixj.messages.bd.fix50.field.OrdStatus.NEW, order.getSide(),
+                    new org.quickfixj.messages.bd.fix50.field.LeavesQty(order.getOrderQty()
+                            .getValue()), new org.quickfixj.messages.bd.fix50.field.CumQty(0));
 
             accept.setClOrdID(order.getClOrdID());
             accept.setSymbol(order.getSymbol());
             sendMessage(sessionID, accept);
 
             if (isOrderExecutable(order, price)) {
-                quickfix.fix50.ExecutionReport executionReport = new quickfix.fix50.ExecutionReport(
-                        new quickfix.fix50.field.OrderID(genOrderID()),
-                        new quickfix.fix50.field.ExecID(genExecID()),
-                        quickfix.fix50.field.ExecType.FILL, quickfix.fix50.field.OrdStatus.FILLED,
-                        order.getSide(), new quickfix.fix50.field.LeavesQty(0),
-                        new quickfix.fix50.field.CumQty(orderQty.getValue()));
+                org.quickfixj.messages.bd.fix50.ExecutionReport executionReport = new org.quickfixj.messages.bd.fix50.ExecutionReport(
+                        new org.quickfixj.messages.bd.fix50.field.OrderID(genOrderID()),
+                        new org.quickfixj.messages.bd.fix50.field.ExecID(genExecID()),
+                        org.quickfixj.messages.bd.fix50.field.ExecType.FILL,
+                        org.quickfixj.messages.bd.fix50.field.OrdStatus.FILLED, order.getSide(),
+                        new org.quickfixj.messages.bd.fix50.field.LeavesQty(0),
+                        new org.quickfixj.messages.bd.fix50.field.CumQty(orderQty.getValue()));
 
                 executionReport.setClOrdID(order.getClOrdID());
                 executionReport.setSymbol(order.getSymbol());
                 executionReport.setOrderQty(orderQty);
-                executionReport.setLastQty(new quickfix.fix50.field.LastQty(orderQty.getValue()));
-                executionReport.setLastPx(new quickfix.fix50.field.LastPx(price));
-                executionReport.setAvgPx(new quickfix.fix50.field.AvgPx(price));
+                executionReport.setLastQty(new org.quickfixj.messages.bd.fix50.field.LastQty(
+                        orderQty.getValue()));
+                executionReport.setLastPx(new org.quickfixj.messages.bd.fix50.field.LastPx(price));
+                executionReport.setAvgPx(new org.quickfixj.messages.bd.fix50.field.AvgPx(price));
 
                 sendMessage(sessionID, executionReport);
             }
@@ -495,6 +572,10 @@ public class Application extends quickfix.MessageCracker implements quickfix.App
 
     public String genExecID() {
         return Integer.valueOf(++m_execID).toString();
+    }
+
+    public int genExecIDAsInt() {
+        return ++m_execID;
     }
 
     /**

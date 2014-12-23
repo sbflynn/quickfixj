@@ -1,0 +1,49 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+>
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>org.quickfixj.messages</groupId>
+		<artifactId>quickfixj-messages</artifactId>
+		<version>2.0.0.Beta1-SNAPSHOT</version>
+	</parent>
+
+	<artifactId>org.quickfixj.messages.bd.fix44</artifactId>
+	<packaging>bundle</packaging>
+
+	<name>QuickFIX/J Message classes for FIX 4.4 (BD)</name>
+	<description>QuickFIX/J Message classes for FIX 4.4 (Big decimal)</description>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.quickfixj</groupId>
+				<artifactId>quickfixj-codegenerator</artifactId>
+				<executions>
+					<execution>
+						<id>generate-messages</id>
+						<goals>
+							<goal>build-engine</goal>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<resource>${project.artifactId}.xml</resource>
+							<dictionaryLocation>FIX44.modified.xml</dictionaryLocation>
+							<dictionaryId>FIX:44</dictionaryId>
+							<namespace>${project.groupId}.bd</namespace>
+							<beginString>FIX.4.4</beginString>
+							<application>FIX.4.4</application>
+							<packageRoot>${project.artifactId}</packageRoot>
+							<decimal>BD</decimal>
+							<applicationTransports>
+								<applicationTransport>FIX.4.4</applicationTransport>
+							</applicationTransports>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>

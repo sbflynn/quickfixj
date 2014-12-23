@@ -27,13 +27,15 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+
 public class FileUtil {
     public static String fileAppendPath(String pathPrefix, String pathSuffix) {
         return pathPrefix + (pathPrefix.endsWith(File.separator) ? "" : File.separator)
                 + pathSuffix;
     }
 
-    public static String sessionIdFileName(SessionID sessionID) {
+    public static String sessionIdFileName(FIXSessionID sessionID) {
         return replaceIllegalCharactersInFileName(sessionID.getBeginString().getValue() + "-"
                 + sessionID.getSenderCompID() + optionalField("_", sessionID.getSenderSubID())
                 + optionalField("_", sessionID.getSenderLocationID()) + "-"
@@ -147,6 +149,9 @@ public class FileUtil {
                 } catch (IOException e) {
                     // ignore
                 }
+                break;
+
+            default:
                 break;
             }
             if (in != null) {

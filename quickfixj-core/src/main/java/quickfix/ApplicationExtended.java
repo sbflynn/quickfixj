@@ -19,6 +19,8 @@
 
 package quickfix;
 
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+
 /**
  * Extended Application features
  *
@@ -32,7 +34,7 @@ public interface ApplicationExtended extends Application {
      * @param sessionID the session
      * @return true if the session can be logged on normally
      */
-    boolean canLogon(SessionID sessionID);
+    boolean canLogon(FIXSessionID sessionID);
 
     /**
      * This method is called before reset a session to allow business application to do some
@@ -40,5 +42,5 @@ public interface ApplicationExtended extends Application {
      *
      * @param sessionID
      */
-    void onBeforeSessionReset(SessionID sessionID);
+    void onBeforeSessionReset(FIXSessionID sessionID);
 }

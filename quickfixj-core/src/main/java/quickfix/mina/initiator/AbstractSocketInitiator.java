@@ -30,22 +30,23 @@ import java.util.Set;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.buffer.SimpleBufferAllocator;
-import org.quickfixj.MessageBuilderFactory;
+import org.quickfixj.engine.FIXEngine;
+import org.quickfixj.engine.MessageStoreFactory;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+import org.quickfixj.engine.LogFactory;
+import org.quickfixj.field.BooleanConverter;
+import org.quickfixj.field.FieldConversionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import quickfix.Application;
 import quickfix.ConfigError;
 import quickfix.DefaultSessionFactory;
-import quickfix.FieldConvertError;
 import quickfix.Initiator;
-import quickfix.LogFactory;
-import quickfix.MessageStoreFactory;
 import quickfix.Session;
 import quickfix.SessionFactory;
 import quickfix.SessionID;
 import quickfix.SessionSettings;
-import quickfix.field.converter.BooleanConverter;
 import quickfix.mina.EventHandlingStrategy;
 import quickfix.mina.NetworkingOptions;
 import quickfix.mina.ProtocolFactory;
@@ -62,14 +63,14 @@ public abstract class AbstractSocketInitiator extends SessionConnector implement
 
     protected AbstractSocketInitiator(Application application,
             MessageStoreFactory messageStoreFactory, SessionSettings settings,
-            LogFactory logFactory, MessageBuilderFactory messageFactory) throws ConfigError {
-        this(settings, new DefaultSessionFactory(application, messageStoreFactory, logFactory,
-                messageFactory));
+            LogFactory logFactory, FIXEngine engine) throws ConfigError {
+        this(engine, settings, new DefaultSessionFactory(application, messageStoreFactory,
+                logFactory, engine));
     }
 
-    protected AbstractSocketInitiator(SessionSettings settings, SessionFactory sessionFactory)
-            throws ConfigError {
-        super(settings, sessionFactory);
+    protected AbstractSocketInitiator(FIXEngine engine, SessionSettings settings,
+            SessionFactory sessionFactory) throws ConfigError {
+        super(engine, settings, sessionFactory);
         IoBuffer.setAllocator(new SimpleBufferAllocator());
         IoBuffer.setUseDirectBuffer(false);
     }
@@ -81,8 +82,8 @@ public abstract class AbstractSocketInitiator extends SessionConnector implement
             initiators.clear();
             createSessions();
             SessionSettings settings = getSettings();
-            for (final Session session : getSessionMap().values()) {
-                final SessionID sessionID = session.getSessionID();
+            for (Session session : getSessionMap().values()) {
+                final FIXSessionID sessionID = session.getSessionID();
                 final int[] reconnectingIntervals = getReconnectIntervalInSeconds(sessionID);
 
                 final SocketAddress[] socketAddresses = getSocketAddresses(sessionID);
@@ -120,14 +121,14 @@ public abstract class AbstractSocketInitiator extends SessionConnector implement
 
                 initiators.add(ioSessionInitiator);
             }
-        } catch (final FieldConvertError e) {
+        } catch (final FieldConversionException e) {
             throw new ConfigError(e);
         }
     }
 
     // QFJ-482
-    private SocketAddress getLocalAddress(SessionSettings settings, final SessionID sessionID)
-            throws ConfigError, FieldConvertError {
+    private SocketAddress getLocalAddress(SessionSettings settings, final FIXSessionID sessionID)
+            throws ConfigError, FieldConversionException {
         // Check if use of socket local/bind address
         SocketAddress localAddress = null;
         if (settings.isSetting(sessionID, Initiator.SETTING_SOCKET_LOCAL_HOST)) {
@@ -148,19 +149,19 @@ public abstract class AbstractSocketInitiator extends SessionConnector implement
         return localAddress;
     }
 
-    private void createSessions() throws ConfigError, FieldConvertError {
+    private void createSessions() throws ConfigError, FieldConversionException {
         final SessionSettings settings = getSettings();
         boolean continueInitOnError = false;
         if (settings.isSetting(SessionFactory.SETTING_CONTINUE_INIT_ON_ERROR)) {
             continueInitOnError = settings.getBool(SessionFactory.SETTING_CONTINUE_INIT_ON_ERROR);
         }
 
-        final Map<SessionID, Session> initiatorSessions = new HashMap<SessionID, Session>();
-        for (final Iterator<SessionID> i = settings.sectionIterator(); i.hasNext();) {
-            final SessionID sessionID = i.next();
+        final Map<FIXSessionID, Session> initiatorSessions = new HashMap<FIXSessionID, Session>();
+        for (final Iterator<FIXSessionID> i = settings.sectionIterator(); i.hasNext();) {
+            final FIXSessionID sessionID = i.next();
             if (isInitiatorSession(sessionID)) {
                 try {
-                    final Session quickfixSession = createSession(sessionID);
+                    Session quickfixSession = createSession(sessionID);
                     initiatorSessions.put(sessionID, quickfixSession);
                 } catch (final Throwable e) {
                     if (continueInitOnError) {
@@ -178,7 +179,7 @@ public abstract class AbstractSocketInitiator extends SessionConnector implement
         setSessions(initiatorSessions);
     }
 
-    private int[] getReconnectIntervalInSeconds(SessionID sessionID) throws ConfigError {
+    private int[] getReconnectIntervalInSeconds(FIXSessionID sessionID) throws ConfigError {
         final SessionSettings settings = getSettings();
         if (settings.isSetting(sessionID, Initiator.SETTING_RECONNECT_INTERVAL)) {
             try {
@@ -195,7 +196,7 @@ public abstract class AbstractSocketInitiator extends SessionConnector implement
         return new int[] { 30 };
     }
 
-    private SocketAddress[] getSocketAddresses(SessionID sessionID) throws ConfigError {
+    private SocketAddress[] getSocketAddresses(FIXSessionID sessionID) throws ConfigError {
         final SessionSettings settings = getSettings();
         final ArrayList<SocketAddress> addresses = new ArrayList<SocketAddress>();
         for (int index = 0;; index++) {
@@ -228,7 +229,7 @@ public abstract class AbstractSocketInitiator extends SessionConnector implement
                 } else {
                     break;
                 }
-            } catch (final FieldConvertError e) {
+            } catch (final FieldConversionException e) {
                 throw (ConfigError) new ConfigError(e.getMessage()).initCause(e);
             }
         }
@@ -240,7 +241,8 @@ public abstract class AbstractSocketInitiator extends SessionConnector implement
         return transportType != ProtocolFactory.VM_PIPE;
     }
 
-    private boolean isInitiatorSession(Object sectionKey) throws ConfigError, FieldConvertError {
+    private boolean isInitiatorSession(Object sectionKey) throws ConfigError,
+            FieldConversionException {
         final SessionSettings settings = getSettings();
         return !settings.isSetting((SessionID) sectionKey, SessionFactory.SETTING_CONNECTION_TYPE)
                 || settings.getString((SessionID) sectionKey,

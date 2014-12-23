@@ -51,26 +51,54 @@
 		</unique>
 	</element>
 
-	<element name="provides">
+	<element name="engine">
 		<complexType>
 			<sequence>
-				<element name="transport" minOccurs="0">
+				<element name="dictionary" minOccurs="0" maxOccurs="unbounded">
 					<complexType>
-						<sequence>
-							<element name="supports" minOccurs="0" maxOccurs="unbounded"
-								type="tns:enum.application" />
-						</sequence>
-						<attribute name="beginString" use="required" type="tns:enum.beginString" />
+						<attribute name="id" type="string" use="required" />
+						<attribute name="location" type="string" use="required" />
 					</complexType>
 				</element>
-				<element name="application" minOccurs="0">
+				<element name="transportDictionary" minOccurs="0">
 					<complexType>
-						<attribute name="application" use="required" type="tns:enum.application" />
+						<attribute name="namespace" type="string" use="required" />
+						<attribute name="beginString" type="tns:enum.beginString" use="required" />
+						<attribute name="dictionary" type="string" use="required" />
+					</complexType>
+				</element>
+				<element name="applicationDictionary" minOccurs="0">
+					<complexType>
+						<sequence>
+							<element name="transport" maxOccurs="unbounded">
+								<complexType>
+									<attribute name="namespace" type="string" use="required" />
+									<attribute name="beginString" type="tns:enum.beginString" use="required" />
+								</complexType>
+							</element>
+						</sequence>
+						<attribute name="namespace" type="string" use="required" />
+						<attribute name="application" type="tns:enum.application" use="required" />
+						<attribute name="dictionary" type="string" use="required" />
+					</complexType>
+				</element>
+				<element name="messageFactory" minOccurs="0">
+					<complexType>
+						<sequence>
+							<element name="messages" type="tns:buildDirective" />
+							<element name="components" type="tns:buildDirective" />
+							<element name="fields" type="tns:buildDirective" />
+							<element name="customFields" type="tns:buildDirective" minOccurs="0" />
+						</sequence>
+						<attribute name="namespace" type="string" use="required" />
+						<attribute name="application" type="tns:enum.application" />
+						<attribute name="transport" type="tns:enum.beginString" />
+						<attribute name="decimal" use="required" type="tns:enum.decimalType" />
+						<attribute name="dictionary" type="string" use="required" />
 					</complexType>
 				</element>
 			</sequence>
 		</complexType>
-
 	</element>
 
 	<group name="particles">
@@ -90,9 +118,32 @@
 		</choice>
 	</group>
 
+	<complexType name="provides">
+		<sequence>
+			<element name="transport" minOccurs="0">
+				<complexType>
+					<sequence>
+						<element name="supports" minOccurs="0" maxOccurs="unbounded"
+							type="tns:enum.application" />
+					</sequence>
+					<attribute name="beginString" use="required" type="tns:enum.beginString" />
+				</complexType>
+			</element>
+			<element name="application" minOccurs="0">
+				<complexType>
+					<attribute name="application" use="required" type="tns:enum.application" />
+				</complexType>
+			</element>
+		</sequence>
+	</complexType>
+
+	<complexType name="buildDirective">
+		<attribute name="package" use="required" />
+		<attribute name="build" type="boolean" default="false" />
+	</complexType>
+
 	<complexType name="data.dictionary.config">
 		<sequence>
-			<element ref="tns:provides" minOccurs="0" />
 			<element ref="tns:header" />
 			<element ref="tns:trailer" />
 			<element name="messages">
@@ -226,6 +277,13 @@
 		<restriction base="string">
 			<enumeration value="admin" />
 			<enumeration value="app" />
+		</restriction>
+	</simpleType>
+
+	<simpleType name="enum.decimalType">
+		<restriction base="string">
+			<enumeration value="BD" />
+			<enumeration value="FP" />
 		</restriction>
 	</simpleType>
 

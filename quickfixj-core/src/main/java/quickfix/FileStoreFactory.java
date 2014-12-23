@@ -19,6 +19,10 @@
 
 package quickfix;
 
+import org.quickfixj.engine.MessageStore;
+import org.quickfixj.engine.MessageStoreFactory;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+
 /**
  * Creates a message store that stores messages in a file.
  *
@@ -65,7 +69,7 @@ public class FileStoreFactory implements MessageStoreFactory {
      * @param sessionID session ID for the message store.
      */
     @Override
-    public MessageStore create(SessionID sessionID) {
+    public MessageStore create(FIXSessionID sessionID) {
         try {
             boolean syncWrites = false;
             if (settings.isSetting(sessionID, SETTING_FILE_STORE_SYNC)) {

@@ -35,7 +35,6 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
 import quickfix.examples.banzai.BanzaiApplication;
-import quickfix.examples.banzai.ExecutionTableModel;
 import quickfix.examples.banzai.Order;
 import quickfix.examples.banzai.OrderTableModel;
 
@@ -54,10 +53,9 @@ public class BanzaiPanel extends JPanel implements Observer, ActionListener {
     private CancelReplacePanel cancelReplacePanel;
     private OrderTableModel orderTableModel;
 
-    public BanzaiPanel(OrderTableModel orderTableModel, ExecutionTableModel executionTableModel,
-            BanzaiApplication application) {
+    public BanzaiPanel(BanzaiApplication application) {
         setName("BanzaiPanel");
-        this.orderTableModel = orderTableModel;
+        this.orderTableModel = application.getOrderTableModel();
 
         setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         setLayout(new GridBagLayout());
@@ -74,7 +72,7 @@ public class BanzaiPanel extends JPanel implements Observer, ActionListener {
 
         JTabbedPane tabbedPane = new JTabbedPane();
         orderPanel = new OrderPanel(orderTableModel, application);
-        ExecutionPanel executionPanel = new ExecutionPanel(executionTableModel);
+        ExecutionPanel executionPanel = new ExecutionPanel(application.getExecutionTableModel());
 
         tabbedPane.add("Orders", orderPanel);
         tabbedPane.add("Executions", executionPanel);

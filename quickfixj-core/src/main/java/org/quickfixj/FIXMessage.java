@@ -16,9 +16,23 @@ package org.quickfixj;
  */
 public interface FIXMessage extends FIXFieldGraph {
 
-    FIXFieldGraph getHeader();
+    FIXMessageHeader getHeader();
 
-    FIXFieldGraph getTrailer();
+    FIXMessageTrailer getTrailer();
 
     String getMsgType();
+
+    /**
+     * TODO - shouldn't really be storing exceptions in a data structure ?
+     * @since 2.0
+     */
+    @Deprecated
+    RuntimeException getParseException();
+
+    /**
+     * TODO - shouldn't really be storing exceptions in a data structure ?
+     * @since 2.0
+     */
+    @Deprecated
+    void setParseException(RuntimeException exception);
 }

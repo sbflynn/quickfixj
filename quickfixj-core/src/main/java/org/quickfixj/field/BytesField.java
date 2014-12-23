@@ -40,9 +40,9 @@ public abstract class BytesField extends AbstractField<byte[]> {
         this.value = value;
     }
 
-    protected BytesField(CharSequence charSequence) {
+    protected BytesField(char[] value, int offset, int count) {
         try {
-            this.value = charSequence.toString().getBytes("UTF8");
+            this.value = new String(value, offset, count).getBytes("UTF-8");
         } catch (UnsupportedEncodingException e) {
             throw new QFJException(e);
         }
@@ -61,7 +61,7 @@ public abstract class BytesField extends AbstractField<byte[]> {
     @Override
     public CharSequence getCharacters() {
         try {
-            return new String(getValue(), "UTF8");
+            return new String(getValue(), "UTF-8");
         } catch (UnsupportedEncodingException e) {
             throw new QFJException(e);
         }

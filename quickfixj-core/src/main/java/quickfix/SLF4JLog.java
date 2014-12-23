@@ -19,6 +19,7 @@
 
 package quickfix;
 
+import org.quickfixj.engine.FIXSession.FIXSessionID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.spi.LocationAwareLogger;
@@ -51,7 +52,7 @@ public class SLF4JLog extends AbstractLog {
 
     private final String callerFQCN;
 
-    public SLF4JLog(SessionID sessionID, String eventCategory, String errorEventCategory,
+    public SLF4JLog(FIXSessionID sessionID, String eventCategory, String errorEventCategory,
             String incomingMsgCategory, String outgoingMsgCategory, boolean prependSessionID,
             boolean logHeartbeats, String inCallerFQCN) {
         setLogHeartbeats(logHeartbeats);
@@ -63,7 +64,7 @@ public class SLF4JLog extends AbstractLog {
         callerFQCN = inCallerFQCN;
     }
 
-    private Logger getLogger(SessionID sessionID, String category, String defaultCategory) {
+    private Logger getLogger(FIXSessionID sessionID, String category, String defaultCategory) {
         return LoggerFactory.getLogger(category != null
                 ? substituteVariables(sessionID, category)
                 : defaultCategory);
@@ -87,7 +88,7 @@ public class SLF4JLog extends AbstractLog {
 
     private static final String QUALIFIER_VAR = "\\$\\{qualifier}";
 
-    private String substituteVariables(SessionID sessionID, String category) {
+    private String substituteVariables(FIXSessionID sessionID, String category) {
         final String[] beginStringFields = sessionID.getBeginString().getValue().split("\\.");
         String processedCategory = category;
         processedCategory = processedCategory.replaceAll(FIX_MAJOR_VERSION_VAR,

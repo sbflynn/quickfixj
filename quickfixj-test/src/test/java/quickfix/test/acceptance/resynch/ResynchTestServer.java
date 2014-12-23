@@ -24,27 +24,27 @@ import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 
 import org.quickfixj.FIXBeginString;
-import org.quickfixj.spi.MessageBuilderServiceLoader;
+import org.quickfixj.FIXMessage;
+import org.quickfixj.engine.MessageStoreFactory;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import quickfix.Application;
+import quickfix.DefaultEngine;
 import quickfix.DoNotSend;
 import quickfix.FieldNotFound;
-import quickfix.FixVersions;
 import quickfix.IncorrectDataFormat;
 import quickfix.IncorrectTagValue;
 import quickfix.MemoryStoreFactory;
-import quickfix.Message;
 import quickfix.MessageCracker;
-import quickfix.MessageStoreFactory;
 import quickfix.RejectLogon;
 import quickfix.ScreenLogFactory;
 import quickfix.Session;
 import quickfix.SessionID;
 import quickfix.SessionSettings;
-import quickfix.SocketAcceptor;
 import quickfix.UnsupportedMessageType;
+import quickfix.mina.acceptor.SocketAcceptor;
 
 public class ResynchTestServer extends MessageCracker implements Application, Runnable {
 
@@ -58,19 +58,19 @@ public class ResynchTestServer extends MessageCracker implements Application, Ru
     private boolean validateSequenceNumbers = true;
 
     @Override
-    public void fromAdmin(Message message, SessionID sessionId) throws FieldNotFound,
+    public void fromAdmin(FIXMessage message, FIXSessionID sessionId) throws FieldNotFound,
             IncorrectDataFormat, IncorrectTagValue, RejectLogon {
         // no-op
     }
 
     @Override
-    public void fromApp(Message message, SessionID sessionId) throws FieldNotFound,
+    public void fromApp(FIXMessage message, FIXSessionID sessionId) throws FieldNotFound,
             IncorrectDataFormat, IncorrectTagValue, UnsupportedMessageType {
         crack(message, sessionId);
     }
 
     @Override
-    public void onCreate(SessionID sessionId) {
+    public void onCreate(FIXSessionID sessionId) {
         if (isUnsynchMode()) {
             // NB: there is a chance that lookupSession will fail since
             // the sessions are kept in a ConcurrentHashMap which does not block.
@@ -98,12 +98,12 @@ public class ResynchTestServer extends MessageCracker implements Application, Ru
     }
 
     @Override
-    public void onLogon(SessionID sessionId) {
+    public void onLogon(FIXSessionID sessionId) {
         // no-op
     }
 
     @Override
-    public void onLogout(SessionID sessionId) {
+    public void onLogout(FIXSessionID sessionId) {
         shutdownLatch.countDown();
     }
 
@@ -123,14 +123,14 @@ public class ResynchTestServer extends MessageCracker implements Application, Ru
             settings.set(defaults);
 
             SessionID sessionID = new SessionID(FIXBeginString.FIX44, "ISLD", "TW");
-            settings.setString(sessionID, "BeginString", FixVersions.BEGINSTRING_FIX44);
+            settings.setString(sessionID, "BeginString", FIXBeginString.FIX44.getValue());
             // settings.setString(sessionID, "DataDictionary", "etc/" + FixVersions.BEGINSTRING_FIX44.replaceAll("\\.", "")
             //         + ".xml");
 
             MessageStoreFactory factory = new MemoryStoreFactory();
 
             acceptor = new SocketAcceptor(this, factory, settings, new ScreenLogFactory(settings),
-                    MessageBuilderServiceLoader.getMessageBuilderFactory());
+                    DefaultEngine.getDefaultEngine());
             acceptor.start();
 
             try {
@@ -153,12 +153,12 @@ public class ResynchTestServer extends MessageCracker implements Application, Ru
     }
 
     @Override
-    public void toAdmin(Message message, SessionID sessionId) {
+    public void toAdmin(FIXMessage message, FIXSessionID sessionId) {
         // no-op
     }
 
     @Override
-    public void toApp(Message message, SessionID sessionId) throws DoNotSend {
+    public void toApp(FIXMessage message, FIXSessionID sessionId) throws DoNotSend {
         // no-op
     }
 

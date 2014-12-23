@@ -9,7 +9,6 @@
 	</parent>
 
 	<artifactId>quickfixj-test</artifactId>
-	<packaging>bundle</packaging>
 
 	<name>QuickFIX/J Core engine tests</name>
 	<description>The core QuickFIX/J engine aceptance tests</description>
@@ -24,8 +23,6 @@
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<version>4.5</version>
-			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.mockito</groupId>
@@ -61,12 +58,10 @@
 		<dependency>
 			<groupId>org.apache.mina</groupId>
 			<artifactId>mina-core</artifactId>
-			<version>2.0.7</version>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
-			<version>1.6.3</version>
 		</dependency>
 
 		<dependency>
@@ -115,40 +110,92 @@
 		</dependency>
 		<dependency>
 			<groupId>org.quickfixj</groupId>
-			<artifactId>quickfixj-messages-fix40</artifactId>
+			<artifactId>quickfixj-core-sleepycat</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.quickfixj</groupId>
-			<artifactId>quickfixj-messages-fix41</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.quickfixj</groupId>
-			<artifactId>quickfixj-messages-fix42</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.quickfixj</groupId>
-			<artifactId>quickfixj-messages-fix43</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.quickfixj</groupId>
-			<artifactId>quickfixj-messages-fix44</artifactId>
+			<groupId>org.quickfixj.messages</groupId>
+			<artifactId>org.quickfixj.messages.bd.fix40</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.quickfixj</groupId>
-			<artifactId>quickfixj-messages-fix50</artifactId>
+			<groupId>org.quickfixj.messages</groupId>
+			<artifactId>org.quickfixj.messages.fp.fix40</artifactId>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.quickfixj</groupId>
-			<artifactId>quickfixj-messages-fix50sp1</artifactId>
+			<groupId>org.quickfixj.messages</groupId>
+			<artifactId>org.quickfixj.messages.bd.fix41</artifactId>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.quickfixj</groupId>
-			<artifactId>quickfixj-messages-fix50sp2</artifactId>
+			<groupId>org.quickfixj.messages</groupId>
+			<artifactId>org.quickfixj.messages.fp.fix41</artifactId>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.quickfixj</groupId>
-			<artifactId>quickfixj-messages-fixt11</artifactId>
+			<groupId>org.quickfixj.messages</groupId>
+			<artifactId>org.quickfixj.messages.bd.fix42</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.quickfixj.messages</groupId>
+			<artifactId>org.quickfixj.messages.fp.fix42</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.quickfixj.messages</groupId>
+			<artifactId>org.quickfixj.messages.bd.fix43</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.quickfixj.messages</groupId>
+			<artifactId>org.quickfixj.messages.fp.fix43</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.quickfixj.messages</groupId>
+			<artifactId>org.quickfixj.messages.bd.fix44</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.quickfixj.messages</groupId>
+			<artifactId>org.quickfixj.messages.fp.fix44</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.quickfixj.messages</groupId>
+			<artifactId>org.quickfixj.messages.bd.fix50</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.quickfixj.messages</groupId>
+			<artifactId>org.quickfixj.messages.fp.fix50</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.quickfixj.messages</groupId>
+			<artifactId>org.quickfixj.messages.bd.fix50sp1</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.quickfixj.messages</groupId>
+			<artifactId>org.quickfixj.messages.fp.fix50sp1</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.quickfixj.messages</groupId>
+			<artifactId>org.quickfixj.messages.bd.fix50sp2</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.quickfixj.messages</groupId>
+			<artifactId>org.quickfixj.messages.fp.fix50sp2</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.quickfixj.messages</groupId>
+			<artifactId>org.quickfixj.messages.fixt11</artifactId>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 

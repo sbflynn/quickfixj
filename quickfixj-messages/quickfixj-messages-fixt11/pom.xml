@@ -4,21 +4,42 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
-		<groupId>org.quickfixj</groupId>
+		<groupId>org.quickfixj.messages</groupId>
 		<artifactId>quickfixj-messages</artifactId>
 		<version>2.0.0.Beta1-SNAPSHOT</version>
 	</parent>
 
-	<artifactId>quickfixj-messages-fixt11</artifactId>
+	<artifactId>org.quickfixj.messages.fixt11</artifactId>
 	<packaging>bundle</packaging>
 
-	<name>QuickFIX/J Message classes for FIXT 1.1</name>
-	<description>QuickFIX/J Message classes for FIXT 1.1</description>
-	<url>http://www.quickfixj.org</url>
+	<name>QuickFIX/J Message classes for FIXT 1.1 (BD)</name>
+	<description>QuickFIX/J Message classes for FIXT 1.1 (Big decimal)</description>
 
-	<properties>
-		<fix.spec>FIXT11.xml</fix.spec>
-		<fix.name>fixt11</fix.name>
-	</properties>
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.quickfixj</groupId>
+				<artifactId>quickfixj-codegenerator</artifactId>
+				<executions>
+					<execution>
+						<id>generate-messages</id>
+						<goals>
+							<goal>build-engine</goal>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<resource>${project.artifactId}.xml</resource>
+							<dictionaryLocation>FIXT11.xml</dictionaryLocation>
+							<dictionaryId>FIXT:11</dictionaryId>
+							<namespace>${project.groupId}.fixt</namespace>
+							<beginString>FIXT.1.1</beginString>
+							<packageRoot>${project.artifactId}</packageRoot>
+							<decimal>BD</decimal>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
 
 </project>

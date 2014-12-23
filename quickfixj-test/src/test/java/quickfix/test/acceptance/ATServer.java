@@ -35,21 +35,22 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.mina.core.filterchain.IoFilterChainBuilder;
 import org.quickfixj.FIXBeginString;
-import org.quickfixj.spi.MessageBuilderServiceLoader;
+import org.quickfixj.engine.MessageStoreFactory;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import quickfix.DefaultEngine;
 import quickfix.FileStoreFactory;
 import quickfix.MemoryStoreFactory;
-import quickfix.MessageStoreFactory;
 import quickfix.RuntimeError;
 import quickfix.ScreenLogFactory;
 import quickfix.SessionID;
 import quickfix.SessionSettings;
-import quickfix.SocketAcceptor;
-import quickfix.ThreadedSocketAcceptor;
 import quickfix.mina.ProtocolFactory;
 import quickfix.mina.acceptor.AbstractSocketAcceptor;
+import quickfix.mina.acceptor.SocketAcceptor;
+import quickfix.mina.acceptor.ThreadedSocketAcceptor;
 import quickfix.mina.ssl.SSLSupport;
 import quickfix.test.util.ReflectionUtil;
 import junit.framework.Assert;
@@ -162,14 +163,14 @@ public class ATServer implements Runnable {
                     : new FileStoreFactory(settings);
             //MessageStoreFactory factory = new JdbcStoreFactory(settings);
             //LogFactory logFactory = new CommonsLogFactory(settings);
-            quickfix.LogFactory logFactory = new ScreenLogFactory(true, true, true);
+            org.quickfixj.engine.LogFactory logFactory = new ScreenLogFactory(true, true, true);
             //quickfix.LogFactory logFactory = new JdbcLogFactory(settings);
             if (threaded) {
                 acceptor = new ThreadedSocketAcceptor(application, factory, settings, logFactory,
-                        MessageBuilderServiceLoader.getMessageBuilderFactory());
+                        DefaultEngine.getDefaultEngine());
             } else {
                 acceptor = new SocketAcceptor(application, factory, settings, logFactory,
-                        MessageBuilderServiceLoader.getMessageBuilderFactory());
+                        DefaultEngine.getDefaultEngine());
             }
             assertSessionIds();
 
@@ -238,8 +239,8 @@ public class ATServer implements Runnable {
     private void assertSessionIds() {
         // This is a strange place for this test, but it wasn't convenient
         // to put it elsewhere. Bug #153
-        ArrayList<SessionID> sessionIDs = acceptor.getSessions();
-        for (SessionID sessionID : sessionIDs) {
+        ArrayList<FIXSessionID> sessionIDs = acceptor.getSessions();
+        for (FIXSessionID sessionID : sessionIDs) {
             Assert.assertTrue(sessionID instanceof SessionID);
         }
     }

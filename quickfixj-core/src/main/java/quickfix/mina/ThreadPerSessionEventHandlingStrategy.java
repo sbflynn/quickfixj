@@ -27,8 +27,10 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import org.quickfixj.FIXMessage;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
+
 import quickfix.LogUtil;
-import quickfix.Message;
 import quickfix.Session;
 import quickfix.SessionID;
 
@@ -42,7 +44,7 @@ public class ThreadPerSessionEventHandlingStrategy implements EventHandlingStrat
      * to stop, it can take up to this long to terminate.
      */
     private static final long THREAD_WAIT_FOR_MESSAGE_MS = 250;
-    private final ConcurrentMap<SessionID, MessageDispatchingThread> dispatchers = new ConcurrentHashMap<SessionID, MessageDispatchingThread>();
+    private final ConcurrentMap<FIXSessionID, MessageDispatchingThread> dispatchers = new ConcurrentHashMap<FIXSessionID, MessageDispatchingThread>();
     private final SessionConnector sessionConnector;
     private final int queueCapacity;
 
@@ -52,7 +54,7 @@ public class ThreadPerSessionEventHandlingStrategy implements EventHandlingStrat
     }
 
     @Override
-    public void onMessage(Session quickfixSession, Message message) {
+    public void onMessage(Session quickfixSession, FIXMessage message) {
         MessageDispatchingThread dispatcher = dispatchers.get(quickfixSession.getSessionID());
         if (dispatcher == null) {
             final MessageDispatchingThread temp = new MessageDispatchingThread(quickfixSession,
@@ -107,17 +109,17 @@ public class ThreadPerSessionEventHandlingStrategy implements EventHandlingStrat
 
     protected class MessageDispatchingThread extends Thread {
         private final Session quickfixSession;
-        private final BlockingQueue<Message> messages;
+        private final BlockingQueue<FIXMessage> messages;
         private volatile boolean stopped;
         private volatile boolean stopping;
 
         private MessageDispatchingThread(Session session, int queueCapacity) {
             super("QF/J Session dispatcher: " + session.getSessionID());
             quickfixSession = session;
-            messages = new LinkedBlockingQueue<Message>(queueCapacity);
+            messages = new LinkedBlockingQueue<FIXMessage>(queueCapacity);
         }
 
-        public void enqueue(Message message) {
+        public void enqueue(FIXMessage message) {
             try {
                 messages.put(message);
             } catch (final InterruptedException e) {
@@ -134,7 +136,7 @@ public class ThreadPerSessionEventHandlingStrategy implements EventHandlingStrat
             while (!stopping) {
                 try {
                     if (quickfixSession.hasResponder()) {
-                        final Message message = getNextMessage(messages);
+                        final FIXMessage message = getNextMessage(messages);
                         if (message != null && quickfixSession.hasResponder()) {
                             quickfixSession.next(message);
                         }
@@ -178,7 +180,8 @@ public class ThreadPerSessionEventHandlingStrategy implements EventHandlingStrat
      * @return next message or null if nothing arrived within the timeout period
      * @throws InterruptedException
      */
-    protected Message getNextMessage(BlockingQueue<Message> messages) throws InterruptedException {
+    protected FIXMessage getNextMessage(BlockingQueue<FIXMessage> messages)
+            throws InterruptedException {
         return messages.poll(THREAD_WAIT_FOR_MESSAGE_MS, TimeUnit.MILLISECONDS);
     }
 

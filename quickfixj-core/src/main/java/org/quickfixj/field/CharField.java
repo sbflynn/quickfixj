@@ -35,9 +35,9 @@ public abstract class CharField extends AbstractField<Character> {
         this.value = value;
     }
 
-    protected CharField(CharSequence charSequence) {
+    protected CharField(char[] value, int offset, int count) {
 
-        this(charSequence.charAt(0));
+        this(value[offset]);
     }
 
     @Override

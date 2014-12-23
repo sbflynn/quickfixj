@@ -58,41 +58,42 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.quickfixj</groupId>
-			<artifactId>quickfixj-messages-fix50sp2</artifactId>
+			<groupId>org.quickfixj.messages</groupId>
+			<artifactId>org.quickfixj.messages.bd.fix40</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.quickfixj</groupId>
-			<artifactId>quickfixj-messages-fix50sp1</artifactId>
+			<groupId>org.quickfixj.messages</groupId>
+			<artifactId>org.quickfixj.messages.bd.fix41</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.quickfixj</groupId>
-			<artifactId>quickfixj-messages-fixt11</artifactId>
+			<groupId>org.quickfixj.messages</groupId>
+			<artifactId>org.quickfixj.messages.bd.fix42</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.quickfixj</groupId>
-			<artifactId>quickfixj-messages-fix50</artifactId>
+			<groupId>org.quickfixj.messages</groupId>
+			<artifactId>org.quickfixj.messages.bd.fix43</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.quickfixj</groupId>
-			<artifactId>quickfixj-messages-fix44</artifactId>
+			<groupId>org.quickfixj.messages</groupId>
+			<artifactId>org.quickfixj.messages.bd.fix44</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.quickfixj</groupId>
-			<artifactId>quickfixj-messages-fix43</artifactId>
+			<groupId>org.quickfixj.messages</groupId>
+			<artifactId>org.quickfixj.messages.bd.fix50</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.quickfixj</groupId>
-			<artifactId>quickfixj-messages-fix42</artifactId>
+			<groupId>org.quickfixj.messages</groupId>
+			<artifactId>org.quickfixj.messages.bd.fix50sp1</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.quickfixj</groupId>
-			<artifactId>quickfixj-messages-fix41</artifactId>
+			<groupId>org.quickfixj.messages</groupId>
+			<artifactId>org.quickfixj.messages.bd.fix50sp2</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.quickfixj</groupId>
-			<artifactId>quickfixj-messages-fix40</artifactId>
+			<groupId>org.quickfixj.messages</groupId>
+			<artifactId>org.quickfixj.messages.fixt11</artifactId>
 		</dependency>
+
 	</dependencies>
 
 	<build>

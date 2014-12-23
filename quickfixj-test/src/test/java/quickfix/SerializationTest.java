@@ -19,6 +19,11 @@
 
 package quickfix;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -30,48 +35,56 @@ import java.io.Serializable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.junit.Test;
+import org.quickfixj.FIXApplication;
+import org.quickfixj.FIXBeginString;
 import org.quickfixj.FIXField;
 import org.quickfixj.FIXGroup;
+import org.quickfixj.FIXMessage;
+import org.quickfixj.engine.FIXMessageDictionaryFactory;
 import org.quickfixj.field.BooleanField;
 import org.quickfixj.field.BytesField;
 import org.quickfixj.field.CharField;
+import org.quickfixj.field.BigDecimalField;
 import org.quickfixj.field.DoubleField;
 import org.quickfixj.field.IntField;
 import org.quickfixj.field.StringField;
 import org.quickfixj.field.UtcDateOnlyField;
 import org.quickfixj.field.UtcTimeOnlyField;
-import org.quickfixj.field.UtcTimeStampField;
+import org.quickfixj.field.UtcTimestampField;
 import org.reflections.Reflections;
 import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
 
 import junit.framework.AssertionFailedError;
-import junit.framework.TestCase;
 
-public class SerializationTest extends TestCase {
+public class SerializationTest {
 
     private String[] srcDirs = { "quickfixj-core/target/generated-sources",
             "target/generated-sources" };
 
     private String srcDir;
 
-    public SerializationTest(String name) {
-        super(name);
-    }
-
+    @Test
     public void testSerializationWithDataDictionary() throws Exception {
-        Message message = new Message("8=FIX.4.2\0019=40\00135=A\001"
-                + "98=0\001384=2\001372=D\001385=R\001372=8\001385=S\00110=96\001",
-                DataDictionaryTest.getDictionary());
+
+        FIXMessageDictionaryFactory provider = DefaultEngine.getDefaultEngine()
+                .getMessageDictionaryFactory(FIXBeginString.FIX44, "org.quickfixj.messages.bd");
+
+        FIXMessage message = MessageUtils.parse(FIXApplication.FIX44,
+                new GenericMessageBuilderFactory(), provider, "8=FIX.4.2\0019=40\00135=A\001"
+                        + "98=0\001384=2\001372=D\001385=R\001372=8\001385=S\00110=96\001", true);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ObjectOutputStream outs = new ObjectOutputStream(out);
         outs.writeObject(message);
     }
 
+    @Test
     public void testSerialization() throws IOException {
         srcDir = findSrcDir();
         // Check messages
@@ -174,8 +187,8 @@ public class SerializationTest extends TestCase {
         }
     }
 
-    public static Message createTestMessage(String className, int maxGroupElts) {
-        Message res = null;
+    public static FIXMessage createTestMessage(String className, int maxGroupElts) {
+        FIXMessage res = null;
         try {
             Class<?> cl = Class.forName(className);
             res = createMessageWithDefaultValues(cl, maxGroupElts);
@@ -195,30 +208,34 @@ public class SerializationTest extends TestCase {
             Class<?> cl = Class.forName(className);
 
             if (StringField.class.isAssignableFrom(cl)) {
-                return cl.getConstructor(CharSequence.class).newInstance("TEST");
+                return cl.getConstructor(String.class).newInstance("TEST");
             }
 
             if (IntField.class.isAssignableFrom(cl)) {
-                return cl.getConstructor(CharSequence.class).newInstance("1");
+                return cl.getConstructor(int.class).newInstance(1);
             }
 
             if (DoubleField.class.isAssignableFrom(cl)) {
-                return cl.getConstructor(CharSequence.class).newInstance("2.4");
+                return cl.getConstructor(double.class).newInstance(2.4);
+            }
+
+            if (BigDecimalField.class.isAssignableFrom(cl)) {
+                return cl.getConstructor(BigDecimal.class).newInstance(new BigDecimal("2.4"));
             }
 
             if (BooleanField.class.isAssignableFrom(cl)) {
-                return cl.getConstructor(CharSequence.class).newInstance("Y");
+                return cl.getConstructor(boolean.class).newInstance(true);
             }
 
             if (CharField.class.isAssignableFrom(cl)) {
-                return cl.getConstructor(CharSequence.class).newInstance("X");
+                return cl.getConstructor(char.class).newInstance('X');
             }
 
             if (BytesField.class.isAssignableFrom(cl)) {
-                return cl.getConstructor(CharSequence.class).newInstance("rawdata");
+                return cl.getConstructor(byte[].class).newInstance("rawdata".getBytes());
             }
 
-            if (UtcTimeStampField.class.isAssignableFrom(cl)) {
+            if (UtcTimestampField.class.isAssignableFrom(cl)) {
                 return cl.getConstructor(Date.class).newInstance(new Date());
             }
 
@@ -233,6 +250,7 @@ public class SerializationTest extends TestCase {
             throw new RuntimeError("unknown field type " + cl);
 
         } catch (Throwable e) {
+            e.printStackTrace();
             throw new AssertionFailedError(e.getMessage());
         }
     }
@@ -270,10 +288,10 @@ public class SerializationTest extends TestCase {
             if (msgClassName.contains(".component.")) {
                 return;
             }
-            Message sourceMsg = createTestMessage(msgClassName, MAX_GROUP_ELTS);
+            FIXMessage sourceMsg = createTestMessage(msgClassName, MAX_GROUP_ELTS);
             String sourceFIXString = sourceMsg.toString();
 
-            Message serializedMsg = (Message) buildSerializedObject(sourceMsg);
+            FIXMessage serializedMsg = (FIXMessage) buildSerializedObject(sourceMsg);
             String serializedFIXString = null;
             if (serializedMsg != null) {
                 serializedFIXString = serializedMsg.toString();
@@ -307,10 +325,10 @@ public class SerializationTest extends TestCase {
     }
 
     // Default values creation
-    private static Message createMessageWithDefaultValues(Class<?> cl, int maxGroupElts)
+    private static FIXMessage createMessageWithDefaultValues(Class<?> cl, int maxGroupElts)
             throws InstantiationException, IllegalAccessException {
         // Setting Fields
-        Message res = (Message) createFieldMapWithDefaultValues(cl);
+        FIXMessage res = (FIXMessage) createFieldMapWithDefaultValues(cl);
 
         // Setting Groups
         final String ADD_GROUP = "addGroup";
@@ -348,9 +366,9 @@ public class SerializationTest extends TestCase {
         return (FIXGroup) createFieldMapWithDefaultValues(cl);
     }
 
-    private static FieldMap createFieldMapWithDefaultValues(Class<?> cl)
+    private static AbstractFieldGraph createFieldMapWithDefaultValues(Class<?> cl)
             throws InstantiationException, IllegalAccessException {
-        FieldMap res = (FieldMap) cl.newInstance();
+        AbstractFieldGraph res = (AbstractFieldGraph) cl.newInstance();
 
         final String SET_METHOD = "set";
         final String GET_METHOD = "get";
@@ -411,9 +429,6 @@ public class SerializationTest extends TestCase {
                     fail(type + " does not contain a serialVersionUID");
                 }
             }
-
-            System.out.printf("SerializationTest.checkSerialVersionUID() %d %s %n ",
-                    serializableTypes.size(), annotation);
         }
 
         //  String baseDirectory = getBaseDirectory();

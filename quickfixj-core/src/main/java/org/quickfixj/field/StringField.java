@@ -35,9 +35,9 @@ public abstract class StringField extends AbstractField<String> {
         this.value = value;
     }
 
-    protected StringField(CharSequence charSequence) {
+    protected StringField(char[] value, int offset, int count) {
 
-        this(charSequence.toString());
+        this(new String(value, offset, count));
     }
 
     @Override

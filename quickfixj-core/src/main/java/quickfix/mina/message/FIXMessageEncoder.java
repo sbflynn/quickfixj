@@ -30,8 +30,7 @@ import org.apache.mina.filter.codec.ProtocolCodecException;
 import org.apache.mina.filter.codec.ProtocolEncoderOutput;
 import org.apache.mina.filter.codec.demux.MessageEncoder;
 import org.quickfixj.CharsetSupport;
-
-import quickfix.Message;
+import org.quickfixj.FIXMessage;
 
 /**
  * Encodes a Message object or message string as a byte array to be
@@ -44,7 +43,7 @@ public class FIXMessageEncoder implements MessageEncoder<Object> {
 
     static {
         Set<Class<?>> types = new HashSet<Class<?>>();
-        types.add(Message.class);
+        types.add(FIXMessage.class);
         types.add(String.class);
         TYPES = Collections.unmodifiableSet(types);
     }
@@ -63,7 +62,7 @@ public class FIXMessageEncoder implements MessageEncoder<Object> {
         String fixMessageString;
         if (message instanceof String) {
             fixMessageString = (String) message;
-        } else if (message instanceof Message) {
+        } else if (message instanceof FIXMessage) {
             fixMessageString = message.toString();
         } else {
             throw new ProtocolCodecException("Invalid FIX message object type: "
