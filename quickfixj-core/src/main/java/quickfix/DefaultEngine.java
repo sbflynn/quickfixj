@@ -32,191 +32,200 @@ import org.slf4j.LoggerFactory;
  */
 public class DefaultEngine implements FIXEngine {
 
-    private final static Logger LOG = LoggerFactory.getLogger(DefaultEngine.class);
+	private final static Logger LOG = LoggerFactory
+			.getLogger(DefaultEngine.class);
 
-    private static DefaultEngine DEFAULT;
+	private static DefaultEngine DEFAULT;
 
-    private MetadataRegistry registry = new MetadataRegistry();
+	private MetadataRegistry registry = new MetadataRegistry();
 
-    private Map<Key, FIXMessageDictionaryFactory> dictionaries = new HashMap<Key, FIXMessageDictionaryFactory>();
+	private Map<Key, FIXMessageDictionaryFactory> dictionaries = new HashMap<Key, FIXMessageDictionaryFactory>();
 
-    private Map<Key, FIXMessageBuilderFactory> builderFactories = new HashMap<Key, FIXMessageBuilderFactory>();
+	private Map<Key, FIXMessageBuilderFactory> builderFactories = new HashMap<Key, FIXMessageBuilderFactory>();
 
-    public static synchronized FIXEngine getDefaultEngine() {
+	public static synchronized FIXEngine getDefaultEngine() {
 
-        if (DEFAULT == null) {
-            DEFAULT = new DefaultEngine();
-            DEFAULT.getRegistry().loadServices();
-            DEFAULT.build();
-        }
+		if (DEFAULT == null) {
+			DEFAULT = new DefaultEngine();
+			DEFAULT.getRegistry().loadDictionaryServices();
+			DEFAULT.getRegistry().loadFactoryServices();
+			DEFAULT.build();
+		}
 
-        return DEFAULT;
-    }
+		return DEFAULT;
+	}
 
-    /**
-     * Post construct method - should be called before putting engine into service.
-     * 
-     * @since 2.0
-     */
-    public void build() {
-        getRegistry().build();
-        getRegistry().register(this);
-    }
+	/**
+	 * Post construct method - should be called before putting engine into
+	 * service.
+	 * 
+	 * @since 2.0
+	 */
+	public void build() {
+		getRegistry().build();
+		getRegistry().register(this);
+	}
 
-    /**
-     * {@inheritDoc}
-     *
-     * @since 2.0
-     */
-    @Override
-    public FIXMessageDictionaryFactory getMessageDictionaryFactory(FIXBeginString beginString,
-            String name) {
-        return dictionaries.get(new Key(beginString, name));
-    }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @since 2.0
+	 */
+	@Override
+	public FIXMessageDictionaryFactory getMessageDictionaryFactory(
+			FIXBeginString beginString, String name) {
+		return dictionaries.get(new Key(beginString, name));
+	}
 
-    /**
-     * {@inheritDoc}
-     *
-     * @since 2.0
-     */
-    @Override
-    public FIXMessageBuilderFactory getMessageBuilderFactory(FIXBeginString beginString, String name) {
-        return builderFactories.get(new Key(beginString, name));
-    }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @since 2.0
+	 */
+	@Override
+	public FIXMessageBuilderFactory getMessageBuilderFactory(
+			FIXBeginString beginString, String name) {
+		return builderFactories.get(new Key(beginString, name));
+	}
 
-    /**
-     * {@inheritDoc}
-     *
-     * @since 2.0
-     */
-    @Override
-    public void registerMessageDictionaryFactory(FIXBeginString beginString, String name,
-            FIXMessageDictionaryFactory dictionary) {
-        dictionaries.put(new Key(beginString, name), dictionary);
-        LOG.info(String.format("Registered data dictionary '%s' for begin string '%s'", name,
-                beginString));
-    }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @since 2.0
+	 */
+	@Override
+	public void registerMessageDictionaryFactory(FIXBeginString beginString,
+			String name, FIXMessageDictionaryFactory dictionary) {
+		dictionaries.put(new Key(beginString, name), dictionary);
+		LOG.info(String.format(
+				"Registered data dictionary '%s' for begin string '%s'", name,
+				beginString));
+	}
 
-    /**
-     * {@inheritDoc}
-     *
-     * @since 2.0
-     */
-    @Override
-    public void registerMessageBuilderFactory(FIXBeginString beginString, String name,
-            FIXMessageBuilderFactory messageBuilderFactory) {
-        builderFactories.put(new Key(beginString, name), messageBuilderFactory);
-        LOG.info(String.format("Registered message builder factory '%s' for begin string '%s'",
-                name, beginString));
-    }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @since 2.0
+	 */
+	@Override
+	public void registerMessageBuilderFactory(FIXBeginString beginString,
+			String name, FIXMessageBuilderFactory messageBuilderFactory) {
+		builderFactories.put(new Key(beginString, name), messageBuilderFactory);
+		LOG.info(String
+				.format("Registered message builder factory '%s' for begin string '%s'",
+						name, beginString));
+	}
 
-    /**
-     * Get the registry property.
-     *
-     * @return Returns the registry.
-     * @since 2.0
-     */
-    public MetadataRegistry getRegistry() {
-        return registry;
-    }
+	/**
+	 * Get the registry property.
+	 *
+	 * @return Returns the registry.
+	 * @since 2.0
+	 */
+	public MetadataRegistry getRegistry() {
+		return registry;
+	}
 
-    private class Key {
+	private class Key {
 
-        private final FIXBeginString beginString;
-        private final String name;
-        private final int hashcode;
+		private final FIXBeginString beginString;
+		private final String namespace;
+		private final int hashcode;
 
-        private Key(FIXBeginString beginString, String name) {
-            this.beginString = beginString;
-            this.name = name;
+		private Key(FIXBeginString beginString, String namespace) {
+			this.beginString = beginString;
+			this.namespace = namespace;
 
-            int hash = 1;
-            if (beginString != null) {
-                hash = hash * 17 + beginString.hashCode();
-            }
+			int hash = 17;
+			if (beginString != null) {
+				hash = hash * 37 + beginString.hashCode();
+			}
 
-            if (name != null) {
-                hash = hash * 13 + name.hashCode();
-            }
+			if (namespace != null) {
+				hash = hash * 37 + namespace.hashCode();
+			}
 
-            hashcode = hash;
-        }
+			hashcode = hash;
+		}
 
-        /**
-         * {@inheritDoc}
-         *
-         * @since 2.0
-         */
-        @Override
-        public int hashCode() {
-            return hashcode;
-        }
+		/**
+		 * {@inheritDoc}
+		 *
+		 * @since 2.0
+		 */
+		@Override
+		public int hashCode() {
+			return hashcode;
+		}
 
-        /**
-         * {@inheritDoc}
-         *
-         * @since 2.0
-         */
-        @Override
-        public boolean equals(Object obj) {
+		/**
+		 * {@inheritDoc}
+		 *
+		 * @since 2.0
+		 */
+		@Override
+		public boolean equals(Object obj) {
 
-            Key key = (Key) obj;
+			Key key = (Key) obj;
 
-            return (this.beginString == key.beginString) && equals(this.name, key.name);
-        }
+			return (this.beginString == key.beginString)
+					&& equals(this.namespace, key.namespace);
+		}
 
-        public boolean equals(Object o1, Object o2) {
+		public boolean equals(Object o1, Object o2) {
 
-            if (o1 == o2) {
-                return true;
-            }
+			if (o1 == o2) {
+				return true;
+			}
 
-            if (o1 != null) {
-                return o1.equals(o2);
-            }
+			if (o1 != null) {
+				return o1.equals(o2);
+			}
 
-            return false;
-        }
-    }
+			return false;
+		}
+	}
 
-    /**
-     * {@inheritDoc}
-     *
-     * @since 2.0
-     */
-    @Override
-    public void registerSession(FIXSession session) {
-        Session.registerSession(session);
-    }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @since 2.0
+	 */
+	@Override
+	public void registerSession(FIXSession session) {
+		Session.registerSession(session);
+	}
 
-    /**
-     * {@inheritDoc}
-     *
-     * @since 2.0
-     */
-    @Override
-    public FIXSession lookupSession(FIXSessionID sessionID) {
-        return Session.lookupSession(sessionID);
-    }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @since 2.0
+	 */
+	@Override
+	public FIXSession lookupSession(FIXSessionID sessionID) {
+		return Session.lookupSession(sessionID);
+	}
 
-    /**
-     * {@inheritDoc}
-     *
-     * @since 2.0
-     */
-    @Override
-    public void unregisterSessions(List<FIXSessionID> sessionIds) {
-        Session.unregisterSessions(sessionIds);
-    }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @since 2.0
+	 */
+	@Override
+	public void unregisterSessions(List<FIXSessionID> sessionIds) {
+		Session.unregisterSessions(sessionIds);
+	}
 
-    /**
-     * {@inheritDoc}
-     * @throws SessionNotFoundException 
-     *
-     * @since TODO
-     */
-    @Override
-    public boolean send(FIXMessage message, FIXSessionID sessionID) throws SessionNotFoundException {
-        return Session.sendToTarget(message, sessionID);
-    }
+	/**
+	 * {@inheritDoc}
+	 * 
+	 * @throws SessionNotFoundException
+	 *
+	 * @since TODO
+	 */
+	@Override
+	public boolean send(FIXMessage message, FIXSessionID sessionID)
+			throws SessionNotFoundException {
+		return Session.sendToTarget(message, sessionID);
+	}
 }

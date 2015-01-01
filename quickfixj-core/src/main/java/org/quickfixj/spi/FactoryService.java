@@ -18,24 +18,22 @@
  ******************************************************************************/
 package org.quickfixj.spi;
 
-import java.util.Map;
+import java.util.Set;
 
 import org.quickfixj.engine.FIXMessageBuilderFactory;
 import org.quickfixj.engine.FIXMessageDictionaryFactory;
-import org.quickfixj.xml.dictionary.DataDictionary;
-import org.quickfixj.xml.dictionary.Engine;
 
 /**
- * DictionaryService - interface to support Java SE 1.6 service discovery of
+ * FactoryService - interface to support Java SE 1.6 service discovery of
  * namespaced {@link FIXMessageBuilderFactory} and
- * {@link FIXMessageDictionaryFactory} metadata.
+ * {@link FIXMessageDictionaryFactory} instances.
  *
  * @author stephen.flynn@jftechnology.com
  * @since 2.0
  */
-public interface DictionaryService {
+public interface FactoryService {
 
-	Engine getEngine();
+	Set<FIXMessageBuilderFactory> getMessageBuilderFactories();
 
-	Map<String, DataDictionary> getDictionaries();
+	Set<FIXMessageDictionaryFactory> getMessageDictionaryFactories();
 }

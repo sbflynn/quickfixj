@@ -39,7 +39,7 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.FileUtils;
-import org.quickfixj.xml.dictionary.DataDictionaryConfig;
+import org.quickfixj.xml.dictionary.DataDictionary;
 import org.quickfixj.xml.dictionary.Engine;
 import org.quickfixj.xml.dictionary.ObjectFactory;
 
@@ -117,7 +117,7 @@ public class GenerateMojo extends AbstractMojo {
                     "/META-INF/xsd/fix-dictionary.xsd"));
 
             Engine directives = getDirectives();
-            DataDictionaryConfig dictionary = getDictionary(directives);
+            DataDictionary dictionary = getDictionary(directives);
 
             generator = new MessageCodeGenerator(this,
                     directives.getMessageFactory(), dictionary);
@@ -266,7 +266,7 @@ public class GenerateMojo extends AbstractMojo {
         this.transformDirectory = schemaDirectory;
     }
 
-    private DataDictionaryConfig getDictionary(Engine directives)
+    private DataDictionary getDictionary(Engine directives)
             throws IOException, JAXBException {
 
         File buildFile;
@@ -286,7 +286,7 @@ public class GenerateMojo extends AbstractMojo {
         unmarshaller.setEventHandler(new DefaultValidationEventHandler());
 
         return unmarshaller.unmarshal(new StreamSource(url.openStream()),
-                DataDictionaryConfig.class).getValue();
+                DataDictionary.class).getValue();
     }
 
     private Engine getDirectives() throws JAXBException {

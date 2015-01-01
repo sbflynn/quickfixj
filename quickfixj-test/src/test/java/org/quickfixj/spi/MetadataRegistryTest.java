@@ -46,7 +46,7 @@ public class MetadataRegistryTest {
     @BeforeClass
     public static void beforeClass() throws SAXException, JAXBException, IOException {
         registry = new MetadataRegistry();
-        registry.loadServices();
+        registry.loadDictionaryServices();
 
         DictionaryService customService = new DictionaryServiceSupport(
                 "/META-INF/quickfix/FIX44.custom.xml") {

@@ -6,7 +6,7 @@
  *
  * Created on 13 Dec 2014 by stephen.flynn@jftechnology.com.
  */
-package org.quickfixj.spi;
+package quickfix;
 
 import java.util.Collections;
 import java.util.List;
@@ -27,12 +27,12 @@ import org.quickfixj.engine.GraphDictionary.GroupDictionary;
  * @author stephen.flynn@jftechnology.com
  * @since 2.0
  */
-public class SystemDictionaryFactory implements FIXMessageDictionaryFactory {
+public class GenericMessageDictionaryFactory implements FIXMessageDictionaryFactory {
 
     private final String namespace;
     private final FIXBeginString beginString;
 
-    public SystemDictionaryFactory(String namespace, FIXBeginString beginString) {
+    public GenericMessageDictionaryFactory(String namespace, FIXBeginString beginString) {
         this.namespace = namespace;
         this.beginString = beginString;
     }

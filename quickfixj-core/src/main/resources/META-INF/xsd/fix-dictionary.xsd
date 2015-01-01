@@ -4,7 +4,7 @@
 	xmlns:jaxb="http://java.sun.com/xml/ns/jaxb" jaxb:version="1.0"
 >
 
-	<element name="fix" type="tns:data.dictionary.config">
+	<element name="fix" type="tns:data.dictionary">
 		<key name="ComponentNameKey">
 			<selector xpath="tns:components/tns:component" />
 			<field xpath="@name" />
@@ -118,31 +118,12 @@
 		</choice>
 	</group>
 
-	<complexType name="provides">
-		<sequence>
-			<element name="transport" minOccurs="0">
-				<complexType>
-					<sequence>
-						<element name="supports" minOccurs="0" maxOccurs="unbounded"
-							type="tns:enum.application" />
-					</sequence>
-					<attribute name="beginString" use="required" type="tns:enum.beginString" />
-				</complexType>
-			</element>
-			<element name="application" minOccurs="0">
-				<complexType>
-					<attribute name="application" use="required" type="tns:enum.application" />
-				</complexType>
-			</element>
-		</sequence>
-	</complexType>
-
 	<complexType name="buildDirective">
 		<attribute name="package" use="required" />
 		<attribute name="build" type="boolean" default="false" />
 	</complexType>
 
-	<complexType name="data.dictionary.config">
+	<complexType name="data.dictionary">
 		<sequence>
 			<element ref="tns:header" />
 			<element ref="tns:trailer" />

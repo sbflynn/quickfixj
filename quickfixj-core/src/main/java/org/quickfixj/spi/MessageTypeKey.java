@@ -26,12 +26,12 @@ class MessageTypeKey {
         this.application = application;
         this.msgType = msgType;
 
-        int hash = 1;
+        int hash = 17;
         if (application != null) {
-            hash = hash * 31 + application.hashCode();
+            hash = hash * 37 + application.hashCode();
         }
         if (msgType != null) {
-            hash = hash * 13 + msgType.hashCode();
+            hash = hash * 37 + msgType.hashCode();
         }
         hashcode = hash;
     }

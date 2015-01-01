@@ -42,313 +42,341 @@ import quickfix.MessageCracker.RedundantHandlerException;
 
 public class MessageCrackerTest {
 
-    private int messageCracked;
+	private int messageCracked;
 
-    private Session mockSession;
+	private Session mockSession;
 
-    @Before
-    public void setUp() throws Exception {
+	@Before
+	public void setUp() throws Exception {
 
-        mockSession = mock(Session.class);
-        stub(mockSession.getTargetDefaultApplicationVersionID()).toReturn(FIXApplication.FIX50SP2);
-    }
+		mockSession = mock(Session.class);
+		stub(mockSession.getTargetDefaultApplicationVersionID()).toReturn(
+				FIXApplication.FIX50SP2);
+	}
 
-    @Test(expected = UnsupportedMessageType.class)
-    public void testInvokerException1() throws Exception {
+	@Test(expected = UnsupportedMessageType.class)
+	public void testInvokerException1() throws Exception {
 
-        org.quickfixj.messages.fixt11.Logon logon = new org.quickfixj.messages.fixt11.Logon(
-                EncryptMethod.NONE_OTHER, new HeartBtInt(30), new DefaultApplVerID(
-                        ApplVerID.FIX42.getValue()));
+		org.quickfixj.messages.fixt11.Logon logon = new org.quickfixj.messages.fixt11.Logon(
+				EncryptMethod.NONE_OTHER, new HeartBtInt(30),
+				new DefaultApplVerID(ApplVerID.FIX42.getValue()));
 
-        MessageCracker cracker = new MessageCracker() {
+		MessageCracker cracker = new MessageCracker() {
 
-            @Handler
-            public void handle(org.quickfixj.messages.fixt11.Logon logon, SessionID sessionID)
-                    throws UnsupportedMessageType {
+			@Handler
+			public void handle(org.quickfixj.messages.fixt11.Logon logon,
+					FIXSessionID sessionID) throws UnsupportedMessageType {
 
-                throw new UnsupportedMessageType();
-            }
-        };
+				throw new UnsupportedMessageType();
+			}
+		};
 
-        cracker.crack(logon, new SessionID(FIXBeginString.FIXT11, "SENDER", "TARGET"));
-    }
+		cracker.crack(logon, new SessionID(FIXBeginString.FIXT11, "SENDER",
+				"TARGET"));
+	}
 
-    @Test(expected = FieldNotFound.class)
-    public void testInvokerException2() throws Exception {
+	@Test(expected = FieldNotFound.class)
+	public void testInvokerException2() throws Exception {
 
-        org.quickfixj.messages.fixt11.Logon logon = new org.quickfixj.messages.fixt11.Logon(
-                EncryptMethod.NONE_OTHER, new HeartBtInt(30), new DefaultApplVerID(
-                        ApplVerID.FIX42.getValue()));
+		org.quickfixj.messages.fixt11.Logon logon = new org.quickfixj.messages.fixt11.Logon(
+				EncryptMethod.NONE_OTHER, new HeartBtInt(30),
+				new DefaultApplVerID(ApplVerID.FIX42.getValue()));
 
-        MessageCracker cracker = new MessageCracker() {
+		MessageCracker cracker = new MessageCracker() {
 
-            @Handler
-            public void handle(org.quickfixj.messages.fixt11.Logon logon, FIXSessionID sessionID)
-                    throws FieldNotFound {
+			@Handler
+			public void handle(org.quickfixj.messages.fixt11.Logon logon,
+					FIXSessionID sessionID) throws FieldNotFound {
 
-                throw new FieldNotFound(10);
-            }
-        };
+				throw new FieldNotFound(10);
+			}
+		};
 
-        cracker.crack(logon, new SessionID(FIXBeginString.FIXT11, "SENDER", "TARGET"));
-    }
+		cracker.crack(logon, new SessionID(FIXBeginString.FIXT11, "SENDER",
+				"TARGET"));
+	}
 
-    @Test(expected = IncorrectTagValue.class)
-    public void testInvokerException3() throws Exception {
+	@Test(expected = IncorrectTagValue.class)
+	public void testInvokerException3() throws Exception {
 
-        org.quickfixj.messages.fixt11.Logon logon = new org.quickfixj.messages.fixt11.Logon(
-                EncryptMethod.NONE_OTHER, new HeartBtInt(30), new DefaultApplVerID(
-                        ApplVerID.FIX42.getValue()));
+		org.quickfixj.messages.fixt11.Logon logon = new org.quickfixj.messages.fixt11.Logon(
+				EncryptMethod.NONE_OTHER, new HeartBtInt(30),
+				new DefaultApplVerID(ApplVerID.FIX42.getValue()));
 
-        MessageCracker cracker = new MessageCracker() {
+		MessageCracker cracker = new MessageCracker() {
 
-            @Handler
-            public void handle(org.quickfixj.messages.fixt11.Logon logon, FIXSessionID sessionID)
-                    throws IncorrectTagValue {
+			@Handler
+			public void handle(org.quickfixj.messages.fixt11.Logon logon,
+					FIXSessionID sessionID) throws IncorrectTagValue {
 
-                throw new IncorrectTagValue("test");
-            }
-        };
+				throw new IncorrectTagValue("test");
+			}
+		};
 
-        cracker.crack(logon, new SessionID(FIXBeginString.FIXT11, "SENDER", "TARGET"));
-    }
+		cracker.crack(logon, new SessionID(FIXBeginString.FIXT11, "SENDER",
+				"TARGET"));
+	}
 
-    @Test(expected = RuntimeException.class)
-    public void testInvokerException4() throws Exception {
+	@Test(expected = RuntimeException.class)
+	public void testInvokerException4() throws Exception {
 
-        org.quickfixj.messages.fixt11.Logon logon = new org.quickfixj.messages.fixt11.Logon(
-                EncryptMethod.NONE_OTHER, new HeartBtInt(30), new DefaultApplVerID(
-                        ApplVerID.FIX42.getValue()));
+		org.quickfixj.messages.fixt11.Logon logon = new org.quickfixj.messages.fixt11.Logon(
+				EncryptMethod.NONE_OTHER, new HeartBtInt(30),
+				new DefaultApplVerID(ApplVerID.FIX42.getValue()));
 
-        MessageCracker cracker = new MessageCracker() {
+		MessageCracker cracker = new MessageCracker() {
 
-            @Handler
-            public void handle(org.quickfixj.messages.fixt11.Logon logon, SessionID sessionID)
-                    throws InvalidObjectException {
+			@Handler
+			public void handle(org.quickfixj.messages.fixt11.Logon logon,
+					FIXSessionID sessionID) throws InvalidObjectException {
 
-                throw new InvalidObjectException("test");
-            }
-        };
+				throw new InvalidObjectException("test");
+			}
+		};
 
-        cracker.crack(logon, new SessionID(FIXBeginString.FIXT11, "SENDER", "TARGET"));
-    }
+		cracker.crack(logon, new SessionID(FIXBeginString.FIXT11, "SENDER",
+				"TARGET"));
+	}
 
-    @Test
-    public void testAnnotationBasedCracking() throws Exception {
+	@Test
+	public void testAnnotationBasedCracking() throws Exception {
 
-        org.quickfixj.messages.fixt11.Logon logon = new org.quickfixj.messages.fixt11.Logon(
-                EncryptMethod.NONE_OTHER, new HeartBtInt(30), new DefaultApplVerID(
-                        ApplVerID.FIX42.getValue()));
+		org.quickfixj.messages.fixt11.Logon logon = new org.quickfixj.messages.fixt11.Logon(
+				EncryptMethod.NONE_OTHER, new HeartBtInt(30),
+				new DefaultApplVerID(ApplVerID.FIX42.getValue()));
 
-        MessageCracker cracker = new MessageCracker() {
+		MessageCracker cracker = new MessageCracker() {
 
-            @Handler
-            public void handle(org.quickfixj.messages.fixt11.Logon logon, FIXSessionID sessionID) {
+			@Handler
+			public void handle(org.quickfixj.messages.fixt11.Logon logon,
+					FIXSessionID sessionID) {
 
-                messageCracked++;
-            }
-        };
+				messageCracked++;
+			}
+		};
 
-        cracker.crack(logon, new SessionID(FIXBeginString.FIXT11, "SENDER", "TARGET"));
+		cracker.crack(logon, new SessionID(FIXBeginString.FIXT11, "SENDER",
+				"TARGET"));
 
-        assertTrue(messageCracked > 0);
-    }
+		assertTrue(messageCracked > 0);
+	}
 
-    @Test(expected = RedundantHandlerException.class)
-    public void testDuplicateCracks() throws Exception {
+	@Test(expected = RedundantHandlerException.class)
+	public void testDuplicateCracks() throws Exception {
 
-        try {
-            @SuppressWarnings("unused")
-            MessageCracker cracker = new MessageCracker() {
+		try {
+			@SuppressWarnings("unused")
+			MessageCracker cracker = new MessageCracker() {
 
-                @SuppressWarnings("unused")
-                public void onMessage(org.quickfixj.messages.fixt11.Logon logon,
-                        FIXSessionID sessionID) {
+				@SuppressWarnings("unused")
+				public void onMessage(
+						org.quickfixj.messages.fixt11.Logon logon,
+						FIXSessionID sessionID) {
 
-                    messageCracked++;
-                }
+					messageCracked++;
+				}
 
-                @Handler
-                public void handle(org.quickfixj.messages.fixt11.Logon logon, FIXSessionID sessionID) {
+				@Handler
+				public void handle(org.quickfixj.messages.fixt11.Logon logon,
+						FIXSessionID sessionID) {
 
-                    messageCracked++;
-                }
-            };
-        } catch (Exception e) {
-            // toString smoke test
-            assertThat(e.toString(), notNullValue());
-            throw e;
-        }
-    }
+					messageCracked++;
+				}
+			};
+		} catch (Exception e) {
+			// toString smoke test
+			assertThat(e.toString(), notNullValue());
+			throw e;
+		}
+	}
 
-    @Test()
-    public void testFallback() throws Exception {
+	@Test()
+	public void testFallback() throws Exception {
 
-        org.quickfixj.messages.fixt11.Logon logon = new org.quickfixj.messages.fixt11.Logon(
-                EncryptMethod.NONE_OTHER, new HeartBtInt(30), new DefaultApplVerID(
-                        ApplVerID.FIX42.getValue()));
+		org.quickfixj.messages.fixt11.Logon logon = new org.quickfixj.messages.fixt11.Logon(
+				EncryptMethod.NONE_OTHER, new HeartBtInt(30),
+				new DefaultApplVerID(ApplVerID.FIX42.getValue()));
 
-        MessageCracker cracker = new MessageCracker() {
+		MessageCracker cracker = new MessageCracker() {
 
-            @Override
-            protected void onMessage(FIXMessage message, FIXSessionID sessionID) {
+			@Override
+			protected void onMessage(FIXMessage message, FIXSessionID sessionID) {
 
-                messageCracked++;
-            }
-        };
+				messageCracked++;
+			}
+		};
 
-        cracker.crack(logon, new SessionID(FIXBeginString.FIXT11, "SENDER", "TARGET"));
+		cracker.crack(logon, new SessionID(FIXBeginString.FIXT11, "SENDER",
+				"TARGET"));
 
-        assertTrue(messageCracked > 0);
-    }
+		assertTrue(messageCracked > 0);
+	}
 
-    @Test(expected = UnsupportedMessageType.class)
-    public void testFallbackWithNoOverrid() throws Exception {
+	@Test(expected = UnsupportedMessageType.class)
+	public void testFallbackWithNoOverrid() throws Exception {
 
-        org.quickfixj.messages.fixt11.Logon logon = new org.quickfixj.messages.fixt11.Logon(
-                EncryptMethod.NONE_OTHER, new HeartBtInt(30), new DefaultApplVerID(
-                        ApplVerID.FIX42.getValue()));
+		org.quickfixj.messages.fixt11.Logon logon = new org.quickfixj.messages.fixt11.Logon(
+				EncryptMethod.NONE_OTHER, new HeartBtInt(30),
+				new DefaultApplVerID(ApplVerID.FIX42.getValue()));
 
-        MessageCracker cracker = new MessageCracker();
+		MessageCracker cracker = new MessageCracker();
 
-        cracker.crack(logon, new SessionID(FIXBeginString.FIXT11, "SENDER", "TARGET"));
-    }
+		cracker.crack(logon, new SessionID(FIXBeginString.FIXT11, "SENDER",
+				"TARGET"));
+	}
 
-    @Test()
-    public void testExternalDelegation() throws Exception {
+	@Test()
+	public void testExternalDelegation() throws Exception {
 
-        org.quickfixj.messages.fixt11.Logon logon = new org.quickfixj.messages.fixt11.Logon(
-                EncryptMethod.NONE_OTHER, new HeartBtInt(30), new DefaultApplVerID(
-                        ApplVerID.FIX42.getValue()));
+		org.quickfixj.messages.fixt11.Logon logon = new org.quickfixj.messages.fixt11.Logon(
+				EncryptMethod.NONE_OTHER, new HeartBtInt(30),
+				new DefaultApplVerID(ApplVerID.FIX42.getValue()));
 
-        MessageCracker cracker = new MessageCracker(new MessageHandler());
+		MessageCracker cracker = new MessageCracker(new MessageHandler());
 
-        cracker.crack(logon, new SessionID(FIXBeginString.FIXT11, "SENDER", "TARGET"));
+		cracker.crack(logon, new SessionID(FIXBeginString.FIXT11, "SENDER",
+				"TARGET"));
 
-        assertTrue(messageCracked > 0);
-    }
+		assertTrue(messageCracked > 0);
+	}
 
-    //
-    // Legacy Tests
-    //
+	//
+	// Legacy Tests
+	//
 
-    @Test
-    public void testFixT11AppMessageCracking() throws Exception {
+	@Test
+	public void testFixT11AppMessageCracking() throws Exception {
 
-        org.quickfixj.messages.bd.fix50.Email message = new org.quickfixj.messages.bd.fix50.Email();
+		org.quickfixj.messages.bd.fix50.Email message = new org.quickfixj.messages.bd.fix50.Email();
 
-        message.getHeader().setField(
-                new org.quickfixj.messages.bd.fix50.field.SenderCompID("SENDER"));
-        message.getHeader().setField(
-                new org.quickfixj.messages.bd.fix50.field.TargetCompID("TARGET"));
-        message.getHeader().setField(
-                new org.quickfixj.messages.bd.fix50.field.BeginString(FIXBeginString.FIXT11
-                        .getValue()));
-        message.getHeader().setField(ApplVerID.FIX50SP2);
+		message.getHeader()
+				.setField(
+						new org.quickfixj.messages.bd.fix50.field.SenderCompID(
+								"SENDER"));
+		message.getHeader()
+				.setField(
+						new org.quickfixj.messages.bd.fix50.field.TargetCompID(
+								"TARGET"));
+		message.getHeader().setField(
+				new org.quickfixj.messages.bd.fix50.field.BeginString(
+						FIXBeginString.FIXT11.getValue()));
+		message.getHeader().setField(ApplVerID.FIX50SP2);
 
-        MessageCracker cracker = new MessageCracker() {
+		MessageCracker cracker = new MessageCracker() {
 
-            @SuppressWarnings("unused")
-            public void onMessage(org.quickfixj.messages.bd.fix50.Email email,
-                    FIXSessionID sessionID) {
+			@SuppressWarnings("unused")
+			public void onMessage(org.quickfixj.messages.bd.fix50.Email email,
+					FIXSessionID sessionID) {
 
-                messageCracked++;
-            }
-        };
+				messageCracked++;
+			}
+		};
 
-        cracker.crack(message, new SessionID(FIXBeginString.FIXT11, "SENDER", "TARGET"));
+		cracker.crack(message, new SessionID(FIXBeginString.FIXT11, "SENDER",
+				"TARGET"));
 
-        assertTrue(messageCracked > 0);
-    }
+		assertTrue(messageCracked > 0);
+	}
 
-    @Test
-    public void testFixtMessageCrackingWithNonFix50ApplVerID() throws Exception {
+	@Test
+	public void testFixtMessageCrackingWithNonFix50ApplVerID() throws Exception {
 
-        org.quickfixj.messages.bd.fix44.Email message = createFix44Email();
-        message.getHeader().setField(ApplVerID.FIX44);
+		org.quickfixj.messages.bd.fix44.Email message = createFix44Email();
+		message.getHeader().setField(ApplVerID.FIX44);
 
-        MessageCracker cracker = new MessageCracker() {
+		MessageCracker cracker = new MessageCracker() {
 
-            @SuppressWarnings("unused")
-            public void onMessage(org.quickfixj.messages.bd.fix44.Email email,
-                    FIXSessionID sessionID) {
+			@SuppressWarnings("unused")
+			public void onMessage(org.quickfixj.messages.bd.fix44.Email email,
+					FIXSessionID sessionID) {
 
-                messageCracked++;
-            }
-        };
+				messageCracked++;
+			}
+		};
 
-        cracker.crack(message, new SessionID(FIXBeginString.FIXT11, "SENDER", "TARGET"));
+		cracker.crack(message, new SessionID(FIXBeginString.FIXT11, "SENDER",
+				"TARGET"));
 
-        assertTrue(messageCracked > 0);
-    }
+		assertTrue(messageCracked > 0);
+	}
 
-    @Test
-    public void testFixtMessageCrackingWithSessionDefaultApplVerID() throws Exception {
+	@Test
+	public void testFixtMessageCrackingWithSessionDefaultApplVerID()
+			throws Exception {
 
-        org.quickfixj.messages.bd.fix44.Email message = createFix44Email();
-        stub(mockSession.getTargetDefaultApplicationVersionID()).toReturn(FIXApplication.FIX50SP2);
+		org.quickfixj.messages.bd.fix44.Email message = createFix44Email();
+		stub(mockSession.getTargetDefaultApplicationVersionID()).toReturn(
+				FIXApplication.FIX50SP2);
 
-        MessageCracker cracker = new MessageCracker() {
+		MessageCracker cracker = new MessageCracker() {
 
-            @SuppressWarnings("unused")
-            public void onMessage(org.quickfixj.messages.bd.fix44.Email email,
-                    FIXSessionID sessionID) {
+			@SuppressWarnings("unused")
+			public void onMessage(org.quickfixj.messages.bd.fix44.Email email,
+					FIXSessionID sessionID) {
 
-                messageCracked++;
-            }
-        };
+				messageCracked++;
+			}
+		};
 
-        cracker.crack(message, new SessionID(FIXBeginString.FIXT11, "SENDER", "TARGET"));
+		cracker.crack(message, new SessionID(FIXBeginString.FIXT11, "SENDER",
+				"TARGET"));
 
-        assertTrue(messageCracked > 0);
-    }
+		assertTrue(messageCracked > 0);
+	}
 
-    @Test
-    public void testFixtAdminMessageCracking() throws Exception {
+	@Test
+	public void testFixtAdminMessageCracking() throws Exception {
 
-        org.quickfixj.messages.fixt11.Logon logon = new org.quickfixj.messages.fixt11.Logon(
-                EncryptMethod.NONE_OTHER, new HeartBtInt(30), new DefaultApplVerID(
-                        ApplVerID.FIX42.getValue()));
+		org.quickfixj.messages.fixt11.Logon logon = new org.quickfixj.messages.fixt11.Logon(
+				EncryptMethod.NONE_OTHER, new HeartBtInt(30),
+				new DefaultApplVerID(ApplVerID.FIX42.getValue()));
 
-        MessageCracker cracker = new MessageCracker() {
+		MessageCracker cracker = new MessageCracker() {
 
-            @SuppressWarnings("unused")
-            public void onMessage(org.quickfixj.messages.fixt11.Logon logon, FIXSessionID sessionID) {
+			@SuppressWarnings("unused")
+			public void onMessage(org.quickfixj.messages.fixt11.Logon logon,
+					FIXSessionID sessionID) {
 
-                messageCracked++;
-            }
-        };
+				messageCracked++;
+			}
+		};
 
-        cracker.crack(logon, new SessionID(FIXBeginString.FIXT11, "SENDER", "TARGET"));
+		cracker.crack(logon, new SessionID(FIXBeginString.FIXT11, "SENDER",
+				"TARGET"));
 
-        assertTrue(messageCracked > 0);
-    }
+		assertTrue(messageCracked > 0);
+	}
 
-    private org.quickfixj.messages.bd.fix44.Email createFix44Email() {
+	private org.quickfixj.messages.bd.fix44.Email createFix44Email() {
 
-        org.quickfixj.messages.bd.fix44.Email message = new org.quickfixj.messages.bd.fix44.Email();
+		org.quickfixj.messages.bd.fix44.Email message = new org.quickfixj.messages.bd.fix44.Email();
 
-        message.getHeader().setField(
-                new org.quickfixj.messages.bd.fix44.field.SenderCompID("SENDER"));
-        message.getHeader().setField(
-                new org.quickfixj.messages.bd.fix44.field.TargetCompID("TARGET"));
-        message.getHeader().setField(
-                new org.quickfixj.messages.bd.fix44.field.BeginString(FIXBeginString.FIXT11
-                        .getValue()));
+		message.getHeader()
+				.setField(
+						new org.quickfixj.messages.bd.fix44.field.SenderCompID(
+								"SENDER"));
+		message.getHeader()
+				.setField(
+						new org.quickfixj.messages.bd.fix44.field.TargetCompID(
+								"TARGET"));
+		message.getHeader().setField(
+				new org.quickfixj.messages.bd.fix44.field.BeginString(
+						FIXBeginString.FIXT11.getValue()));
 
-        return message;
-    }
+		return message;
+	}
 
-    private class MessageHandler {
+	private class MessageHandler {
 
-        /**
-         * @param logon
-         * @param sessionID
-         */
-        @MessageCracker.Handler
-        public void handle(org.quickfixj.messages.fixt11.Logon logon, FIXSessionID sessionID) {
+		/**
+		 * @param logon
+		 * @param sessionID
+		 */
+		@MessageCracker.Handler
+		public void handle(org.quickfixj.messages.fixt11.Logon logon,
+				FIXSessionID sessionID) {
 
-            messageCracked++;
-        }
-    }
+			messageCracked++;
+		}
+	}
 }

@@ -1,6 +1,5 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
->
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
@@ -14,11 +13,11 @@
 
 	<name>QuickFIX/J Distribution</name>
 	<description>QuickFIX/J Distribution</description>
-	<url>http://www.quickfixj.org</url>
 
-	<!-- Note: due to limitations of the assembly plugin's moduleSets (even with useAllReactorProjects), 
-		this build must be run from parent as a full multi-module build and not just this module 
-		by itself. Otherwise it will succeed, but will be missing dependencies in lib folder. -->
+	<!-- Note: due to limitations of the assembly plugin's moduleSets (even 
+		with useAllReactorProjects), this build must be run from parent as a full 
+		multi-module build and not just this module by itself. Otherwise it will 
+		succeed, but will be missing dependencies in lib folder. -->
 
 	<dependencies>
 		<dependency>
@@ -41,21 +40,11 @@
 			<version>${project.version}</version>
 		</dependency>
 
-		<dependency>
-			<groupId>org.quickfixj</groupId>
-			<artifactId>quickfixj-examples-banzai</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.quickfixj</groupId>
-			<artifactId>quickfixj-examples-executor</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.quickfixj</groupId>
-			<artifactId>quickfixj-examples-ordermatch</artifactId>
-			<version>${project.version}</version>
-		</dependency>
+		<!-- <dependency> <groupId>org.quickfixj</groupId> <artifactId>quickfixj-examples-banzai</artifactId> 
+			<version>${project.version}</version> </dependency> <dependency> <groupId>org.quickfixj</groupId> 
+			<artifactId>quickfixj-examples-executor</artifactId> <version>${project.version}</version> 
+			</dependency> <dependency> <groupId>org.quickfixj</groupId> <artifactId>quickfixj-examples-ordermatch</artifactId> 
+			<version>${project.version}</version> </dependency> -->
 
 		<dependency>
 			<groupId>org.quickfixj.messages</groupId>
@@ -93,6 +82,14 @@
 			<groupId>org.quickfixj.messages</groupId>
 			<artifactId>org.quickfixj.messages.fixt11</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.apache.mina</groupId>
+			<artifactId>mina-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+		</dependency>
 
 	</dependencies>
 
@@ -101,7 +98,6 @@
 			<!-- generate javadocs into apidocs folder -->
 			<plugin>
 				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>2.9.1</version>
 				<executions>
 					<execution>
 						<id>javadoc-jar</id>
@@ -113,10 +109,9 @@
 							<includeDependencySources>true</includeDependencySources>
 							<dependencySourceIncludes>
 								<dependencySourceInclude>org.quickfixj:quickfixj-core</dependencySourceInclude>
-								<dependencySourceInclude>org.quickfixj:quickfixj-codegenerator</dependencySourceInclude>
-								<dependencySourceInclude>org.quickfixj:quickfixj-dictgenerator</dependencySourceInclude>
 							</dependencySourceIncludes>
-							<!-- disable links otherwise it runs again on all modules and it's too slow -->
+							<!-- disable links otherwise it runs again on all modules and it's 
+								too slow -->
 							<detectOfflineLinks>false</detectOfflineLinks>
 							<overview>${project.parent.basedir}/quickfixj-core/src/main/doc/javadoc_overview.html</overview>
 							<noindex>true</noindex>

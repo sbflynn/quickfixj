@@ -1,6 +1,5 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd"
->
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
@@ -14,7 +13,6 @@
 
 	<name>QuickFIX/J Examples</name>
 	<description>QuickFIX/J example applications</description>
-	<url>http://www.quickfixj.org</url>
 
 	<modules>
 		<module>executor</module>
@@ -63,15 +61,15 @@
 			<groupId>org.quickfixj.messages</groupId>
 			<artifactId>org.quickfixj.messages.fixt11</artifactId>
 		</dependency>
-		
-        <dependency>
-            <groupId>org.apache.mina</groupId>
-            <artifactId>mina-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
+
+		<dependency>
+			<groupId>org.apache.mina</groupId>
+			<artifactId>mina-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+		</dependency>
 
 		<dependency>
 			<groupId>org.slf4j</groupId>
@@ -91,13 +89,14 @@
 							<manifest>
 								<mainClass>${mainClass}</mainClass>
 								<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-								<!-- automatically add all dependencies to classpath as jars in the ./lib folder -->
+								<!-- automatically add all dependencies to classpath as jars in the 
+									./lib folder -->
 								<addClasspath>true</addClasspath>
 								<classpathPrefix>./lib/</classpathPrefix>
 							</manifest>
 							<manifestEntries>
-								<!-- manually add quickfixj-* dependencies to classpath as jars in current 
-									directory -->
+								<!-- manually add quickfixj-* dependencies to classpath as jars in 
+									current directory -->
 								<Class-Path>./quickfixj-core-${project.version}.jar
 									./quickfixj-messages-all-${project.version}.jar</Class-Path>
 							</manifestEntries>

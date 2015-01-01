@@ -12,9 +12,9 @@ E8=FIXT.1.19=6735=A34=149=ISLD52=00000000-00:00:00.00056=TW98=0108=2113
 #------------------------
 
 # heartbeat message with a field that is not in the specification, but is in the correct range
-I8=FIXT.1.135=034=249=TW52=<TIME>56=ISLD999=HI
+I8=FIXT.1.135=034=249=TW52=<TIME>56=ISLD4999=HI
 # expect a reject
-E8=FIXT.1.19=9635=334=249=ISLD52=00000000-00:00:00.00056=TW45=258=Invalid tag number371=999372=0373=010=0
+E8=FIXT.1.19=9735=334=249=ISLD52=00000000-00:00:00.00056=TW45=258=Invalid tag number371=4999372=0373=010=0
 
 # heartbeat message with a field that is below the valid range for fields
 I8=FIXT.1.135=034=349=TW52=<TIME>56=ISLD0=HI

@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 import org.quickfixj.FIXBeginString;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
 import org.quickfixj.engine.MessageStoreFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -99,7 +100,7 @@ public class SocketAcceptorTest extends TestCase {
             logonLatch = new CountDownLatch(1);
         }
 
-        public void onLogon(SessionID sessionId) {
+        public void onLogon(FIXSessionID sessionId) {
             super.onLogon(sessionId);
             logonLatch.countDown();
         }

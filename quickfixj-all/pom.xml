@@ -1,6 +1,5 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
->
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
@@ -24,16 +23,6 @@
 		<dependency>
 			<groupId>org.quickfixj</groupId>
 			<artifactId>quickfixj-core</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.quickfixj</groupId>
-			<artifactId>quickfixj-codegenerator</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.quickfixj</groupId>
-			<artifactId>quickfixj-dictgenerator</artifactId>
-			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.quickfixj.messages</groupId>
@@ -82,11 +71,7 @@
 					<instructions>
 						<!-- transitive dependencies are not being set as optional, see https://issues.apache.org/jira/browse/FELIX-3877 -->
 						<Import-Package>
-							com.sleepycat*;resolution:=optional,
-							org.apache.maven*;resolution:=optional,
-							org.codehaus.plexus*;resolution:=optional,
 							org.logicalcobwebs.proxool*;resolution:=optional,
-							org.dom4j*;resolution:=optional,
 							*
 						</Import-Package>
 						<Export-Package>quickfix.*,org.quickfixj.*</Export-Package>

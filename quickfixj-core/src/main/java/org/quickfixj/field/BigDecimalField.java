@@ -26,35 +26,35 @@ import java.math.BigDecimal;
  */
 public abstract class BigDecimalField extends AbstractField<BigDecimal> {
 
-    /**
-     * The serialVersionUID property.
-     */
-    private static final long serialVersionUID = 1L;
+	/**
+	 * The serialVersionUID property.
+	 */
+	private static final long serialVersionUID = 1L;
 
-    private final BigDecimal value;
+	private final BigDecimal value;
 
-    private final int padding;
+	private final int padding;
 
-    protected BigDecimalField(BigDecimal value) {
-        this(value, 0);
-    }
+	protected BigDecimalField(BigDecimal value) {
+		this(value, 0);
+	}
 
-    protected BigDecimalField(BigDecimal value, int padding) {
-        this.value = value;
-        this.padding = padding;
-    }
+	protected BigDecimalField(BigDecimal value, int padding) {
+		this.value = value;
+		this.padding = padding;
+	}
 
-    protected BigDecimalField(char[] value, int offset, int count) {
+	protected BigDecimalField(char[] value, int offset, int count) {
 
-        this(new BigDecimal(value, offset, count), 0);
-    }
+		this(BigDecimalConverter.convert(value, offset, count), 0);
+	}
 
-    @Override
-    public BigDecimal getValue() {
-        return value;
-    }
+	@Override
+	public BigDecimal getValue() {
+		return value;
+	}
 
-    public int getPadding() {
-        return padding;
-    }
+	public int getPadding() {
+		return padding;
+	}
 }

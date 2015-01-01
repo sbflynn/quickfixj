@@ -23,155 +23,186 @@ import java.util.HashSet;
 
 import org.quickfixj.FIXField;
 import org.quickfixj.FIXMessage;
+import org.quickfixj.engine.FIXSession.FIXSessionID;
 import org.quickfixj.engine.FIXTag;
 import org.quickfixj.engine.SessionNotFoundException;
 import org.quickfixj.messages.bd.fix44.field.ClOrdID;
-import org.quickfixj.messages.bd.fix44.field.PossResend;
 
 import quickfix.FieldNotFound;
+import quickfix.MessageUtils;
 import quickfix.Session;
-import quickfix.SessionID;
 
 class ATMessageCracker extends quickfix.MessageCracker {
 
-    private HashSet<Pair> orderIDs = new HashSet<Pair>();
+	private HashSet<Pair> orderIDs = new HashSet<Pair>();
 
-    public void reset() {
+	public void reset() {
 
-        orderIDs.clear();
-    }
+		orderIDs.clear();
+	}
 
-    public void process(FIXMessage message, SessionID sessionID) throws FieldNotFound {
+	public void process(FIXMessage message, FIXSessionID sessionID) {
 
-        FIXMessage echo = (FIXMessage) message.clone();
-        PossResend possResend = new PossResend(false);
-        if (message.getHeader().isFieldSet(FIXTag.POSS_RESEND)) {
-            message.getHeader().getField(FIXTag.POSS_RESEND);
-        }
+		FIXMessage echo = (FIXMessage) message.clone();
+		boolean possResend = false;
+		if (message.getHeader().isFieldSet(FIXTag.POSS_RESEND)) {
+			possResend = MessageUtils.coerceToBoolean(message.getHeader(),
+					FIXTag.POSS_RESEND);
+		}
 
-        Pair pair = new Pair(message.getField(ClOrdID.TAG), sessionID);
+		Pair pair = new Pair(message.getField(ClOrdID.TAG), sessionID);
 
-        if (possResend.getValue() && orderIDs.contains(pair)) {
-            return;
-        }
+		if (possResend && orderIDs.contains(pair)) {
+			return;
+		}
 
-        orderIDs.add(pair);
-        try {
-            Session.sendToTarget(echo, sessionID);
-        } catch (SessionNotFoundException snf) {
-            // ignore
-        }
-    }
+		orderIDs.add(pair);
+		try {
+			Session.sendToTarget(echo, sessionID);
+		} catch (SessionNotFoundException snf) {
+			// ignore
+		}
+	}
 
-    public void onMessage(org.quickfixj.messages.bd.fix50.NewOrderSingle message,
-            SessionID sessionID) throws FieldNotFound {
+	public void onMessage(
+			org.quickfixj.messages.bd.fix50.NewOrderSingle message,
+			FIXSessionID sessionID) throws FieldNotFound {
 
-        process(message, sessionID);
-    }
+		process(message, sessionID);
+	}
 
-    public void onMessage(org.quickfixj.messages.bd.fix50.SecurityDefinition message,
-            SessionID sessionID) {
+	public void onMessage(
+			org.quickfixj.messages.bd.fix50.SecurityDefinition message,
+			FIXSessionID sessionID) {
 
-        try {
-            Session.sendToTarget(message, sessionID);
-        } catch (SessionNotFoundException snf) {
-            snf.printStackTrace();
-        }
-    }
+		try {
+			Session.sendToTarget(message, sessionID);
+		} catch (SessionNotFoundException snf) {
+			snf.printStackTrace();
+		}
+	}
 
-    public void onMessage(org.quickfixj.messages.bd.fix44.NewOrderSingle message,
-            SessionID sessionID) throws FieldNotFound {
+	public void onMessage(
+			org.quickfixj.messages.bd.fix50sp2.NewOrderSingle message,
+			FIXSessionID sessionID) throws FieldNotFound {
 
-        process(message, sessionID);
-    }
+		process(message, sessionID);
+	}
 
-    public void onMessage(org.quickfixj.messages.bd.fix44.SecurityDefinition message,
-            SessionID sessionID) {
+	public void onMessage(
+			org.quickfixj.messages.bd.fix50sp2.SecurityDefinition message,
+			FIXSessionID sessionID) {
 
-        try {
-            Session.sendToTarget(message, sessionID);
-        } catch (SessionNotFoundException snf) {
-            snf.printStackTrace();
-        }
-    }
+		try {
+			Session.sendToTarget(message, sessionID);
+		} catch (SessionNotFoundException snf) {
+			snf.printStackTrace();
+		}
+	}
 
-    public void onMessage(org.quickfixj.messages.bd.fix43.NewOrderSingle message,
-            SessionID sessionID) throws FieldNotFound {
+	public void onMessage(
+			org.quickfixj.messages.bd.fix44.NewOrderSingle message,
+			FIXSessionID sessionID) throws FieldNotFound {
 
-        process(message, sessionID);
-    }
+		process(message, sessionID);
+	}
 
-    public void onMessage(org.quickfixj.messages.bd.fix43.SecurityDefinition message,
-            SessionID sessionID) {
+	public void onMessage(
+			org.quickfixj.messages.bd.fix44.SecurityDefinition message,
+			FIXSessionID sessionID) {
 
-        try {
-            Session.sendToTarget(message, sessionID);
-        } catch (SessionNotFoundException snf) {
-            snf.printStackTrace();
-        }
-    }
+		try {
+			Session.sendToTarget(message, sessionID);
+		} catch (SessionNotFoundException snf) {
+			snf.printStackTrace();
+		}
+	}
 
-    public void onMessage(org.quickfixj.messages.bd.fix42.NewOrderSingle message,
-            SessionID sessionID) throws FieldNotFound {
+	public void onMessage(
+			org.quickfixj.messages.bd.fix43.NewOrderSingle message,
+			FIXSessionID sessionID) throws FieldNotFound {
 
-        process(message, sessionID);
-    }
+		process(message, sessionID);
+	}
 
-    public void onMessage(org.quickfixj.messages.bd.fix42.SecurityDefinition message,
-            SessionID sessionID) {
+	public void onMessage(
+			org.quickfixj.messages.bd.fix43.SecurityDefinition message,
+			FIXSessionID sessionID) {
 
-        try {
-            Session.sendToTarget(message, sessionID);
-        } catch (SessionNotFoundException snf) {
-            snf.printStackTrace();
-        }
-    }
+		try {
+			Session.sendToTarget(message, sessionID);
+		} catch (SessionNotFoundException snf) {
+			snf.printStackTrace();
+		}
+	}
 
-    public void onMessage(org.quickfixj.messages.bd.fix41.NewOrderSingle message,
-            SessionID sessionID) throws FieldNotFound {
+	public void onMessage(
+			org.quickfixj.messages.bd.fix42.NewOrderSingle message,
+			FIXSessionID sessionID) throws FieldNotFound {
 
-        process(message, sessionID);
-    }
+		process(message, sessionID);
+	}
 
-    public void onMessage(org.quickfixj.messages.bd.fix40.NewOrderSingle message,
-            SessionID sessionID) throws FieldNotFound {
+	public void onMessage(
+			org.quickfixj.messages.bd.fix42.SecurityDefinition message,
+			FIXSessionID sessionID) {
 
-        process(message, sessionID);
-    }
+		try {
+			Session.sendToTarget(message, sessionID);
+		} catch (SessionNotFoundException snf) {
+			snf.printStackTrace();
+		}
+	}
 
-    private static class Pair {
+	public void onMessage(
+			org.quickfixj.messages.bd.fix41.NewOrderSingle message,
+			FIXSessionID sessionID) throws FieldNotFound {
 
-        private FIXField<?> clOrdID;
+		process(message, sessionID);
+	}
 
-        private SessionID sessionID;
+	public void onMessage(
+			org.quickfixj.messages.bd.fix40.NewOrderSingle message,
+			FIXSessionID sessionID) throws FieldNotFound {
 
-        private int hashCode = 0;
+		process(message, sessionID);
+	}
 
-        public Pair(FIXField<?> clOrdID, SessionID sessionID) {
+	private static class Pair {
 
-            this.clOrdID = clOrdID;
-            this.sessionID = sessionID;
-            hashCode = ("C:" + clOrdID.toString() + "S:" + sessionID.toString()).hashCode();
-        }
+		private FIXField<?> clOrdID;
 
-        @Override
-        public boolean equals(Object object) {
+		private FIXSessionID sessionID;
 
-            if (object == null) {
-                return false;
-            }
-            if (!(object instanceof Pair)) {
-                return false;
-            }
-            Pair pair = (Pair) object;
+		private int hashCode = 0;
 
-            return clOrdID.equals(pair.clOrdID) && sessionID.equals(pair.sessionID);
-        }
+		public Pair(FIXField<?> clOrdID, FIXSessionID sessionID) {
 
-        @Override
-        public int hashCode() {
+			this.clOrdID = clOrdID;
+			this.sessionID = sessionID;
+			hashCode = ("C:" + clOrdID.toString() + "S:" + sessionID.toString())
+					.hashCode();
+		}
 
-            return hashCode;
-        }
-    }
+		@Override
+		public boolean equals(Object object) {
+
+			if (object == null) {
+				return false;
+			}
+			if (!(object instanceof Pair)) {
+				return false;
+			}
+			Pair pair = (Pair) object;
+
+			return clOrdID.equals(pair.clOrdID)
+					&& sessionID.equals(pair.sessionID);
+		}
+
+		@Override
+		public int hashCode() {
+
+			return hashCode;
+		}
+	}
 }
